@@ -1,0 +1,41 @@
+{
+  "name": "curso-milagros-2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proceso diario de Un Curso de Milagros 2026 — Gimnasio Emocional Mentes Brillantes",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "rules:deploy": "tsx scripts/deploy-rules.ts",
+    "seed": "tsx scripts/seed.ts",
+    "import:textos": "tsx scripts/import-original-texts.ts",
+    "videos:apply": "tsx scripts/apply-videos.ts",
+    "set:admin": "tsx scripts/set-admin.ts"
+  },
+  "dependencies": {
+    "firebase": "^10.12.2",
+    "firebase-admin": "^12.1.1",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.35",
+    "node-html-parser": "^6.1.13",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

@@ -1,0 +1,139 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { RouteGuard } from "@/components/common/RouteGuard";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { getLessonByNumber } from "@/lib/lessons";
+import { getLessonProgress } from "@/lib/progress";
+import { touchActivity } from "@/lib/users";
+import { LessonHeader } from "@/components/lesson/LessonHeader";
+import { VideoPlayer } from "@/components/lesson/VideoPlayer";
+import { OriginalText } from "@/components/lesson/OriginalText";
+import { CommentarySections } from "@/components/lesson/CommentarySections";
+import { MarkDoneButton } from "@/components/lesson/MarkDoneButton";
+import { Forum } from "@/components/forum/Forum";
+import { EmptyState } from "@/components/common/EmptyState";
+import { PageLoader } from "@/components/ui/Spinner";
+import { SITE } from "@/config/site";
+import type { Lesson, Progress } from "@/types";
+
+function LessonInner({ n }: { n: number }) {
+  const { appUser } = useAuth();
+  const [lesson, setLesson] = useState<Lesson | null | undefined>(undefined);
+  const [progress, setProgress] = useState<Progress | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getLessonByNumber(n)
+      .then((l) => active && setLesson(l))
+      .catch(() => active && setLesson(null));
+    if (appUser) {
+      getLessonProgress(appUser.uid, n).then((p) => active && setProgress(p));
+      void touchActivity(appUser.uid);
+    }
+    return () => {
+      active = false;
+    };
+  }, [n, appUser?.uid]);
+
+  if (!Number.isInteger(n) || n < 1 || n > SITE.totalLessons) {
+    return (
+      <div className="container-page py-12">
+        <EmptyState
+          icon="🧭"
+          title="Esa lección no existe"
+          description={`El proceso tiene ${SITE.totalLessons} lecciones (de la 1 a la ${SITE.totalLessons}).`}
+          action={
+            <Link href="/lecciones" className="btn-primary mt-2">
+              Ver lecciones
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (lesson === undefined) return <PageLoader label={`Cargando lección ${n}...`} />;
+
+  if (lesson === null) {
+    return (
+      <div className="container-page py-12">
+        <EmptyState
+          icon="🌱"
+          title={`La lección ${n} todavía no está creada`}
+          description="Aún no se ha cargado en la base de datos. Vuelve pronto."
+          action={
+            <Link href="/lecciones" className="btn-ghost mt-2">
+              Volver a las lecciones
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  const prev = n > 1 ? n - 1 : null;
+  const next = n < SITE.totalLessons ? n + 1 : null;
+
+  return (
+    <div className="container-page py-8 sm:py-10">
+      <LessonHeader
+        number={lesson.number}
+        title={lesson.title}
+        completed={Boolean(progress?.completed)}
+        completedAt={progress?.completedAt}
+      />
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
+        {/* columna principal */}
+        <div className="space-y-6">
+          <VideoPlayer video={lesson.video} title={lesson.title} />
+          <OriginalText lesson={lesson} />
+          <CommentarySections commentary={lesson.commentary} ready={lesson.commentaryReady} />
+          <Forum lessonNumber={lesson.number} />
+        </div>
+
+        {/* columna lateral (pegajosa en escritorio) */}
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          {appUser && (
+            <MarkDoneButton
+              uid={appUser.uid}
+              lessonNumber={lesson.number}
+              completed={Boolean(progress?.completed)}
+              completedAt={progress?.completedAt ?? null}
+            />
+          )}
+          <div className="card flex items-center justify-between gap-2 p-3">
+            {prev ? (
+              <Link href={`/lecciones/${prev}`} className="btn-ghost flex-1 text-sm">
+                ← {prev}
+              </Link>
+            ) : (
+              <span className="flex-1" />
+            )}
+            <Link href="/lecciones" className="btn-ghost text-sm" title="Todas">
+              ☰
+            </Link>
+            {next ? (
+              <Link href={`/lecciones/${next}`} className="btn-ghost flex-1 text-sm">
+                {next} →
+              </Link>
+            ) : (
+              <span className="flex-1" />
+            )}
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+export default function LessonPage({ params }: { params: { numero: string } }) {
+  const n = Number(params.numero);
+  return (
+    <RouteGuard>
+      <LessonInner n={n} />
+    </RouteGuard>
+  );
+}

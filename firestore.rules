@@ -1,0 +1,83 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Correos que SIEMPRE son admin (edítalos aquí si cambian).
+    function adminEmails() {
+      return [
+        'fundacionsocial@gimnasioemocionalmb.com'
+      ];
+    }
+
+    // Admin = correo verificado en la lista O rol 'admin' en su doc.
+    // No requiere claves de servidor: se valida con el correo del login de Google.
+    function isAdmin() {
+      return isSignedIn() && (
+        (
+          request.auth.token.email_verified == true &&
+          request.auth.token.email in adminEmails()
+        ) ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        )
+      );
+    }
+
+    // --- USUARIOS ---
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      // Cada quien crea su propio perfil y SOLO como 'user'.
+      allow create: if isSignedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.role == 'user';
+      // Puedes editar tu propio perfil, pero NO tu rol. El admin sí puede.
+      allow update: if isAdmin()
+                    || (isSignedIn()
+                        && request.auth.uid == uid
+                        && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
+    }
+
+    // --- LECCIONES ---
+    match /lessons/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // --- PROGRESO ---
+    match /progress/{pid} {
+      allow read: if isSignedIn()
+                  && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create, update: if isSignedIn()
+                  && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin()
+                  || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // --- FORO ---
+    match /forumPosts/{pid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.status == 'visible';
+      // El autor puede editar/borrar lo suyo (sin cambiar de dueño); el admin todo.
+      allow update: if isAdmin()
+                    || (isSignedIn()
+                        && resource.data.userId == request.auth.uid
+                        && request.resource.data.userId == resource.data.userId);
+      allow delete: if isAdmin();
+    }
+
+    // --- AJUSTES (solo admin escribe) ---
+    match /adminSettings/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

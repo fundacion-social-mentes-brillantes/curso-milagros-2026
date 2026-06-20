@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email == 'fundacionsocial@gimnasioemocionalmb.com';
+    }
+
+    // Imágenes públicas del proyecto (hero, ilustraciones). Solo admin sube.
+    match /images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Cualquier otro archivo: lectura para autenticados, escritura solo admin.
+    match /{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+  }
+}

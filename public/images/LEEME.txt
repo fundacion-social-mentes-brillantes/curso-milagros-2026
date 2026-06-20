@@ -1,0 +1,11 @@
+Aquí van las imágenes de la app (hero, ilustraciones, iconos, fondos).
+
+Codex puede generarlas y guardarlas en esta carpeta (/public/images).
+Luego se referencian en el código como /images/nombre.png
+
+Sugeridas:
+- hero.png         → imagen común principal (portada)
+- og.png           → imagen para compartir enlaces (1200x630)
+- secciones/...    → ilustraciones suaves por sección (opcional)
+
+Ver PROMPT_CODEX_IMAGENES_Y_EMBELLECIMIENTO.md para el detalle.
