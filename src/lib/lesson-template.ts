@@ -12,6 +12,8 @@ export function emptyCommentary(): LessonCommentary {
     psychological: "",
     spiritual: "",
     courseRelation: "",
+    practiceTips: [],
+    conclusion: "",
     dailyExamples: [],
     guideExample: { title: "", situation: "", shift: "" },
     finalReflection: "",

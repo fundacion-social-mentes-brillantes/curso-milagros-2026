@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: `El blog respondió ${res.status}` }, { status: 502 });
     }
     const html = await res.text();
-    const parsed = parseLessonHtml(html);
+    const parsed = parseLessonHtml(html, n);
     return NextResponse.json({ number: n, sourceUrl: url, ...parsed });
   } catch (e) {
     return NextResponse.json(

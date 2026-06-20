@@ -86,11 +86,17 @@ function LessonInner({ n }: { n: number }) {
       />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
-        {/* columna principal */}
+        {/* columna principal: primero el texto original, luego la guía, y el video al final */}
         <div className="space-y-6">
-          <VideoPlayer video={lesson.video} title={lesson.title} />
           <OriginalText lesson={lesson} />
           <CommentarySections commentary={lesson.commentary} ready={lesson.commentaryReady} />
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <span aria-hidden>🎬</span>
+              <h2 className="font-display text-xl font-bold">Video de la lección</h2>
+            </div>
+            <VideoPlayer video={lesson.video} title={lesson.title} />
+          </div>
           <Forum lessonNumber={lesson.number} />
         </div>
 

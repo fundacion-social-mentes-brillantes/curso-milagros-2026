@@ -50,7 +50,9 @@ export function LessonEditor({
     psychological: c.psychological,
     spiritual: c.spiritual,
     courseRelation: c.courseRelation,
-    dailyExamples: c.dailyExamples.join("\n"),
+    practiceTips: (c.practiceTips ?? []).join("\n"),
+    conclusion: c.conclusion ?? "",
+    dailyExamples: (c.dailyExamples ?? []).join("\n"),
     guideTitle: c.guideExample.title,
     guideSituation: c.guideExample.situation,
     guideShift: c.guideExample.shift,
@@ -83,6 +85,8 @@ export function LessonEditor({
       psychological: form.psychological.trim(),
       spiritual: form.spiritual.trim(),
       courseRelation: form.courseRelation.trim(),
+      practiceTips: linesToArray(form.practiceTips),
+      conclusion: form.conclusion.trim(),
       dailyExamples: linesToArray(form.dailyExamples),
       guideExample: {
         title: form.guideTitle.trim(),
@@ -160,20 +164,19 @@ export function LessonEditor({
         </div>
       </div>
 
-      {/* Texto original protegido */}
+      {/* Texto original protegido (solo lectura) */}
       <div className="card p-5">
         <div className="flex items-center gap-2">
-          <span aria-hidden>📖</span>
-          <h4 className="font-display font-semibold">Texto original (intocable al mostrarse)</h4>
+          <span aria-hidden>🔒</span>
+          <h4 className="font-display font-semibold">Texto original (fijo, solo lectura)</h4>
         </div>
         <p className="mt-1 text-xs text-muted">
-          Se muestra tal cual. Si lo dejas vacío aparece “se cargará pronto”. Lo ideal es cargarlo
-          con el importador; aquí puedes pegarlo o corregirlo manualmente.
+          Es la meditación fiel del Curso. No se edita desde aquí para proteger su fidelidad.
         </p>
         <textarea
-          className="input mt-3 min-h-[160px] font-serif"
+          readOnly
+          className="input mt-3 min-h-[160px] cursor-default bg-surface-2/40 font-serif"
           value={form.originalText}
-          onChange={(e) => set("originalText", e.target.value)}
         />
       </div>
 
@@ -211,8 +214,14 @@ export function LessonEditor({
         <Field label="Relación con el resto del Curso">
           <textarea className="input min-h-[80px]" value={form.courseRelation} onChange={(e) => set("courseRelation", e.target.value)} />
         </Field>
-        <Field label="Ejemplos cotidianos" hint="un ejemplo por línea">
-          <textarea className="input min-h-[110px]" value={form.dailyExamples} onChange={(e) => set("dailyExamples", e.target.value)} />
+        <Field label="Consejos para la práctica" hint="un consejo por línea">
+          <textarea className="input min-h-[110px]" value={form.practiceTips} onChange={(e) => set("practiceTips", e.target.value)} />
+        </Field>
+        <Field label="Conclusión final">
+          <textarea className="input min-h-[90px]" value={form.conclusion} onChange={(e) => set("conclusion", e.target.value)} />
+        </Field>
+        <Field label="Ejemplos cotidianos (opcional)" hint="un ejemplo por línea">
+          <textarea className="input min-h-[90px]" value={form.dailyExamples} onChange={(e) => set("dailyExamples", e.target.value)} />
         </Field>
         <div className="rounded-xl border border-border p-4">
           <p className="text-sm font-semibold">Ejemplo-guía</p>

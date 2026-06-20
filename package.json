@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "build:data": "tsx scripts/build-lessons-data.ts",
     "rules:deploy": "tsx scripts/deploy-rules.ts",
     "seed": "tsx scripts/seed.ts",
     "import:textos": "tsx scripts/import-original-texts.ts",

@@ -53,7 +53,11 @@ export interface LessonCommentary {
   spiritual: string;
   /** "Relación con el resto del Curso" */
   courseRelation: string;
-  /** "Ejemplos cotidianos" */
+  /** "Consejos para la práctica" — puntos breves */
+  practiceTips: string[];
+  /** "Conclusión final" */
+  conclusion: string;
+  /** "Ejemplos cotidianos" (opcional) */
   dailyExamples: string[];
   /** "Ejemplo-guía" — caso desarrollado */
   guideExample: {

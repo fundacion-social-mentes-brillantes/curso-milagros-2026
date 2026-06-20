@@ -6,18 +6,15 @@ import {
   getDoc,
   getDocs,
   setDoc,
-  updateDoc,
-  writeBatch,
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
-import { lessonDocId, TOTAL_LESSONS } from "@/config/lessons.links";
-import { buildStubLesson, emptyCommentary } from "@/lib/lesson-template";
-import { LESSON_25_COMMENTARY, LESSON_25_TITLE } from "@/data/lesson-25";
+import { lessonDocId } from "@/config/lessons.links";
+import { emptyCommentary } from "@/lib/lesson-template";
 import type { Lesson, LessonCommentary } from "@/types";
 
 export { emptyCommentary };
 
-/** Normaliza un documento de Firestore a un Lesson completo (con defaults). */
+/** Normaliza un documento (de Firestore o JSON) a un Lesson completo. */
 export function toLesson(id: string, data: Record<string, unknown>): Lesson {
   const c = (data.commentary ?? {}) as Partial<LessonCommentary>;
   const v = (data.video ?? {}) as Partial<Lesson["video"]>;
@@ -41,116 +38,77 @@ export function toLesson(id: string, data: Record<string, unknown>): Lesson {
   };
 }
 
+/** Lee el archivo estático de una lección (incluido en la app). */
+async function fetchStaticLesson(n: number): Promise<Lesson | null> {
+  try {
+    const res = await fetch(`/lessons/${lessonDocId(n)}.json`, { cache: "force-cache" });
+    if (!res.ok) return null;
+    return toLesson(lessonDocId(n), (await res.json()) as Record<string, unknown>);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lee una lección. Prioriza la edición del admin (Firestore) y, si no existe,
+ * usa el contenido fijo que viaja con la app (public/lessons).
+ */
 export async function getLessonByNumber(n: number): Promise<Lesson | null> {
-  const db = getDb();
-  const ref = doc(db, "lessons", lessonDocId(n));
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
-  return toLesson(snap.id, snap.data());
+  try {
+    const snap = await getDoc(doc(getDb(), "lessons", lessonDocId(n)));
+    if (snap.exists()) return toLesson(snap.id, snap.data());
+  } catch {
+    /* sin conexión / sin permisos → respaldo estático */
+  }
+  return fetchStaticLesson(n);
 }
 
-/** Lee todas las lecciones (orden por número). */
+interface IndexEntry {
+  number: number;
+  title: string;
+  videoStatus?: string;
+}
+
+/** Lista de las 365 lecciones (desde el índice estático; respaldo Firestore). */
 export async function listLessons(): Promise<Lesson[]> {
-  const db = getDb();
-  const snap = await getDocs(collection(db, "lessons"));
-  const lessons = snap.docs.map((d) => toLesson(d.id, d.data()));
-  lessons.sort((a, b) => a.number - b.number);
-  return lessons;
+  try {
+    const res = await fetch(`/lessons/index.json`, { cache: "force-cache" });
+    if (res.ok) {
+      const idx = (await res.json()) as IndexEntry[];
+      if (Array.isArray(idx) && idx.length > 0) {
+        return idx
+          .map((e) =>
+            toLesson(lessonDocId(e.number), {
+              number: e.number,
+              title: e.title,
+              video: { type: "none", url: "", status: e.videoStatus ?? "soon" },
+            }),
+          )
+          .sort((a, b) => a.number - b.number);
+      }
+    }
+  } catch {
+    /* respaldo Firestore */
+  }
+
+  try {
+    const snap = await getDocs(collection(getDb(), "lessons"));
+    return snap.docs
+      .map((d) => toLesson(d.id, d.data()))
+      .sort((a, b) => a.number - b.number);
+  } catch {
+    return [];
+  }
 }
 
-/** Actualiza campos de una lección (solo admin, según reglas). */
+/**
+ * Guarda la edición de una lección (crea o actualiza). Como las lecciones
+ * viven en archivos, el primer guardado crea el documento de override.
+ */
 export async function updateLesson(
   n: number,
-  patch: Partial<Omit<Lesson, "id" | "number">>,
+  patch: Partial<Omit<Lesson, "id">>,
 ): Promise<void> {
-  const db = getDb();
-  const ref = doc(db, "lessons", lessonDocId(n));
-  await updateDoc(ref, { ...patch, updatedAt: Date.now() });
-}
-
-/** Crea o reemplaza una lección (admin / seed). */
-export async function setLesson(lesson: Lesson): Promise<void> {
-  const db = getDb();
-  const ref = doc(db, "lessons", lesson.id);
-  await setDoc(ref, lesson, { merge: true });
-}
-
-/**
- * Crea las 365 lecciones que falten (no toca las existentes) y llena la
- * Lección 25 de ejemplo. Se ejecuta desde el panel admin, con permisos de
- * admin (según reglas). No necesita credenciales de servidor.
- */
-export async function seedLessonsClient(
-  onProgress?: (done: number, total: number) => void,
-): Promise<{ created: number; skipped: number }> {
-  const db = getDb();
-  const now = Date.now();
-
-  const snap = await getDocs(collection(db, "lessons"));
-  const existing = new Set(snap.docs.map((d) => d.id));
-
-  let created = 0;
-  let skipped = existing.size;
-  let batch = writeBatch(db);
-  let ops = 0;
-
-  for (let n = 1; n <= TOTAL_LESSONS; n++) {
-    const id = lessonDocId(n);
-    if (existing.has(id)) continue;
-
-    const lesson = buildStubLesson(n, now);
-    if (n === 25) {
-      lesson.title = LESSON_25_TITLE;
-      lesson.commentary = LESSON_25_COMMENTARY;
-      lesson.commentaryReady = true;
-    }
-
-    batch.set(doc(db, "lessons", id), lesson);
-    ops++;
-    created++;
-
-    if (ops >= 400) {
-      await batch.commit();
-      batch = writeBatch(db);
-      ops = 0;
-    }
-    onProgress?.(n, TOTAL_LESSONS);
-  }
-  if (ops > 0) await batch.commit();
-
-  return { created, skipped };
-}
-
-/**
- * Importa el texto original de UNA lección llamando a /api/import-lesson
- * (que lee el blog en el servidor) y lo guarda. Crea el doc si no existe.
- */
-export async function importLessonTextClient(
-  n: number,
-): Promise<{ found: boolean; length: number }> {
-  const res = await fetch(`/api/import-lesson?n=${n}`);
-  if (!res.ok) throw new Error(`No se pudo importar la lección ${n}`);
-  const data = (await res.json()) as {
-    sourceUrl?: string;
-    title?: string;
-    originalText?: string;
-    found?: boolean;
-  };
-
-  const original = String(data.originalText ?? "").trim();
-  const db = getDb();
-  await setDoc(
-    doc(db, "lessons", lessonDocId(n)),
-    {
-      number: n,
-      sourceUrl: data.sourceUrl ?? "",
-      originalText: original,
-      originalTextLoaded: original.length > 0,
-      ...(data.title ? { title: data.title } : {}),
-      updatedAt: Date.now(),
-    },
-    { merge: true },
-  );
-
-  return { found: Boolean(data.found), length: original.length };
+  const ref = doc(getDb(), "lessons", lessonDocId(n));
+  await setDoc(ref, { number: n, ...patch, updatedAt: Date.now() }, { merge: true });
 }

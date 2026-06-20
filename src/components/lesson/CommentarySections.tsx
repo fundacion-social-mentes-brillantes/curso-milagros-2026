@@ -133,7 +133,20 @@ export function CommentarySections({
         </Section>
       )}
 
-      {c.dailyExamples.length > 0 && (
+      {(c.practiceTips ?? []).length > 0 && (
+        <Section eyebrow="Para que te fluya" title="Consejos para la práctica" icon="🌼">
+          <ul className="space-y-2">
+            {(c.practiceTips ?? []).map((t, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="mt-0.5 text-primary">•</span>
+                <span className="leading-relaxed text-fg/90">{t}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {(c.dailyExamples ?? []).length > 0 && (
         <Section eyebrow="En la vida real" title="Ejemplos cotidianos" icon="🌿">
           <ul className="grid gap-3 sm:grid-cols-2">
             {c.dailyExamples.map((ex, i) => (
@@ -142,6 +155,12 @@ export function CommentarySections({
               </li>
             ))}
           </ul>
+        </Section>
+      )}
+
+      {c.conclusion && (
+        <Section eyebrow="En pocas palabras" title="Conclusión" icon="🌟">
+          <Paragraphs text={c.conclusion} />
         </Section>
       )}
 
