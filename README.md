@@ -2,6 +2,10 @@
 
 App web privada para acompañar el **proceso diario de las 365 lecciones** de Un Curso de Milagros: video, texto original protegido, guía explicativa, progreso personal, foro por lección y panel de administración.
 
+- 🌐 **En línea:** https://curso-milagros-2026.vercel.app
+- 📦 **Repositorio:** https://github.com/fundacion-social-mentes-brillantes/curso-milagros-2026
+- ⚙️ **Despliegue:** automático en Vercel con cada cambio en la rama `main`.
+
 > 🚀 ¿Solo quieres ponerla a funcionar? Sigue **[INSTALACION.md](./INSTALACION.md)** paso a paso.
 
 ---
