@@ -6,8 +6,9 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { SITE } from "@/config/site";
 
 const STEPS = [
-  { icon: "🎬", title: "Mira el video", text: "Una guía breve para entrar en la lección del día." },
   { icon: "📖", title: "Lee la lección", text: "El texto original del Curso, tal cual, en modo lectura." },
+  { icon: "🎬", title: "Mira el video", text: "Una guía breve para acompañar la lección del día." },
+  { icon: "💬", title: "Comenta en Facebook", text: "Deja tus dos comentarios en las meditaciones diarias y comparte tu experiencia." },
   { icon: "🌿", title: "Llévala a tu día", text: "Guía clara, ejemplos cotidianos y una reflexión final." },
 ];
 
@@ -70,7 +71,7 @@ export default function HomePage() {
 
       {/* PASOS */}
       <section className="container-page py-10">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((s, i) => (
             <div key={s.title} className="card p-6">
               <div className="flex items-center gap-3">
