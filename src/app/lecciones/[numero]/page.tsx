@@ -24,6 +24,7 @@ function LessonInner({ n }: { n: number }) {
   const { appUser } = useAuth();
   const [lesson, setLesson] = useState<Lesson | null | undefined>(undefined);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -77,25 +78,25 @@ function LessonInner({ n }: { n: number }) {
 
   const prev = n > 1 ? n - 1 : null;
   const next = n < SITE.totalLessons ? n + 1 : null;
-  // Prueba: las lecciones 1-50 usan el modo simple (solo lección + video + cómo practicarla).
-  const simpleMode = lesson.number <= 50;
+  const hasGuide =
+    lesson.commentaryReady && Boolean(lesson.commentary.teachingExplanation);
 
   return (
     <div className="container-page py-8 sm:py-10">
-      <LessonHeader
-        number={lesson.number}
-        title={lesson.title}
-        completed={Boolean(progress?.completed)}
-        completedAt={progress?.completedAt}
-      />
+      {/* Lección centrada y cómoda de leer (en PC no se ve ancha ni pesada). */}
+      <div className="mx-auto max-w-3xl">
+        <LessonHeader
+          number={lesson.number}
+          title={lesson.title}
+          completed={Boolean(progress?.completed)}
+          completedAt={progress?.completedAt}
+        />
+        {/* acento dorado sutil */}
+        <div className="mt-4 h-px w-full bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
 
-      <div className="mt-5">
-        <LessonImage number={lesson.number} title={lesson.title} />
-      </div>
+        <div className="mt-6 space-y-6">
+          <LessonImage number={lesson.number} title={lesson.title} />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
-        {/* columna principal */}
-        <div className="space-y-6">
           <OriginalText lesson={lesson} />
 
           {/* Video de la lección */}
@@ -107,19 +108,10 @@ function LessonInner({ n }: { n: number }) {
             <VideoPlayer video={lesson.video} title={lesson.title} />
           </div>
 
-          {simpleMode ? (
-            /* Modo simple (prueba lecciones 1-50): solo lección + video + cómo practicarla */
-            <PracticeToggle steps={lesson.commentary.practicalInstructions} />
-          ) : (
-            /* Modo completo: guía explicativa de 9 secciones */
-            <CommentarySections commentary={lesson.commentary} ready={lesson.commentaryReady} />
-          )}
+          {/* Cómo practicarla (texto corto, desplegable) */}
+          <PracticeToggle steps={lesson.commentary.practicalInstructions} />
 
-          <Forum lessonNumber={lesson.number} />
-        </div>
-
-        {/* columna lateral (pegajosa en escritorio) */}
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          {/* Marcar como hecha */}
           {appUser && (
             <MarkDoneButton
               uid={appUser.uid}
@@ -128,6 +120,29 @@ function LessonInner({ n }: { n: number }) {
               completedAt={progress?.completedAt ?? null}
             />
           )}
+
+          {/* Guía completa (opcional, para quien quiera profundizar) */}
+          {hasGuide && (
+            <div>
+              <button
+                onClick={() => setShowGuide((v) => !v)}
+                aria-expanded={showGuide}
+                className="btn-ghost w-full justify-center"
+              >
+                {showGuide ? "Ocultar la guía completa" : "📖 Ver la guía completa de la lección"}
+              </button>
+              {showGuide && (
+                <div className="mt-5 animate-fade-in">
+                  <CommentarySections
+                    commentary={lesson.commentary}
+                    ready={lesson.commentaryReady}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Navegación */}
           <div className="card flex items-center justify-between gap-2 p-3">
             {prev ? (
               <Link href={`/lecciones/${prev}`} className="btn-ghost flex-1 text-sm">
@@ -147,7 +162,9 @@ function LessonInner({ n }: { n: number }) {
               <span className="flex-1" />
             )}
           </div>
-        </aside>
+
+          <Forum lessonNumber={lesson.number} />
+        </div>
       </div>
     </div>
   );

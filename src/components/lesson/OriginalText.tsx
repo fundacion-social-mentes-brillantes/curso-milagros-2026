@@ -9,6 +9,7 @@ export function OriginalText({ lesson }: { lesson: Lesson }) {
 
   return (
     <section className="card overflow-hidden">
+      <div className="h-1 w-full bg-gradient-to-r from-gold via-gold-soft to-aqua" />
       <header className="flex items-center justify-between gap-3 border-b border-border bg-surface-2/60 px-5 py-3 sm:px-7">
         <div className="flex items-center gap-2">
           <span aria-hidden>📖</span>
