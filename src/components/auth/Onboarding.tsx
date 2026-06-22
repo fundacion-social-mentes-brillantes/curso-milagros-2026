@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { completeUserProfile } from "@/lib/users";
 import { Spinner } from "@/components/ui/Spinner";
+import { ASK_STARTING_LESSON, SITE } from "@/config/site";
 
 const COUNTRIES = [
   "Colombia",
@@ -35,6 +36,7 @@ export function Onboarding() {
   const [fullName, setFullName] = useState(appUser?.fullName || appUser?.displayName || "");
   const [country, setCountry] = useState(appUser?.country || "");
   const [phone, setPhone] = useState(appUser?.phone || "");
+  const [startLesson, setStartLesson] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,10 +48,16 @@ export function Onboarding() {
       setError("Por favor completa todos los campos.");
       return;
     }
+    const parsedStart = ASK_STARTING_LESSON ? Number(startLesson) : 1;
     setBusy(true);
     setError(null);
     try {
-      await completeUserProfile(firebaseUser.uid, { fullName, country, phone });
+      await completeUserProfile(firebaseUser.uid, {
+        fullName,
+        country,
+        phone,
+        startLesson: parsedStart >= 1 ? parsedStart : 1,
+      });
       // El cambio se refleja solo: el perfil pasa a "completo" y se abre la app.
     } catch {
       setError("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.");
@@ -109,6 +117,26 @@ export function Onboarding() {
                 placeholder="Ej. +57 300 123 4567"
               />
             </label>
+
+            {ASK_STARTING_LESSON && (
+              <label className="block">
+                <span className="text-sm font-semibold">¿En qué lección vas?</span>
+                <span className="ml-1 text-xs text-muted">(este año el proceso ya comenzó)</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={SITE.totalLessons}
+                  className="input mt-1.5"
+                  value={startLesson}
+                  onChange={(e) => setStartLesson(e.target.value)}
+                  placeholder="Ej. 27"
+                />
+                <span className="mt-1 block text-xs text-muted">
+                  Marcaremos como hechas las anteriores, así no las registras una por una. Si
+                  apenas empiezas, escribe 1.
+                </span>
+              </label>
+            )}
           </div>
 
           {error && <p className="mt-4 text-center text-sm text-warning">{error}</p>}

@@ -8,9 +8,12 @@ import {
   onSnapshot,
   setDoc,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { getDb } from "@/lib/firebase";
+import { lessonDocId } from "@/config/lessons.links";
+import { clampLesson } from "@/lib/utils";
 import type { AppUser, Role } from "@/types";
 
 function toAppUser(uid: string, data: Record<string, unknown>): AppUser {
@@ -73,19 +76,49 @@ export async function ensureUserProfile(user: User): Promise<void> {
   });
 }
 
-/** Guarda los datos de registro y marca el perfil como completo. */
+/**
+ * Guarda los datos de registro y marca el perfil como completo.
+ * Si se indica `startLesson` (> 1), marca como HECHAS las lecciones anteriores
+ * (solo para el primer año, que ya había comenzado) y deja a la persona en esa lección.
+ */
 export async function completeUserProfile(
   uid: string,
-  data: { fullName: string; country: string; phone: string },
+  data: { fullName: string; country: string; phone: string; startLesson?: number },
 ): Promise<void> {
   const db = getDb();
+  const now = Date.now();
+  const start = data.startLesson ? clampLesson(data.startLesson) : 1;
+
+  if (start > 1) {
+    let batch = writeBatch(db);
+    let ops = 0;
+    for (let n = 1; n < start; n++) {
+      batch.set(doc(db, "progress", `${uid}_${n}`), {
+        userId: uid,
+        lessonId: lessonDocId(n),
+        lessonNumber: n,
+        completed: true,
+        completedAt: now,
+      });
+      ops++;
+      if (ops >= 400) {
+        await batch.commit();
+        batch = writeBatch(db);
+        ops = 0;
+      }
+    }
+    if (ops > 0) await batch.commit();
+  }
+
   await updateDoc(doc(db, "users", uid), {
     fullName: data.fullName.trim(),
     displayName: data.fullName.trim() || "Caminante",
     country: data.country.trim(),
     phone: data.phone.trim(),
     profileComplete: true,
-    lastActivityAt: Date.now(),
+    currentLesson: start,
+    completedLessonsCount: start - 1,
+    lastActivityAt: now,
   });
 }
 

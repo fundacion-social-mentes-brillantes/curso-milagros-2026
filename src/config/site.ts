@@ -9,6 +9,13 @@ export const SITE = {
   totalLessons: 365,
 } as const;
 
+/**
+ * Solo para este primer año (el proceso ya había comenzado): en el registro se
+ * pregunta "¿en qué lección vas?" y se marcan como hechas las anteriores.
+ * El próximo año pon esto en `false` y todos empezarán desde la lección 1.
+ */
+export const ASK_STARTING_LESSON = true;
+
 export const NAV_USER = [
   { href: "/dashboard", label: "Mi camino" },
   { href: "/lecciones", label: "Lecciones" },
