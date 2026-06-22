@@ -10,6 +10,7 @@ import { touchActivity } from "@/lib/users";
 import { LessonHeader } from "@/components/lesson/LessonHeader";
 import { LessonImage } from "@/components/lesson/LessonImage";
 import { VideoPlayer } from "@/components/lesson/VideoPlayer";
+import { PracticeToggle } from "@/components/lesson/PracticeToggle";
 import { OriginalText } from "@/components/lesson/OriginalText";
 import { CommentarySections } from "@/components/lesson/CommentarySections";
 import { MarkDoneButton } from "@/components/lesson/MarkDoneButton";
@@ -76,6 +77,8 @@ function LessonInner({ n }: { n: number }) {
 
   const prev = n > 1 ? n - 1 : null;
   const next = n < SITE.totalLessons ? n + 1 : null;
+  // Prueba: las lecciones 1-50 usan el modo simple (solo lección + video + cómo practicarla).
+  const simpleMode = lesson.number <= 50;
 
   return (
     <div className="container-page py-8 sm:py-10">
@@ -91,10 +94,11 @@ function LessonInner({ n }: { n: number }) {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
-        {/* columna principal: primero el texto original, luego la guía, y el video al final */}
+        {/* columna principal */}
         <div className="space-y-6">
           <OriginalText lesson={lesson} />
-          <CommentarySections commentary={lesson.commentary} ready={lesson.commentaryReady} />
+
+          {/* Video de la lección */}
           <div>
             <div className="mb-3 flex items-center gap-2">
               <span aria-hidden>🎬</span>
@@ -102,6 +106,15 @@ function LessonInner({ n }: { n: number }) {
             </div>
             <VideoPlayer video={lesson.video} title={lesson.title} />
           </div>
+
+          {simpleMode ? (
+            /* Modo simple (prueba lecciones 1-50): solo lección + video + cómo practicarla */
+            <PracticeToggle steps={lesson.commentary.practicalInstructions} />
+          ) : (
+            /* Modo completo: guía explicativa de 9 secciones */
+            <CommentarySections commentary={lesson.commentary} ready={lesson.commentaryReady} />
+          )}
+
           <Forum lessonNumber={lesson.number} />
         </div>
 

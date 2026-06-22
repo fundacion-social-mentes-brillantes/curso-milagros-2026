@@ -48,8 +48,8 @@ const config: Config = {
         "3xl": "1.75rem",
       },
       boxShadow: {
-        soft: "0 1px 2px rgb(46 42 94 / 0.04), 0 8px 30px rgb(46 42 94 / 0.06)",
-        glow: "0 10px 40px rgb(91 75 158 / 0.18)",
+        soft: "0 1px 2px rgb(12 64 58 / 0.05), 0 8px 30px rgb(12 64 58 / 0.07)",
+        glow: "0 10px 40px rgb(22 110 96 / 0.20)",
       },
       keyframes: {
         "fade-up": {

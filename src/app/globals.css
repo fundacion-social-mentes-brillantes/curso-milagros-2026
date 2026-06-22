@@ -3,53 +3,54 @@
 @tailwind utilities;
 
 /* ============================================================
-   Identidad "Amanecer del alma" — sin rojo dominante.
+   Identidad "Esmeralda y oro" — inspirada en el video de GEMB.
+   Verde esmeralda/teal profundo + dorado + crema. Sin rojo.
    Colores como tripletes RGB para usar con alpha en Tailwind.
    ============================================================ */
 :root {
-  --bg: 251 247 239;
+  --bg: 240 244 237;
   --surface: 255 255 255;
-  --surface-2: 248 243 233;
-  --fg: 42 37 64;
-  --muted: 107 100 128;
-  --border: 235 226 213;
+  --surface-2: 230 240 233;
+  --fg: 18 46 42;
+  --muted: 88 112 104;
+  --border: 211 228 217;
 
-  --primary: 91 75 158;
-  --primary-soft: 124 110 190;
-  --primary-deep: 46 42 94;
+  --primary: 22 110 96;
+  --primary-soft: 38 140 122;
+  --primary-deep: 12 64 58;
   --primary-fg: 255 255 255;
 
-  --gold: 211 154 60;
-  --gold-soft: 242 216 160;
+  --gold: 192 150 60;
+  --gold-soft: 234 206 138;
 
-  --aqua: 60 160 152;
-  --aqua-soft: 178 224 219;
+  --aqua: 47 170 152;
+  --aqua-soft: 178 224 214;
 
-  --success: 67 150 116;
-  --warning: 201 146 64;
+  --success: 39 150 110;
+  --warning: 201 154 64;
 }
 
 .dark {
-  --bg: 19 17 38;
-  --surface: 30 27 58;
-  --surface-2: 39 35 72;
-  --fg: 243 239 230;
-  --muted: 184 177 205;
-  --border: 46 42 84;
+  --bg: 9 38 34;
+  --surface: 15 54 48;
+  --surface-2: 22 68 60;
+  --fg: 240 233 205;
+  --muted: 166 190 178;
+  --border: 30 78 70;
 
-  --primary: 160 144 228;
-  --primary-soft: 132 117 206;
-  --primary-deep: 17 15 34;
-  --primary-fg: 17 15 34;
+  --primary: 79 196 174;
+  --primary-soft: 60 168 150;
+  --primary-deep: 7 30 27;
+  --primary-fg: 7 30 27;
 
-  --gold: 232 190 114;
-  --gold-soft: 232 190 114;
+  --gold: 226 198 124;
+  --gold-soft: 226 198 124;
 
-  --aqua: 95 199 190;
-  --aqua-soft: 95 199 190;
+  --aqua: 95 200 184;
+  --aqua-soft: 95 200 184;
 
-  --success: 110 199 158;
-  --warning: 224 178 96;
+  --success: 104 200 156;
+  --warning: 226 190 110;
 }
 
 @layer base {
@@ -123,7 +124,7 @@
     @apply btn border border-border bg-surface text-fg hover:bg-surface-2;
   }
   .btn-gold {
-    @apply btn bg-gold text-[rgb(46_42_94)] hover:brightness-105;
+    @apply btn bg-gold text-[rgb(12_64_58)] hover:brightness-105;
   }
   .input {
     @apply w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-fg placeholder:text-muted/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30;
