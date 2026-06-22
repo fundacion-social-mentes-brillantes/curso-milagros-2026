@@ -31,7 +31,10 @@ service cloud.firestore {
 
     // --- USUARIOS ---
     match /users/{uid} {
-      allow read: if isSignedIn();
+      // Cada quien lee SOLO su propio perfil; el admin puede listar a todos.
+      // (Protege los correos y teléfonos de las demás personas.)
+      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
       // Cada quien crea su propio perfil y SOLO como 'user'.
       allow create: if isSignedIn()
                     && request.auth.uid == uid
@@ -56,7 +59,14 @@ service cloud.firestore {
       allow read: if isSignedIn()
                   && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create, update: if isSignedIn()
-                  && request.resource.data.userId == request.auth.uid;
+                  && request.resource.data.userId == request.auth.uid
+                  && request.resource.data.keys().hasOnly(
+                       ['userId', 'lessonId', 'lessonNumber', 'completed', 'completedAt'])
+                  && request.resource.data.lessonNumber is int
+                  && request.resource.data.completed is bool
+                  && request.resource.data.lessonId is string
+                  && (request.resource.data.completedAt == null
+                      || request.resource.data.completedAt is int);
       allow delete: if isAdmin()
                   || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
@@ -66,7 +76,20 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
                     && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.status == 'visible';
+                    && request.resource.data.status == 'visible'
+                    && request.resource.data.keys().hasOnly(
+                         ['lessonNumber', 'userId', 'userName', 'userPhoto', 'message', 'createdAt', 'parentId', 'status'])
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() > 0
+                    && request.resource.data.message.size() <= 5000
+                    && request.resource.data.lessonNumber is int
+                    && request.resource.data.createdAt is int
+                    && request.resource.data.userName is string
+                    && request.resource.data.userName.size() <= 120
+                    && (request.resource.data.userPhoto == null
+                        || request.resource.data.userPhoto is string)
+                    && (request.resource.data.parentId == null
+                        || request.resource.data.parentId is string);
       // El autor puede editar/borrar lo suyo (sin cambiar de dueño); el admin todo.
       allow update: if isAdmin()
                     || (isSignedIn()

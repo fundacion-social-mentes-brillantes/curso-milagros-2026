@@ -137,7 +137,9 @@ export function SenseiChat() {
             ? "El guía aún no está activado. (Falta configurar la clave.)"
             : code === 401
               ? "Tu sesión expiró. Vuelve a entrar para conversar."
-              : "No pude conectar en este momento. Intenta de nuevo en un ratito. 🌿";
+              : code === 429
+                ? "Has enviado muchos mensajes seguidos. Espera un momentito e inténtalo de nuevo. 🌿"
+                : "No pude conectar en este momento. Intenta de nuevo en un ratito. 🌿";
         setMessages((prev) => prev.slice(0, -1));
         setError(msg);
         setBusy(false);

@@ -34,9 +34,9 @@ function json(data: unknown, status: number): Response {
   });
 }
 
-/** Verifica que el idToken sea de un usuario real de ESTE proyecto Firebase. */
-async function verifyUser(idToken: unknown): Promise<boolean> {
-  if (typeof idToken !== "string" || idToken.length < 20) return false;
+/** Verifica el idToken contra Google y devuelve el uid del usuario (o null). */
+async function verifyUser(idToken: unknown): Promise<string | null> {
+  if (typeof idToken !== "string" || idToken.length < 20) return null;
   try {
     const res = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`,
@@ -46,12 +46,35 @@ async function verifyUser(idToken: unknown): Promise<boolean> {
         body: JSON.stringify({ idToken }),
       },
     );
-    if (!res.ok) return false;
-    const data = (await res.json()) as { users?: unknown[] };
-    return Array.isArray(data.users) && data.users.length > 0;
+    if (!res.ok) return null;
+    const data = (await res.json()) as { users?: Array<{ localId?: string }> };
+    const uid = data.users?.[0]?.localId;
+    return typeof uid === "string" && uid.length > 0 ? uid : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+// --- Límite de uso por persona (best-effort, en memoria) para proteger el saldo
+// de DeepSeek de un abuso. No reemplaza un límite distribuido, pero frena el
+// caso común de una sola persona enviando cientos de mensajes seguidos.
+const RATE_MAX_PER_MINUTE = 15;
+const RATE_MAX_PER_HOUR = 120;
+const hits = new Map<string, number[]>();
+
+function rateLimited(uid: string): boolean {
+  const now = Date.now();
+  const minuteAgo = now - 60_000;
+  const hourAgo = now - 3_600_000;
+  const recent = (hits.get(uid) ?? []).filter((t) => t > hourAgo);
+  const inLastMinute = recent.filter((t) => t > minuteAgo).length;
+  if (inLastMinute >= RATE_MAX_PER_MINUTE || recent.length >= RATE_MAX_PER_HOUR) {
+    hits.set(uid, recent);
+    return true;
+  }
+  recent.push(now);
+  hits.set(uid, recent);
+  return false;
 }
 
 function sanitizeMessages(input: unknown): ChatMessage[] {
@@ -94,9 +117,12 @@ export async function POST(req: NextRequest): Promise<Response> {
     return json({ error: "bad-request" }, 400);
   }
 
-  const authorized = await verifyUser(idToken);
-  if (!authorized) {
+  const uid = await verifyUser(idToken);
+  if (!uid) {
     return json({ error: "unauthorized" }, 401);
+  }
+  if (rateLimited(uid)) {
+    return json({ error: "rate-limit" }, 429);
   }
 
   let system = SENSEI_SYSTEM_PROMPT;

@@ -44,5 +44,10 @@ export function resolveVideo(video: LessonVideo): ResolvedVideo {
       ? { kind: "iframe", src: `https://www.youtube.com/embed/${id}?rel=0` }
       : { kind: "none", src: "" };
   }
-  return { kind: "video", src: video.url };
+  // type === "direct": solo se permiten enlaces http(s) explícitos
+  // (evita esquemas peligrosos como javascript:/data: aunque vengan del admin).
+  if (/^https?:\/\//i.test(video.url.trim())) {
+    return { kind: "video", src: video.url.trim() };
+  }
+  return { kind: "none", src: "" };
 }
