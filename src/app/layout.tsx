@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { SenseiChat } from "@/components/sensei/SenseiChat";
 import { SITE } from "@/config/site";
 
 const serif = Fraunces({
@@ -71,6 +72,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
             <Footer />
           </div>
+          <SenseiChat />
         </AuthProvider>
       </body>
     </html>
