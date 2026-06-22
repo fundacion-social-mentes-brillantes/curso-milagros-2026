@@ -39,13 +39,12 @@ function FacebookReminder() {
             </svg>
           </span>
           <p className="font-display text-xl font-bold">
-            Da tu like y comenta las meditaciones de hoy 💬
+            Estás a punto de terminar tu lección
           </p>
           <p className="max-w-sm text-sm text-fg/80">
-            Hace parte de tu lección de hoy: entra a nuestro Facebook y deja tu{" "}
-            <strong>me gusta</strong> y un <strong>comentario</strong> en las{" "}
-            <strong>dos meditaciones diarias</strong>. Tu palabra acompaña al grupo y anima a
-            que más personas se sumen al proceso. 💛
+            Para finalizar, deja tus <strong>dos comentarios</strong> en las meditaciones de
+            hoy y <strong>comparte tu experiencia</strong>. Lo que hoy aprendiste puede ser
+            una guía y una luz para otra persona. 💛
           </p>
           <a
             href={SITE.facebookUrl}
@@ -56,7 +55,7 @@ function FacebookReminder() {
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden>
               <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
             </svg>
-            Dejar mi like y comentario
+            Dejar mis comentarios
           </a>
         </div>
       </div>
