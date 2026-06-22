@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Avatar } from "@/components/ui/Avatar";
 import { Logo } from "@/components/ui/Logo";
 import { NAV_USER, SITE } from "@/config/site";
@@ -56,7 +55,6 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
           {firebaseUser ? (
             <div className="hidden items-center gap-2 md:flex">
               <Avatar src={appUser?.photoURL} name={appUser?.displayName ?? "Tú"} size={34} />

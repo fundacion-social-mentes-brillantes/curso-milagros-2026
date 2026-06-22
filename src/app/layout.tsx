@@ -53,18 +53,13 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const noFlashTheme = `(function(){try{var t=localStorage.getItem('theme');var d=t? t==='dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; if(d){document.documentElement.classList.add('dark');}}catch(e){}})();`;
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${serif.variable} ${sans.variable}`} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: noFlashTheme }} />
-      </head>
+    <html lang="es" className={`dark ${serif.variable} ${sans.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased scrollbar-soft">
         <AuthProvider>
           <div className="flex min-h-screen flex-col">
