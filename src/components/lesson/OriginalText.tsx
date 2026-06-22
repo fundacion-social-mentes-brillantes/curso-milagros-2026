@@ -30,33 +30,71 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
   return nodes;
 }
 
+type Block =
+  | { kind: "para"; num: string; text: string }
+  | { kind: "example"; num: string; text: string }
+  | { kind: "plain"; text: string };
+
+function classify(raw: string): Block {
+  const flat = raw.replace(/\s*\n\s*/g, " ").trim(); // une cortes a media frase
+  const para = flat.match(/^(\d{1,3})\.\s+([\s\S]*)$/);
+  if (para) return { kind: "para", num: para[1] ?? "", text: para[2] ?? "" };
+  const ex = flat.match(/^(\d{1,2})\s?([A-ZÁÉÍÓÚÑ¿«"][\s\S]*)$/);
+  if (ex && flat.length <= 120) return { kind: "example", num: ex[1] ?? "", text: ex[2] ?? "" };
+  return { kind: "plain", text: flat };
+}
+
+const PARA_CLASS =
+  "text-justify font-serif text-[1.05rem] leading-[1.9] text-fg/90 [hyphens:auto] [text-wrap:pretty]";
+
 function BookText({ text }: { text: string }) {
-  const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
-  return (
-    <div className="space-y-4">
-      {blocks.map((block, bi) => {
-        // ¿empieza con número de párrafo "N." ?
-        const para = block.match(/^(\d{1,3})\.\s+([\s\S]*)$/);
-        const lines = (para?.[2] ?? block).split("\n");
-        return (
-          <p
-            key={bi}
-            className="text-justify font-serif text-[1.05rem] leading-[1.95] text-fg/90 [hyphens:auto] [text-wrap:pretty]"
-          >
-            {para && (
-              <span className="mr-1 font-display text-base font-bold text-gold">{para[1]}.</span>
-            )}
-            {lines.map((ln, li) => (
-              <span key={li}>
-                {renderInline(ln, `${bi}-${li}`)}
-                {li < lines.length - 1 && <br />}
-              </span>
-            ))}
+  const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean).map(classify);
+
+  // Agrupa frases de ejemplo consecutivas en un bloque indentado en cursiva.
+  const out: React.ReactNode[] = [];
+  let buffer: { num: string; text: string }[] = [];
+  const flush = (key: string) => {
+    if (buffer.length === 0) return;
+    const items = buffer;
+    buffer = [];
+    out.push(
+      <div key={key} className="my-3 space-y-1.5 border-l-2 border-gold/40 pl-5 sm:pl-7">
+        {items.map((it, i) => (
+          <p key={i} className="font-serif text-[1.02rem] italic leading-relaxed text-fg/80">
+            <sup className="mr-px align-super text-[0.62em] font-semibold not-italic text-gold">
+              {it.num}
+            </sup>
+            {renderInline(it.text, `ex-${key}-${i}`)}
           </p>
-        );
-      })}
-    </div>
-  );
+        ))}
+      </div>,
+    );
+  };
+
+  blocks.forEach((b, bi) => {
+    if (b.kind === "example") {
+      buffer.push({ num: b.num, text: b.text });
+      return;
+    }
+    flush(`g${bi}`);
+    if (b.kind === "para") {
+      out.push(
+        <p key={bi} className={PARA_CLASS}>
+          <span className="mr-1 font-display font-bold text-gold">{b.num}.</span>
+          {renderInline(b.text, `p${bi}`)}
+        </p>,
+      );
+    } else {
+      out.push(
+        <p key={bi} className={PARA_CLASS}>
+          {renderInline(b.text, `t${bi}`)}
+        </p>,
+      );
+    }
+  });
+  flush("gend");
+
+  return <div className="space-y-3.5">{out}</div>;
 }
 
 export function OriginalText({ lesson }: { lesson: Lesson }) {
