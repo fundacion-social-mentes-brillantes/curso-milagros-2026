@@ -8,6 +8,7 @@ import { computeGroupStats } from "@/lib/admin-analytics";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { GroupAnalysis } from "@/components/admin/GroupAnalysis";
 import { PeopleListModal } from "@/components/admin/PeopleListModal";
+import { exportPeoplePdf } from "@/lib/pdf-export";
 import { Histogram, bucketLessons, BarRow } from "@/components/ui/Charts";
 import { PageLoader } from "@/components/ui/Spinner";
 import { SITE } from "@/config/site";
@@ -62,6 +63,18 @@ function AdminInner() {
           <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Panel del grupo</h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() =>
+              void exportPeoplePdf(enrolled, {
+                title: "Personas inscritas",
+                subtitle: "Inscritas en el proceso",
+                fileBase: "inscritas-curso-de-milagros",
+              })
+            }
+            className="btn-gold text-sm"
+          >
+            ⬇ Descargar PDF
+          </button>
           <Link href="/admin/usuarios" className="btn-ghost text-sm">
             Personas
           </Link>
