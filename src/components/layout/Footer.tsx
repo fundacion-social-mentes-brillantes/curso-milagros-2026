@@ -7,7 +7,7 @@ export function Footer() {
         <p className="font-display text-base text-fg">{SITE.org}</p>
         <p className="max-w-md">{SITE.tagline}</p>
         <p className="text-xs">
-          Proceso {SITE.courseYear} · {SITE.totalLessons} lecciones · Hecho con calma 🌅
+          {SITE.totalLessons} lecciones · Un paso de paz cada día 🌅
         </p>
       </div>
     </footer>

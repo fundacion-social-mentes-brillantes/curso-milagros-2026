@@ -15,7 +15,7 @@ export function Logo({ className = "" }: { className?: string }) {
         <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary">
           ✦
         </span>
-        <span className="font-display text-lg font-bold">UCDM 2026</span>
+        <span className="font-display text-lg font-bold">Un Curso de Milagros</span>
       </span>
     );
   }

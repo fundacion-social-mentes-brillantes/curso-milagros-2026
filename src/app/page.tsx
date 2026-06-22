@@ -39,7 +39,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="mt-5 max-w-lg text-lg text-muted">
-              Acompañamiento diario de las {SITE.totalLessons} lecciones {SITE.courseYear}: video,
+              Acompañamiento diario de las {SITE.totalLessons} lecciones: video,
               lectura, guía cercana y comunidad. Tu proceso, a tu ritmo, con calma.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">

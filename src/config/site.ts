@@ -1,6 +1,6 @@
 export const SITE = {
-  name: "Un Curso de Milagros 2026",
-  shortName: "UCDM 2026",
+  name: "Un Curso de Milagros",
+  shortName: "Un Curso de Milagros",
   org: "Gimnasio Emocional Mentes Brillantes",
   tagline: "Un paso de paz cada día.",
   description:
