@@ -20,41 +20,43 @@ import { PageLoader } from "@/components/ui/Spinner";
 import { SITE } from "@/config/site";
 import type { Lesson, Progress } from "@/types";
 
-/** Recordatorio cálido y llamativo para conectar con la comunidad en Facebook. */
+/** Paso del día: dar like y comentar las dos meditaciones en Facebook. */
 function FacebookReminder() {
   return (
     <div className="relative">
-      {/* resplandor suave que lo hace resaltar */}
+      {/* resplandor luminoso y vivo, para que se note que es importante */}
       <span
         aria-hidden
-        className="absolute -inset-1 rounded-[1.6rem] bg-gradient-to-r from-[#1877F2]/45 via-aqua/35 to-gold/40 opacity-70 blur-lg"
+        className="absolute -inset-1.5 animate-breathe rounded-[1.7rem] bg-gradient-to-r from-[#1877F2] via-aqua to-gold opacity-60 blur-xl"
       />
-      <div className="card relative overflow-hidden ring-1 ring-[#1877F2]/30 shadow-glow">
+      <div className="card relative overflow-hidden ring-2 ring-[#1877F2]/45 shadow-glow">
         <div className="h-1.5 w-full bg-gradient-to-r from-[#1877F2] via-aqua to-gold" />
-        <div className="flex flex-col items-center gap-3 bg-gradient-to-br from-[#1877F2]/12 via-transparent to-aqua/10 p-6 text-center">
-          <span className="grid h-14 w-14 place-items-center rounded-full bg-[#1877F2] text-white shadow-glow ring-4 ring-[#1877F2]/20">
-            <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor" aria-hidden>
+        <div className="flex flex-col items-center gap-3 bg-gradient-to-br from-[#1877F2]/20 via-aqua/8 to-gold/12 p-6 text-center">
+          <span className="badge bg-aqua/20 text-aqua">✦ Parte de tu práctica de hoy</span>
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-[#1877F2] text-white shadow-glow ring-4 ring-[#1877F2]/30">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden>
               <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
             </svg>
           </span>
           <p className="font-display text-xl font-bold">
-            Acompáñanos en las meditaciones de hoy 💬
+            Da tu like y comenta las meditaciones de hoy 💬
           </p>
-          <p className="max-w-sm text-sm text-muted">
-            No olvides dar <strong>me gusta</strong> y dejar tu comentario en las{" "}
-            <strong>dos meditaciones diarias</strong> que publicamos en nuestro Facebook. Tu
-            palabra acompaña y anima a los demás. 🌿
+          <p className="max-w-sm text-sm text-fg/80">
+            Hace parte de tu lección de hoy: entra a nuestro Facebook y deja tu{" "}
+            <strong>me gusta</strong> y un <strong>comentario</strong> en las{" "}
+            <strong>dos meditaciones diarias</strong>. Tu palabra acompaña al grupo y anima a
+            que más personas se sumen al proceso. 💛
           </p>
           <a
             href={SITE.facebookUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#1877F2] px-6 py-3 text-sm font-bold text-white shadow-glow ring-1 ring-white/25 transition hover:brightness-110 active:scale-95"
+            className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#1877F2] px-7 py-3.5 text-base font-bold text-white shadow-glow ring-1 ring-white/25 transition hover:brightness-110 active:scale-95"
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden>
               <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
             </svg>
-            Ir a nuestro Facebook
+            Dejar mi like y comentario
           </a>
         </div>
       </div>
