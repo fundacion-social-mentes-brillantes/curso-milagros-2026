@@ -59,8 +59,47 @@ export function SenseiChat() {
     if (open) inputRef.current?.focus();
   }, [open]);
 
+  // Memoria local: Lumi recuerda tu conversación en ESTE dispositivo (privada, sin servidor).
+  useEffect(() => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return;
+    try {
+      const raw = localStorage.getItem(`lumi:chat:${uid}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setMessages(parsed as Msg[]);
+      }
+    } catch {
+      /* almacenamiento no disponible: seguimos sin memoria */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firebaseUser?.uid]);
+
+  useEffect(() => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return;
+    try {
+      localStorage.setItem(`lumi:chat:${uid}`, JSON.stringify(messages.slice(-50)));
+    } catch {
+      /* sin persistencia */
+    }
+  }, [messages, firebaseUser?.uid]);
+
   // Solo para usuarios con sesión (protege el saldo y mantiene la portada limpia).
   if (!firebaseUser) return null;
+
+  function clearChat() {
+    setMessages([]);
+    setError(null);
+    const uid = firebaseUser?.uid;
+    if (uid) {
+      try {
+        localStorage.removeItem(`lumi:chat:${uid}`);
+      } catch {
+        /* nada */
+      }
+    }
+  }
 
   async function send(text: string) {
     const clean = text.trim();
@@ -175,6 +214,28 @@ export function SenseiChat() {
                   </p>
                   <p className="text-xs text-primary-fg/80">{SENSEI_TAGLINE}</p>
                 </div>
+                {messages.length > 0 && (
+                  <button
+                    onClick={clearChat}
+                    aria-label="Nueva conversación"
+                    title="Nueva conversación"
+                    className="grid h-8 w-8 place-items-center rounded-full text-primary-fg/90 transition hover:bg-white/15"
+                  >
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 2v6h6" />
+                      <path d="M3 13a9 9 0 1 0 3-7.7L3 8" />
+                    </svg>
+                  </button>
+                )}
                 <button
                   onClick={() => setOpen(false)}
                   aria-label="Cerrar"

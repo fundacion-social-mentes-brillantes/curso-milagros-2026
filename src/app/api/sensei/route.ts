@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
-const MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
+const MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-pro";
 const FIREBASE_API_KEY =
   process.env.NEXT_PUBLIC_FIREBASE_API_KEY || FIREBASE_PUBLIC.apiKey;
 
@@ -66,7 +66,7 @@ function sanitizeMessages(input: unknown): ChatMessage[] {
           (m as ChatMessage).role === "assistant") &&
         typeof (m as ChatMessage).content === "string",
     )
-    .slice(-12)
+    .slice(-16)
     .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
 }
 
@@ -117,8 +117,8 @@ export async function POST(req: NextRequest): Promise<Response> {
         model: MODEL,
         messages: [{ role: "system", content: system }, ...cleaned],
         stream: true,
-        temperature: 0.6,
-        max_tokens: 800,
+        temperature: 0.7,
+        max_tokens: 1200,
       }),
     });
   } catch {
