@@ -108,5 +108,14 @@ service cloud.firestore {
     match /cohorts/{id} {
       allow read, write: if isAdmin();
     }
+
+    // --- RANKING DIARIO (hora en que cada persona hizo su lección) ---
+    // Lectura para personas con sesión (para contar el puesto y para el admin).
+    // Cada quien solo puede crear su propio registro; editar/borrar solo admin.
+    match /dailyDone/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
   }
 }

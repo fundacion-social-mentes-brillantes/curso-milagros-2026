@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { setLessonDone } from "@/lib/progress";
+import { getTodayPosition } from "@/lib/ranking";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDateTime } from "@/lib/utils";
 
@@ -19,15 +20,26 @@ export function MarkDoneButton({
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(completed);
   const [at, setAt] = useState<number | null>(completedAt);
+  const [position, setPosition] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Si ya estaba hecha, recupera el puesto de hoy (si la hizo hoy).
+  useEffect(() => {
+    if (completed) {
+      getTodayPosition(uid)
+        .then(setPosition)
+        .catch(() => {});
+    }
+  }, [completed, uid]);
 
   async function toggle(next: boolean) {
     setBusy(true);
     setError(null);
     try {
-      await setLessonDone(uid, lessonNumber, next);
+      const res = await setLessonDone(uid, lessonNumber, next);
       setDone(next);
       setAt(next ? Date.now() : null);
+      setPosition(next ? res.position : null);
     } catch {
       setError("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.");
     } finally {
@@ -45,6 +57,11 @@ export function MarkDoneButton({
           <p className="font-display text-lg font-semibold text-success">
             ¡Lección realizada!
           </p>
+          {position && (
+            <p className="font-display text-base font-bold text-gold">
+              🌅 ¡Hoy fuiste el #{position} en hacer tu lección!
+            </p>
+          )}
           {at && <p className="text-xs text-muted">Marcada el {formatDateTime(at)}</p>}
           <button
             onClick={() => void toggle(false)}

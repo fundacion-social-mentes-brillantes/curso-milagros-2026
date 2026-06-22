@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { subscribeUserProgress } from "@/lib/progress";
+import { getTodayPosition } from "@/lib/ranking";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Histogram, bucketLessons } from "@/components/ui/Charts";
@@ -16,10 +17,18 @@ import type { Progress } from "@/types";
 function DashboardInner() {
   const { appUser } = useAuth();
   const [progress, setProgress] = useState<Progress[] | null>(null);
+  const [position, setPosition] = useState<number | null>(null);
 
   useEffect(() => {
     if (!appUser) return;
     return subscribeUserProgress(appUser.uid, setProgress);
+  }, [appUser?.uid]);
+
+  useEffect(() => {
+    if (!appUser) return;
+    getTodayPosition(appUser.uid)
+      .then(setPosition)
+      .catch(() => {});
   }, [appUser?.uid]);
 
   if (!appUser) return <PageLoader />;
@@ -46,6 +55,11 @@ function DashboardInner() {
             ? "Hoy es un hermoso día para comenzar tu primera lección."
             : "Qué bueno tenerte de vuelta. Continúa cuando estés listo."}
         </p>
+        {position && (
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-gold/15 px-4 py-2 text-sm font-bold text-gold">
+            🌅 Hoy fuiste el #{position} en hacer tu lección
+          </div>
+        )}
       </header>
 
       <div className="mt-8 grid gap-5 lg:grid-cols-3">

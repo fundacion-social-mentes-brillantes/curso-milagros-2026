@@ -10,6 +10,7 @@ import { GroupAnalysis } from "@/components/admin/GroupAnalysis";
 import { PeopleListModal } from "@/components/admin/PeopleListModal";
 import { exportPeoplePdf } from "@/lib/pdf-export";
 import { CohortHistory } from "@/components/admin/CohortHistory";
+import { DailyRanking } from "@/components/admin/DailyRanking";
 import { Histogram, bucketLessons, BarRow } from "@/components/ui/Charts";
 import { PageLoader } from "@/components/ui/Spinner";
 import { SITE } from "@/config/site";
@@ -207,6 +208,8 @@ function AdminInner() {
           )}
         </div>
       </div>
+
+      <DailyRanking />
 
       <CohortHistory />
 

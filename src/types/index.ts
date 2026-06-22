@@ -174,3 +174,13 @@ export interface CohortArchive {
   avgLesson: number;
   participants: CohortParticipant[];
 }
+
+/** Ranking diario: cuándo (y en qué puesto) hizo su lección una persona ese día. */
+export interface DailyDone {
+  uid: string;
+  name: string;
+  /** "YYYY-MM-DD" en horario de Colombia */
+  date: string;
+  completedAt: number;
+  position: number;
+}

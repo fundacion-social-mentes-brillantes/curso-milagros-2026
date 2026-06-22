@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { lessonDocId } from "@/config/lessons.links";
-import { clampLesson } from "@/lib/utils";
+import { bogotaDateStr, clampLesson } from "@/lib/utils";
 import type { Progress } from "@/types";
 
 function progressId(uid: string, n: number): string {
@@ -67,7 +67,7 @@ export async function setLessonDone(
   uid: string,
   n: number,
   completed: boolean,
-): Promise<void> {
+): Promise<{ position: number | null }> {
   const db = getDb();
   const now = Date.now();
   await setDoc(
@@ -105,4 +105,32 @@ export async function setLessonDone(
     // Solo al COMPLETAR registramos la fecha (para "quién hizo la lección hoy").
     ...(completed ? { lastCompletedAt: now } : {}),
   });
+
+  // Ranking diario (opcional): registra UNA vez al día el puesto por hora.
+  // Va en try/catch para que NUNCA impida marcar la lección como hecha
+  // (p. ej. si las reglas aún no están publicadas).
+  let position: number | null = null;
+  if (completed) {
+    try {
+      const today = bogotaDateStr(now);
+      const ddRef = doc(db, "dailyDone", `${today}_${uid}`);
+      const ddSnap = await getDoc(ddRef);
+      if (ddSnap.exists()) {
+        position = Number(ddSnap.data().position ?? 0) || null;
+      } else {
+        const cnt = await getCountFromServer(
+          query(collection(db, "dailyDone"), where("date", "==", today)),
+        );
+        position = cnt.data().count + 1;
+        const name = String(
+          userSnap.data()?.fullName || userSnap.data()?.displayName || "Caminante",
+        );
+        await setDoc(ddRef, { uid, name, date: today, completedAt: now, position });
+      }
+    } catch {
+      position = null;
+    }
+  }
+
+  return { position };
 }

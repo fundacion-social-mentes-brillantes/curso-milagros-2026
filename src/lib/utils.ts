@@ -57,3 +57,25 @@ export function clampLesson(n: number, total = 365): number {
   if (Number.isNaN(n)) return 1;
   return Math.min(Math.max(Math.trunc(n), 1), total);
 }
+
+/** Fecha "YYYY-MM-DD" en horario de Colombia (para agrupar el día igual para todos). */
+const BOGOTA_DATE_FMT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Bogota",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+export function bogotaDateStr(ms: number): string {
+  return BOGOTA_DATE_FMT.format(new Date(ms));
+}
+
+/** Hora "7:35 a. m." en horario de Colombia. */
+const TIME_FMT = new Intl.DateTimeFormat("es-CO", {
+  timeZone: "America/Bogota",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+export function formatTime(ms: number | null | undefined): string {
+  if (!ms) return "—";
+  return TIME_FMT.format(new Date(ms));
+}
