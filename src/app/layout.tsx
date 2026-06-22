@@ -34,6 +34,12 @@ export const metadata: Metadata = {
   description: SITE.description,
   icons: {
     icon: [{ url: "/images/icon.png", type: "image/png", sizes: "512x512" }],
+    apple: [{ url: "/images/icon.png", sizes: "512x512" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Curso Milagros",
+    statusBarStyle: "default",
   },
   openGraph: {
     images: [
