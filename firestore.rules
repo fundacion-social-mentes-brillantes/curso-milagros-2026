@@ -40,7 +40,8 @@ service cloud.firestore {
       allow update: if isAdmin()
                     || (isSignedIn()
                         && request.auth.uid == uid
-                        && request.resource.data.role == resource.data.role);
+                        && request.resource.data.role == resource.data.role
+                        && request.resource.data.enrolled == resource.data.enrolled);
       allow delete: if isAdmin();
     }
 

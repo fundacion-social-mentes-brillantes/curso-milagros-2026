@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
-import { setUserRole } from "@/lib/users";
+import { setUserEnrolled, setUserRole } from "@/lib/users";
 import { STATUS_LABEL, userStatus } from "@/lib/admin-analytics";
-import { pct, relativeTime } from "@/lib/utils";
+import { pct, relativeTime, cn } from "@/lib/utils";
 import { SITE } from "@/config/site";
 import type { AppUser, UserStatus } from "@/types";
+
+type EnrollFilter = "all" | "in" | "out";
 
 const STATUS_CLASS: Record<UserStatus, string> = {
   active: "bg-success/15 text-success",
@@ -22,11 +24,16 @@ export function UsersTable({
   editable?: boolean;
 }) {
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<EnrollFilter>("all");
   const [pendingUid, setPendingUid] = useState<string | null>(null);
+  const [enrollBusy, setEnrollBusy] = useState<string | null>(null);
+
+  const enrolledCount = useMemo(() => users.filter((u) => u.enrolled).length, [users]);
 
   const rows = useMemo(() => {
     const query = q.trim().toLowerCase();
     return [...users]
+      .filter((u) => (filter === "all" ? true : filter === "in" ? u.enrolled : !u.enrolled))
       .filter(
         (u) =>
           !query ||
@@ -34,7 +41,7 @@ export function UsersTable({
           u.email.toLowerCase().includes(query),
       )
       .sort((a, b) => b.lastActivityAt - a.lastActivityAt);
-  }, [users, q]);
+  }, [users, q, filter]);
 
   async function toggleRole(u: AppUser) {
     setPendingUid(u.uid);
@@ -45,16 +52,52 @@ export function UsersTable({
     }
   }
 
+  async function toggleEnrolled(u: AppUser) {
+    setEnrollBusy(u.uid);
+    try {
+      await setUserEnrolled(u.uid, !u.enrolled);
+    } finally {
+      setEnrollBusy(null);
+    }
+  }
+
   return (
     <div className="card overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b border-border p-4">
-        <h3 className="font-display text-lg font-semibold">Personas ({users.length})</h3>
-        <input
-          className="input max-w-[220px]"
-          placeholder="Buscar..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
+      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="font-display text-lg font-semibold">Personas ({users.length})</h3>
+          <p className="text-xs text-muted">
+            {enrolledCount} inscritas en el proceso · {users.length - enrolledCount} solo registradas
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {(
+            [
+              ["all", "Todas"],
+              ["in", "Inscritas"],
+              ["out", "No inscritas"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                filter === key
+                  ? "bg-primary text-primary-fg"
+                  : "border border-border bg-surface text-muted hover:text-fg",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+          <input
+            className="input max-w-[180px]"
+            placeholder="Buscar..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -68,6 +111,7 @@ export function UsersTable({
               <th className="p-4 font-semibold">Completadas</th>
               <th className="p-4 font-semibold">Última actividad</th>
               <th className="p-4 font-semibold">Estado</th>
+              <th className="p-4 font-semibold">Inscrito</th>
               {editable && <th className="p-4 font-semibold">Rol</th>}
             </tr>
           </thead>
@@ -97,6 +141,27 @@ export function UsersTable({
                   <td className="p-4 text-muted">{relativeTime(u.lastActivityAt)}</td>
                   <td className="p-4">
                     <span className={`badge ${STATUS_CLASS[status]}`}>{STATUS_LABEL[status]}</span>
+                  </td>
+                  <td className="p-4">
+                    {editable ? (
+                      <button
+                        onClick={() => void toggleEnrolled(u)}
+                        disabled={enrollBusy === u.uid}
+                        title={u.enrolled ? "Inscrito (clic para quitar)" : "No inscrito (clic para inscribir)"}
+                        className={cn(
+                          "grid h-7 w-7 place-items-center rounded-full text-sm font-bold transition",
+                          u.enrolled
+                            ? "bg-success/20 text-success hover:bg-success/30"
+                            : "border border-border bg-surface text-muted hover:text-fg",
+                        )}
+                      >
+                        {u.enrolled ? "✓" : "○"}
+                      </button>
+                    ) : (
+                      <span className={`badge ${u.enrolled ? "bg-success/15 text-success" : "bg-muted/15 text-muted"}`}>
+                        {u.enrolled ? "Sí" : "No"}
+                      </span>
+                    )}
                   </td>
                   {editable && (
                     <td className="p-4">

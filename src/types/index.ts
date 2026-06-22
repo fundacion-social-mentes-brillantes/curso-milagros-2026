@@ -21,6 +21,12 @@ export interface AppUser {
   phone: string;
   /** true cuando ya completó sus datos de registro */
   profileComplete: boolean;
+  /**
+   * Inscrito en el proceso activo: cuenta en las estadísticas y aparece en la
+   * lista activa. Los no inscritos siguen registrados y pueden ver todo, pero
+   * no afectan las métricas del grupo que sí está haciendo el curso.
+   */
+  enrolled: boolean;
   /** Marca de tiempo en milisegundos (Date.now) */
   createdAt: number;
   lastLoginAt: number;

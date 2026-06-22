@@ -23,8 +23,10 @@ function AdminInner() {
 
   if (users === null) return <PageLoader label="Cargando panel..." />;
 
-  const stats = computeGroupStats(users);
-  const topMovers = [...users]
+  // Las estadísticas se calculan SOLO con las personas inscritas en el proceso.
+  const enrolled = users.filter((u) => u.enrolled);
+  const stats = computeGroupStats(enrolled);
+  const topMovers = [...enrolled]
     .sort((a, b) => b.completedLessonsCount - a.completedLessonsCount)
     .slice(0, 8);
 
@@ -49,7 +51,12 @@ function AdminInner() {
       </header>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Personas" value={stats.totalUsers} icon="👥" />
+        <StatCard
+          label="Inscritas"
+          value={stats.totalUsers}
+          hint={`${users.length} registradas en total`}
+          icon="👥"
+        />
         <StatCard label="Activas hoy" value={stats.activeToday} icon="🌞" tone="gold" />
         <StatCard label="Activas (7 días)" value={stats.active7d} icon="📅" tone="aqua" />
         <StatCard label="Inactivas (+7 días)" value={stats.inactive7d} icon="🌙" tone="warn" />
@@ -60,13 +67,13 @@ function AdminInner() {
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
-        <GroupAnalysis users={users} stats={stats} />
+        <GroupAnalysis users={enrolled} stats={stats} />
 
         <div className="card p-6">
           <h3 className="font-display text-lg font-semibold">¿Dónde está el grupo?</h3>
           <p className="text-sm text-muted">Cuántas personas van en cada tramo de lecciones.</p>
           <div className="mt-4">
-            <Histogram buckets={bucketLessons(users.map((u) => u.currentLesson || 1))} />
+            <Histogram buckets={bucketLessons(enrolled.map((u) => u.currentLesson || 1))} />
           </div>
         </div>
       </div>

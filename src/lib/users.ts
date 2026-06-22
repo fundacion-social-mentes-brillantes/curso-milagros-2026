@@ -24,6 +24,8 @@ function toAppUser(uid: string, data: Record<string, unknown>): AppUser {
     country: String(data.country ?? ""),
     phone: String(data.phone ?? ""),
     profileComplete: Boolean(data.profileComplete),
+    // Si el campo no existe (usuarios antiguos), se asume inscrito.
+    enrolled: data.enrolled === undefined ? true : Boolean(data.enrolled),
     createdAt: Number(data.createdAt ?? 0),
     lastLoginAt: Number(data.lastLoginAt ?? 0),
     lastActivityAt: Number(data.lastActivityAt ?? 0),
@@ -53,6 +55,7 @@ export async function ensureUserProfile(user: User): Promise<void> {
       country: "",
       phone: "",
       profileComplete: false,
+      enrolled: true,
       createdAt: now,
       lastLoginAt: now,
       lastActivityAt: now,
@@ -122,4 +125,10 @@ export async function listUsers(): Promise<AppUser[]> {
 export async function setUserRole(uid: string, role: Role): Promise<void> {
   const db = getDb();
   await updateDoc(doc(db, "users", uid), { role });
+}
+
+/** (Admin) Inscribe o desinscribe a una persona del proceso activo. */
+export async function setUserEnrolled(uid: string, enrolled: boolean): Promise<void> {
+  const db = getDb();
+  await updateDoc(doc(db, "users", uid), { enrolled });
 }
