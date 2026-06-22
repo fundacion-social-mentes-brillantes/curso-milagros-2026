@@ -207,6 +207,15 @@ function AdminInner() {
         </div>
       </div>
 
+      <div className="mt-8 text-center">
+        <Link
+          href="/admin/nuevo-anio"
+          className="text-xs text-muted underline-offset-4 hover:text-fg hover:underline"
+        >
+          🔄 Comenzar nuevo año (reiniciar el avance del grupo)
+        </Link>
+      </div>
+
       {modal && (
         <PeopleListModal
           title={modal.title}
