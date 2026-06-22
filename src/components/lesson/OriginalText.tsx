@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Lesson } from "@/types";
 
 /**
@@ -11,20 +12,37 @@ import type { Lesson } from "@/types";
 // Convierte los números de oración pegados (p. ej. "2La idea") en superíndices.
 function renderInline(text: string, keyBase: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
-  // dígito (1-2) precedido de inicio/espacio/puntuación y seguido de mayúscula/«/¿
-  const re = /(?<=^|[\s.;:,—(«"¿])(\d{1,2})(?=\s?[A-ZÁÉÍÓÚÑ¡¿«"])/g;
+  // (NNN) = referencia a lección (enlace)  |  número de oración (superíndice)
+  const re = /\((\d{1,3})\)|(?<=^|[\s.;:,—(«"¿])(\d{1,2})(?=\s?[A-ZÁÉÍÓÚÑ¡¿«"])/g;
   let last = 0;
   let i = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    const num = m[1] ?? "";
     if (m.index > last) nodes.push(text.slice(last, m.index));
-    nodes.push(
-      <sup key={`${keyBase}-s${i++}`} className="mr-px align-super text-[0.62em] font-semibold text-gold">
-        {num}
-      </sup>,
-    );
-    last = m.index + num.length;
+    if (m[1] !== undefined) {
+      const ref = Number(m[1]);
+      if (ref >= 1 && ref <= 365) {
+        nodes.push(
+          <Link
+            key={`${keyBase}-r${i++}`}
+            href={`/lecciones/${ref}`}
+            className="font-semibold text-primary decoration-dotted underline-offset-2 hover:underline"
+            title={`Ir a la lección ${ref}`}
+          >
+            ({m[1]})
+          </Link>,
+        );
+      } else {
+        nodes.push(m[0]);
+      }
+    } else {
+      nodes.push(
+        <sup key={`${keyBase}-s${i++}`} className="mr-px align-super text-[0.62em] font-semibold text-gold">
+          {m[2] ?? ""}
+        </sup>,
+      );
+    }
+    last = m.index + m[0].length;
   }
   if (last < text.length) nodes.push(text.slice(last));
   return nodes;
