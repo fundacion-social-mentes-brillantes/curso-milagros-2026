@@ -5,6 +5,7 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { SenseiChat } from "@/components/sensei/SenseiChat";
+import { OneSignalInit } from "@/components/notifications/OneSignalInit";
 import { SITE } from "@/config/site";
 
 const serif = Fraunces({
@@ -74,6 +75,7 @@ export default function RootLayout({
             <Footer />
           </div>
           <SenseiChat />
+          <OneSignalInit />
         </AuthProvider>
       </body>
     </html>
