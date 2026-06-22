@@ -15,6 +15,12 @@ export interface AppUser {
   email: string;
   photoURL: string | null;
   role: Role;
+  /** Datos de registro (los llena la persona al entrar por primera vez) */
+  fullName: string;
+  country: string;
+  phone: string;
+  /** true cuando ya completó sus datos de registro */
+  profileComplete: boolean;
   /** Marca de tiempo en milisegundos (Date.now) */
   createdAt: number;
   lastLoginAt: number;

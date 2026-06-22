@@ -20,6 +20,10 @@ function toAppUser(uid: string, data: Record<string, unknown>): AppUser {
     email: String(data.email ?? ""),
     photoURL: (data.photoURL as string | null) ?? null,
     role: (data.role as Role) ?? "user",
+    fullName: String(data.fullName ?? data.displayName ?? ""),
+    country: String(data.country ?? ""),
+    phone: String(data.phone ?? ""),
+    profileComplete: Boolean(data.profileComplete),
     createdAt: Number(data.createdAt ?? 0),
     lastLoginAt: Number(data.lastLoginAt ?? 0),
     lastActivityAt: Number(data.lastActivityAt ?? 0),
@@ -45,6 +49,10 @@ export async function ensureUserProfile(user: User): Promise<void> {
       email: user.email ?? "",
       photoURL: user.photoURL ?? null,
       role: "user" satisfies Role,
+      fullName: user.displayName ?? "",
+      country: "",
+      phone: "",
+      profileComplete: false,
       createdAt: now,
       lastLoginAt: now,
       lastActivityAt: now,
@@ -59,6 +67,22 @@ export async function ensureUserProfile(user: User): Promise<void> {
     photoURL: user.photoURL ?? null,
     lastLoginAt: now,
     lastActivityAt: now,
+  });
+}
+
+/** Guarda los datos de registro y marca el perfil como completo. */
+export async function completeUserProfile(
+  uid: string,
+  data: { fullName: string; country: string; phone: string },
+): Promise<void> {
+  const db = getDb();
+  await updateDoc(doc(db, "users", uid), {
+    fullName: data.fullName.trim(),
+    displayName: data.fullName.trim() || "Caminante",
+    country: data.country.trim(),
+    phone: data.phone.trim(),
+    profileComplete: true,
+    lastActivityAt: Date.now(),
   });
 }
 

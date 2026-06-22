@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { PageLoader } from "@/components/ui/Spinner";
+import { Onboarding } from "@/components/auth/Onboarding";
 
 function ConfigNotice() {
   return (
@@ -46,7 +47,7 @@ export function RouteGuard({
   children: React.ReactNode;
   requireAdmin?: boolean;
 }) {
-  const { loading, configured, firebaseUser, isAdmin } = useAuth();
+  const { loading, configured, firebaseUser, appUser, isAdmin } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -58,6 +59,9 @@ export function RouteGuard({
   if (!configured) return <ConfigNotice />;
   if (loading) return <PageLoader />;
   if (!firebaseUser) return <PageLoader label="Redirigiendo al inicio de sesión..." />;
+  if (!appUser) return <PageLoader label="Preparando tu espacio..." />;
+  // Primer ingreso: pedir datos de registro antes de entrar.
+  if (!appUser.profileComplete) return <Onboarding />;
   if (requireAdmin && !isAdmin) return <NotAuthorized />;
   return <>{children}</>;
 }
