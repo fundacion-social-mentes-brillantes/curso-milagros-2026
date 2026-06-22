@@ -12,7 +12,7 @@ import type { Lesson } from "@/types";
 function renderInline(text: string, keyBase: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   // dígito (1-2) precedido de inicio/espacio/puntuación y seguido de mayúscula/«/¿
-  const re = /(?<=^|[\s.;:,—(«"¿])(\d{1,2})(?=[A-ZÁÉÍÓÚÑ¡¿«"])/g;
+  const re = /(?<=^|[\s.;:,—(«"¿])(\d{1,2})(?=\s?[A-ZÁÉÍÓÚÑ¡¿«"])/g;
   let last = 0;
   let i = 0;
   let m: RegExpExecArray | null;
