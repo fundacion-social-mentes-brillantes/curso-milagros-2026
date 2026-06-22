@@ -62,6 +62,8 @@ export function UsersTable({
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
               <th className="p-4 font-semibold">Persona</th>
+              <th className="p-4 font-semibold">País</th>
+              <th className="p-4 font-semibold">Celular</th>
               <th className="p-4 font-semibold">Lección actual</th>
               <th className="p-4 font-semibold">Completadas</th>
               <th className="p-4 font-semibold">Última actividad</th>
@@ -83,6 +85,8 @@ export function UsersTable({
                       </div>
                     </div>
                   </td>
+                  <td className="p-4 text-muted">{u.country || "—"}</td>
+                  <td className="p-4 text-muted">{u.phone || "—"}</td>
                   <td className="p-4 tabular-nums">{u.currentLesson}</td>
                   <td className="p-4">
                     <span className="tabular-nums">{u.completedLessonsCount}</span>
