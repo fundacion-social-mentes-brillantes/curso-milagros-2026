@@ -51,8 +51,16 @@ function readExisting(id: string): Lesson | null {
 
 async function main() {
   const args = process.argv.slice(2).map(Number).filter((n) => !Number.isNaN(n));
-  const from = args[0] ?? 1;
-  const to = args[1] ?? TOTAL_LESSONS;
+  // Mas de 2 numeros = lista explicita de lecciones; si no, rango from-to.
+  let targets: number[];
+  if (args.length > 2) {
+    targets = args;
+  } else {
+    const from = args[0] ?? 1;
+    const to = args[1] ?? TOTAL_LESSONS;
+    targets = [];
+    for (let n = from; n <= to; n++) targets.push(n);
+  }
   mkdirSync(OUT_DIR, { recursive: true });
 
   const now = Date.now();
@@ -60,7 +68,7 @@ async function main() {
   let review = 0;
   let failed = 0;
 
-  for (let n = from; n <= to; n++) {
+  for (const n of targets) {
     const id = lessonDocId(n);
     const lesson = buildStubLesson(n, now);
 

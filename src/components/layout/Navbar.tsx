@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Avatar } from "@/components/ui/Avatar";
+import { Logo } from "@/components/ui/Logo";
 import { NAV_USER, SITE } from "@/config/site";
 import { cn } from "@/lib/utils";
 
@@ -19,9 +20,8 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-bg/80 backdrop-blur-md">
       <nav className="container-page flex h-16 items-center justify-between gap-3">
-        <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary">✦</span>
-          <span className="hidden sm:inline">{SITE.shortName}</span>
+        <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold" aria-label={SITE.org}>
+          <Logo />
         </Link>
 
         {/* enlaces escritorio */}

@@ -8,6 +8,7 @@ import { getLessonByNumber } from "@/lib/lessons";
 import { getLessonProgress } from "@/lib/progress";
 import { touchActivity } from "@/lib/users";
 import { LessonHeader } from "@/components/lesson/LessonHeader";
+import { LessonImage } from "@/components/lesson/LessonImage";
 import { VideoPlayer } from "@/components/lesson/VideoPlayer";
 import { OriginalText } from "@/components/lesson/OriginalText";
 import { CommentarySections } from "@/components/lesson/CommentarySections";
@@ -84,6 +85,10 @@ function LessonInner({ n }: { n: number }) {
         completed={Boolean(progress?.completed)}
         completedAt={progress?.completedAt}
       />
+
+      <div className="mt-5">
+        <LessonImage number={lesson.number} title={lesson.title} />
+      </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* columna principal: primero el texto original, luego la guía, y el video al final */}

@@ -63,42 +63,42 @@ export interface ParsedLesson {
 }
 
 export function parseLessonHtml(html: string, n: number): ParsedLesson {
-  // 1) Encabezado de contenido: preferimos MAYÚSCULAS "LECCIÓN N".
-  let start = new RegExp("LECCIÓN\\s*0*" + n + "\\b").exec(html);
-  if (!start) start = new RegExp("LECCI[OÓ]N\\s*0*" + n + "\\b", "i").exec(html);
-  if (!start) return { title: "", originalText: "", found: false };
+  // Recorre TODAS las apariciones de "LECCIÓN N" (acepta acentos/mayus/minus)
+  // y elige la primera que, recortada hasta el comentario, dé un texto de
+  // tamaño razonable. Así evita anclar en el meta-título de la página.
+  const headRe = new RegExp("LECCI[OÓ]N\\s*0*" + n + "\\b", "gi");
+  let fallback: ParsedLesson | null = null;
+  let m: RegExpExecArray | null;
 
-  // 2) Recorta hasta el inicio del comentario.
-  let region = html.slice(start.index);
-  const cut = COMMENTARY_CUT.exec(region);
-  const cutFound = Boolean(cut && cut.index > 0);
-  if (cut && cut.index > 0) region = region.slice(0, cut.index);
+  while ((m = headRe.exec(html)) !== null) {
+    const after = html.slice(m.index);
+    const cut = COMMENTARY_CUT.exec(after);
+    if (!cut || cut.index <= 0) continue;
+    const region = after.slice(0, cut.index);
 
-  // 3) Texto plano (con entidades decodificadas).
-  let text = htmlToText(region);
+    let text = htmlToText(region)
+      .replace(new RegExp("^(\\s*LECCI[OÓ]N\\s*0*" + n + "\\s*)+", "i"), "")
+      .trim();
 
-  // 4) Quita encabezados "LECCIÓN N" repetidos al inicio.
-  text = text
-    .replace(new RegExp("^(\\s*LECCI[OÓ]N\\s*0*" + n + "\\s*)+", "i"), "")
-    .trim();
+    let title = "";
+    let originalText = "";
+    const firstPara = text.match(/(^|\n)\s*1[.°)]\s+\S/);
+    if (firstPara && typeof firstPara.index === "number") {
+      const idx = firstPara.index + (firstPara[1] ? firstPara[1].length : 0);
+      title = text.slice(0, idx).replace(/\s*\n\s*/g, " ").trim();
+      originalText = text.slice(idx).trim();
+    } else {
+      title = (text.split("\n")[0] ?? "").trim();
+      originalText = text.trim();
+    }
+    originalText = originalText.replace(/\s*¿\s*$/, "").trim();
+    title = title.replace(/\s*¿\s*$/, "").trim();
 
-  // 5) Separa título (antes del primer párrafo "1.") y cuerpo del Curso.
-  let title = "";
-  let originalText = "";
-  const firstPara = text.match(/(^|\n)\s*1[.°)]\s+\S/);
-  if (firstPara && typeof firstPara.index === "number") {
-    const idx = firstPara.index + (firstPara[1] ? firstPara[1].length : 0);
-    title = text.slice(0, idx).replace(/\s*\n\s*/g, " ").trim();
-    originalText = text.slice(idx).trim();
-  } else {
-    title = (text.split("\n")[0] ?? "").trim();
-    originalText = text.trim();
+    if (originalText.length > 30 && originalText.length < 9000) {
+      return { title, originalText, found: true };
+    }
+    if (!fallback) fallback = { title, originalText, found: false };
   }
 
-  // 6) Limpieza final: quita un "¿" colgante al final (inicio del comentario).
-  originalText = originalText.replace(/\s*¿\s*$/, "").trim();
-  title = title.replace(/\s*¿\s*$/, "").trim();
-
-  const ok = cutFound && originalText.length > 30 && originalText.length < 9000;
-  return { title, originalText, found: ok };
+  return fallback ?? { title: "", originalText: "", found: false };
 }
