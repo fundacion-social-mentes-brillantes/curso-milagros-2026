@@ -103,5 +103,10 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+
+    // --- HISTORIAL DE AÑOS (resúmenes de años cerrados; solo admin, contiene datos) ---
+    match /cohorts/{id} {
+      allow read, write: if isAdmin();
+    }
   }
 }

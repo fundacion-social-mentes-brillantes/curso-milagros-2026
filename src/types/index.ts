@@ -153,3 +153,24 @@ export interface GroupStats {
   modeLesson: number;
   completionRate: number;
 }
+
+/** Persona dentro del resumen de un año cerrado. */
+export interface CohortParticipant {
+  name: string;
+  email: string;
+  country: string;
+  completed: number;
+  currentLesson: number;
+}
+
+/** Resumen archivado de un año del proceso (historial del panel). */
+export interface CohortArchive {
+  id: string;
+  label: string;
+  archivedAt: number;
+  total: number;
+  finishedCount: number;
+  avgCompletion: number;
+  avgLesson: number;
+  participants: CohortParticipant[];
+}

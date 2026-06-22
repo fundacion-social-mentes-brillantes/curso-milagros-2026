@@ -9,6 +9,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { GroupAnalysis } from "@/components/admin/GroupAnalysis";
 import { PeopleListModal } from "@/components/admin/PeopleListModal";
 import { exportPeoplePdf } from "@/lib/pdf-export";
+import { CohortHistory } from "@/components/admin/CohortHistory";
 import { Histogram, bucketLessons, BarRow } from "@/components/ui/Charts";
 import { PageLoader } from "@/components/ui/Spinner";
 import { SITE } from "@/config/site";
@@ -206,6 +207,8 @@ function AdminInner() {
           )}
         </div>
       </div>
+
+      <CohortHistory />
 
       <div className="mt-8 text-center">
         <Link

@@ -1,4 +1,4 @@
-import type { AppUser } from "@/types";
+import type { AppUser, CohortArchive } from "@/types";
 
 /** Quita acentos y deja un nombre de archivo limpio. */
 function slugify(s: string): string {
@@ -89,4 +89,61 @@ export async function exportPeoplePdf(
     now.getDate(),
   ).padStart(2, "0")}`;
   doc.save(`${base}-${stamp}.pdf`);
+}
+
+/** Descarga el PDF del resumen de un año cerrado (historial). */
+export async function exportCohortPdf(cohort: CohortArchive): Promise<void> {
+  const { jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const dateStr = cohort.archivedAt
+    ? new Date(cohort.archivedAt).toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(22, 110, 96);
+  doc.text(`Historial — ${cohort.label}`, 40, 48);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(90, 90, 90);
+  doc.text("Un Curso de Milagros · Gimnasio Emocional Mentes Brillantes", 40, 66);
+  doc.text(
+    `${cohort.total} personas · ${cohort.finishedCount} terminaron · ${cohort.avgCompletion}% promedio${
+      dateStr ? ` · Cerrado el ${dateStr}` : ""
+    }`,
+    40,
+    80,
+  );
+
+  const rows = cohort.participants.map((p, i) => [
+    String(i + 1),
+    p.name || "—",
+    p.email || "—",
+    p.country || "—",
+    String(p.completed),
+    p.completed >= 365 ? "Terminó" : `Lección ${p.currentLesson}`,
+  ]);
+
+  autoTable(doc, {
+    startY: 96,
+    head: [["#", "Nombre", "Correo", "País", "Completadas", "Estado"]],
+    body: rows,
+    styles: { fontSize: 9, cellPadding: 4, overflow: "linebreak" },
+    headStyles: { fillColor: [22, 110, 96], textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [240, 244, 237] },
+    columnStyles: {
+      0: { cellWidth: 22, halign: "right" },
+      4: { halign: "center" },
+    },
+    margin: { left: 40, right: 40 },
+  });
+
+  doc.save(`historial-${slugify(cohort.label)}.pdf`);
 }

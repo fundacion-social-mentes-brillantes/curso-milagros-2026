@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
 import { resetCourseForNewYear, type ResetResult } from "@/lib/admin-reset";
 import { Spinner } from "@/components/ui/Spinner";
@@ -9,10 +9,15 @@ import { Spinner } from "@/components/ui/Spinner";
 const PHRASE = "REINICIAR";
 
 function NewYearInner() {
+  const [label, setLabel] = useState("");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<ResetResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLabel(String(new Date().getFullYear()));
+  }, []);
 
   const ready = text.trim().toUpperCase() === PHRASE;
 
@@ -21,7 +26,7 @@ function NewYearInner() {
     setBusy(true);
     setError(null);
     try {
-      const result = await resetCourseForNewYear();
+      const result = await resetCourseForNewYear(label);
       setDone(result);
       setText("");
     } catch {
@@ -87,6 +92,18 @@ function NewYearInner() {
               </div>
 
               <label className="mt-6 block">
+                <span className="text-sm font-semibold">
+                  Nombre de este año (para el historial)
+                </span>
+                <input
+                  className="input mt-1.5"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder="Ej. 2026"
+                />
+              </label>
+
+              <label className="mt-5 block">
                 <span className="text-sm font-semibold">
                   Para confirmar, escribe{" "}
                   <span className="font-mono text-warning">REINICIAR</span>
