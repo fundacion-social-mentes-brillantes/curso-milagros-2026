@@ -28,6 +28,19 @@ formas, símbolo y tipografía; respeta las proporciones). Guarda en
 Reglas del logo: fiel a la marca, sin inventar elementos, sin marco, sin sombra de
 piso, sin texto extra. Optimizado para web (cada archivo < 200 KB).
 
+## PARTE 1B — Portada (imagen principal), en la nueva paleta verde
+
+Reemplaza estas imágenes para que combinen con la estética **esmeralda/oro** del video
+(las actuales son de tono cálido y ya no combinan). Guarda en
+`C:\Claude\proyectos\curso-milagros-2026\public\images\` :
+
+- `hero.png` — imagen principal de la portada, **1600×1200 px**, fondo opaco. Escena
+  espiritual mística en verde esmeralda/teal profundo con luz dorada (amanecer/aurora
+  sobre montañas o un horizonte sereno). Sin texto. < 400 KB.
+- `og.png` — vista previa social **1200×630 px**, misma estética verde/oro, sin texto pequeño.
+- `pattern-soft.png` — (opcional) textura sutil para fondo, tono verde/teal muy tenue,
+  transparente, 1200×1200.
+
 ## PARTE 2 — Imágenes de referencia para las lecciones 1 a 30
 
 Crea **30 imágenes**, una por lección, en
@@ -39,9 +52,9 @@ Especificaciones para TODAS:
 - Estilo **cohesionado** entre las 30 (que se sientan una colección): ilustración
   digital **etérea y onírica/surrealista**, luminosa, espiritual, innovadora,
   contemplativa. Pueden tener aire "animado", realista o surrealista; sé creativo.
-- Paleta "amanecer del alma": **índigo/violeta profundo `#2E2A5E`/`#5B4B9E`, oro suave
-  de amanecer `#D39A3C`, aqua sereno `#3CA098`, crema cálida `#FBF7EF`**. Luz suave,
-  calmada, esperanzadora.
+- Paleta "esmeralda y oro" (la del video de GEMB): **verde esmeralda/teal profundo
+  `#0F3630` / `#166E60`, dorado `#C0963C` / `#E2C67C`, crema `#F0E9CD`**, con un toque
+  de aqua `#2FAA98`. Luz suave, mística, esperanzadora, elegante.
 - **PROHIBIDO el rojo dominante.** Nada agresivo, oscuro-terrorífico, ni violento.
 - **Sin texto, sin letras, sin marcas de agua, sin marcos.** Composición centrada y completa.
 - Figuras humanas (si aparecen) **sugeridas/siluetas**, diversas, serenas, sin rostros
