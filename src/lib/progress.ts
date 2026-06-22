@@ -102,5 +102,7 @@ export async function setLessonDone(
     completedLessonsCount: completedCount,
     currentLesson: nextCurrent,
     lastActivityAt: now,
+    // Solo al COMPLETAR registramos la fecha (para "quién hizo la lección hoy").
+    ...(completed ? { lastCompletedAt: now } : {}),
   });
 }

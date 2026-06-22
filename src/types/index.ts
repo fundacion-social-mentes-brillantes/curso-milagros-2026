@@ -34,6 +34,8 @@ export interface AppUser {
   /** Número de la última/actual lección en la que va la persona (1..365) */
   currentLesson: number;
   completedLessonsCount: number;
+  /** Última vez (ms) que marcó una lección como hecha; 0 si nunca. */
+  lastCompletedAt: number;
 }
 
 /** Estado del video asociado a una lección. */

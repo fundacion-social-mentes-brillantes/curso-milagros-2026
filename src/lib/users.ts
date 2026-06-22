@@ -34,6 +34,7 @@ function toAppUser(uid: string, data: Record<string, unknown>): AppUser {
     lastActivityAt: Number(data.lastActivityAt ?? 0),
     currentLesson: Number(data.currentLesson ?? 1),
     completedLessonsCount: Number(data.completedLessonsCount ?? 0),
+    lastCompletedAt: Number(data.lastCompletedAt ?? 0),
   };
 }
 
@@ -64,6 +65,7 @@ export async function ensureUserProfile(user: User): Promise<void> {
       lastActivityAt: now,
       currentLesson: 1,
       completedLessonsCount: 0,
+      lastCompletedAt: 0,
     });
     return;
   }
