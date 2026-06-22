@@ -20,6 +20,41 @@ import { PageLoader } from "@/components/ui/Spinner";
 import { SITE } from "@/config/site";
 import type { Lesson, Progress } from "@/types";
 
+/** Recordatorio cálido para conectar con la comunidad en Facebook. */
+function FacebookReminder() {
+  return (
+    <div className="card overflow-hidden">
+      <div className="h-1 w-full bg-gradient-to-r from-gold via-gold-soft to-aqua" />
+      <div className="flex flex-col items-center gap-3 p-6 text-center">
+        <span className="grid h-12 w-12 place-items-center rounded-full bg-[#1877F2]/12 text-[#1877F2]">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden>
+            <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
+          </svg>
+        </span>
+        <p className="font-display text-lg font-semibold">
+          Acompáñanos en las meditaciones de hoy 💬
+        </p>
+        <p className="max-w-sm text-sm text-muted">
+          No olvides dar <strong>me gusta</strong> y dejar tu comentario en las{" "}
+          <strong>dos meditaciones diarias</strong> que publicamos en nuestro Facebook. Tu
+          palabra acompaña y anima a los demás. 🌿
+        </p>
+        <a
+          href={SITE.facebookUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-full bg-[#1877F2] px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:brightness-110 active:scale-95"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden>
+            <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
+          </svg>
+          Ir a nuestro Facebook
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function LessonInner({ n }: { n: number }) {
   const { appUser } = useAuth();
   const [lesson, setLesson] = useState<Lesson | null | undefined>(undefined);
@@ -108,10 +143,10 @@ function LessonInner({ n }: { n: number }) {
             <VideoPlayer video={lesson.video} title={lesson.title} />
           </div>
 
-          {/* Cómo practicarla (texto corto, desplegable) */}
-          <PracticeToggle steps={lesson.commentary.practicalInstructions} />
+          {/* Conecta con la comunidad en Facebook (debajo del video) */}
+          <FacebookReminder />
 
-          {/* Marcar como hecha */}
+          {/* Marcar como hecha (destacado) */}
           {appUser && (
             <MarkDoneButton
               uid={appUser.uid}
@@ -120,6 +155,9 @@ function LessonInner({ n }: { n: number }) {
               completedAt={progress?.completedAt ?? null}
             />
           )}
+
+          {/* Cómo practicarla (texto corto, desplegable) */}
+          <PracticeToggle steps={lesson.commentary.practicalInstructions} />
 
           {/* Guía completa (opcional, para quien quiera profundizar) */}
           {hasGuide && (

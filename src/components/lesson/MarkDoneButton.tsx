@@ -59,13 +59,28 @@ export function MarkDoneButton({
           <p className="text-sm text-muted">
             Cuando termines tu práctica de hoy, márcala para guardar tu avance.
           </p>
-          <button
-            onClick={() => void toggle(true)}
-            disabled={busy}
-            className="btn-primary w-full max-w-xs text-base"
-          >
-            {busy ? <Spinner /> : "Marcar lección como hecha"}
-          </button>
+          <div className="relative w-full max-w-sm">
+            <span
+              aria-hidden
+              className="absolute -inset-1.5 animate-breathe rounded-full bg-gradient-to-r from-gold via-aqua to-gold opacity-60 blur-lg"
+            />
+            <button
+              onClick={() => void toggle(true)}
+              disabled={busy}
+              className="relative inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-gold via-gold-soft to-gold px-6 py-4 text-base font-extrabold text-[rgb(12_64_58)] shadow-glow ring-1 ring-gold/60 transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 sm:text-lg"
+            >
+              {busy ? (
+                <Spinner />
+              ) : (
+                <>
+                  <span aria-hidden className="text-xl">
+                    ✓
+                  </span>
+                  Marcar lección como hecha
+                </>
+              )}
+            </button>
+          </div>
         </>
       )}
       {error && <p className="text-sm text-warning">{error}</p>}

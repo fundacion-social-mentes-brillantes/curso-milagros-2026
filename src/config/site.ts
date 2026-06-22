@@ -5,6 +5,7 @@ export const SITE = {
   tagline: "Un paso de paz cada día.",
   description:
     "Acompañamiento diario de las 365 lecciones de Un Curso de Milagros, con video, lectura, guía y comunidad.",
+  facebookUrl: "https://www.facebook.com/fundacionsocialmentesbrillantes",
   courseYear: Number(process.env.NEXT_PUBLIC_COURSE_YEAR ?? 2026),
   totalLessons: 365,
 } as const;
