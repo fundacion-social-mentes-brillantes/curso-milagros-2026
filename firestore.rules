@@ -29,6 +29,14 @@ service cloud.firestore {
       );
     }
 
+    // "Super admin" = el correo de la fundación. Es el ÚNICO que puede nombrar o
+    // quitar administradores (cambiar el rol) y borrar cuentas.
+    function isSuperAdmin() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in adminEmails();
+    }
+
     // --- USUARIOS ---
     match /users/{uid} {
       // Cada quien lee SOLO su propio perfil; el admin puede listar a todos.
@@ -40,12 +48,18 @@ service cloud.firestore {
                     && request.auth.uid == uid
                     && request.resource.data.role == 'user';
       // Puedes editar tu propio perfil, pero NO tu rol. El admin sí puede.
-      allow update: if isAdmin()
+      // Super admin: puede todo, incluido cambiar roles (nombrar/quitar admins).
+      // Otros admins: gestionan personas pero NO pueden cambiar el rol.
+      // Cada quien edita su propio perfil sin tocar su rol ni su inscripción.
+      allow update: if isSuperAdmin()
+                    || (isAdmin()
+                        && request.resource.data.role == resource.data.role)
                     || (isSignedIn()
                         && request.auth.uid == uid
                         && request.resource.data.role == resource.data.role
                         && request.resource.data.enrolled == resource.data.enrolled);
-      allow delete: if isAdmin();
+      // Borrar cuentas: solo el super admin.
+      allow delete: if isSuperAdmin();
     }
 
     // --- LECCIONES ---

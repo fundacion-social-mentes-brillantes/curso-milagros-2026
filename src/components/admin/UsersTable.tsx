@@ -33,6 +33,8 @@ export function UsersTable({
 }) {
   const { firebaseUser } = useAuth();
   const myUid = firebaseUser?.uid;
+  // Solo el "super admin" (correo de la fundación) puede nombrar/quitar admins.
+  const iAmSuper = ADMIN_EMAILS_LOWER.includes((firebaseUser?.email ?? "").toLowerCase());
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<EnrollFilter>("all");
   const [pendingUid, setPendingUid] = useState<string | null>(null);
@@ -194,7 +196,7 @@ export function UsersTable({
                         >
                           ★ Admin
                         </span>
-                      ) : (
+                      ) : iAmSuper ? (
                         <button
                           onClick={() => void toggleRole(u)}
                           disabled={pendingUid === u.uid || u.uid === myUid}
@@ -214,6 +216,18 @@ export function UsersTable({
                         >
                           {u.role === "admin" ? "★ Admin" : "Hacer admin"}
                         </button>
+                      ) : (
+                        <span
+                          className={cn(
+                            "badge",
+                            u.role === "admin"
+                              ? "bg-gold/20 text-gold"
+                              : "bg-surface-2 text-muted",
+                          )}
+                          title="Solo el admin principal (fundación) puede cambiar admins"
+                        >
+                          {u.role === "admin" ? "★ Admin" : "Usuario"}
+                        </span>
                       )}
                     </td>
                   )}

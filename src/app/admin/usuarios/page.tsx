@@ -25,8 +25,9 @@ function UsuariosInner() {
           <p className="section-eyebrow">Administración</p>
           <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Personas y seguimiento</h1>
           <p className="mt-2 text-muted">
-            Para nombrar a otro administrador, toca <strong>«Hacer admin»</strong> en su fila y
-            confirma. Tendrá el mismo acceso que tú. El correo de la fundación es admin permanente.
+            Solo la cuenta de la fundación (admin principal) puede nombrar o quitar
+            administradores: toca <strong>«Hacer admin»</strong> en su fila y confirma. Los demás
+            administradores gestionan todo lo demás, pero no cambian quién es admin.
           </p>
         </div>
         <Link href="/admin" className="btn-ghost text-sm">
