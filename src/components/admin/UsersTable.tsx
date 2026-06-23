@@ -177,7 +177,7 @@ export function UsersTable({
             </button>
           ))}
           <input
-            className="input max-w-[160px] flex-1 sm:flex-none"
+            className="input w-full sm:w-44"
             placeholder="Buscar..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
