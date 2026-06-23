@@ -164,19 +164,21 @@ export function LessonEditor({
         </div>
       </div>
 
-      {/* Texto original protegido (solo lectura) */}
+      {/* Texto original (editable con cuidado) */}
       <div className="card p-5">
         <div className="flex items-center gap-2">
-          <span aria-hidden>🔒</span>
-          <h4 className="font-display font-semibold">Texto original (fijo, solo lectura)</h4>
+          <span aria-hidden>📖</span>
+          <h4 className="font-display font-semibold">Texto original del Curso</h4>
         </div>
         <p className="mt-1 text-xs text-muted">
-          Es la meditación fiel del Curso. No se edita desde aquí para proteger su fidelidad.
+          Es la meditación fiel del Curso. Puedes editarla, pero <strong>solo para corregir
+          errores</strong> (un espacio de más, una tilde, un signo que sobra). Por favor no
+          cambies la redacción ni el sentido del texto.
         </p>
         <textarea
-          readOnly
-          className="input mt-3 min-h-[160px] cursor-default bg-surface-2/40 font-serif"
+          className="input mt-3 min-h-[220px] font-serif leading-relaxed"
           value={form.originalText}
+          onChange={(e) => set("originalText", e.target.value)}
         />
       </div>
 
