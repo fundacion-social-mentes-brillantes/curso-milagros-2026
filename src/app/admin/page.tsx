@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
-import { listUsers } from "@/lib/users";
+import { subscribeUsers } from "@/lib/users";
 import { computeGroupStats } from "@/lib/admin-analytics";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { GroupAnalysis } from "@/components/admin/GroupAnalysis";
@@ -25,9 +25,8 @@ function AdminInner() {
   } | null>(null);
 
   useEffect(() => {
-    listUsers()
-      .then(setUsers)
-      .catch(() => setUsers([]));
+    // En tiempo real: las estadísticas y listas se actualizan solas.
+    return subscribeUsers(setUsers);
   }, []);
 
   if (users === null) return <PageLoader label="Cargando panel..." />;

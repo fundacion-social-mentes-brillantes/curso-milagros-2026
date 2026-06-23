@@ -156,6 +156,14 @@ export async function listUsers(): Promise<AppUser[]> {
   return snap.docs.map((d) => toAppUser(d.id, d.data()));
 }
 
+/** (Admin) Escucha EN TIEMPO REAL a todas las personas (refleja cambios al instante). */
+export function subscribeUsers(cb: (users: AppUser[]) => void): () => void {
+  const db = getDb();
+  return onSnapshot(collection(db, "users"), (snap) => {
+    cb(snap.docs.map((d) => toAppUser(d.id, d.data())));
+  });
+}
+
 /** (Admin) Cambia el rol de una persona. */
 export async function setUserRole(uid: string, role: Role): Promise<void> {
   const db = getDb();

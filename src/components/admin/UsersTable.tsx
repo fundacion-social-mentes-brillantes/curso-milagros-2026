@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { setUserEnrolled, setUserRole } from "@/lib/users";
 import { STATUS_LABEL, userStatus } from "@/lib/admin-analytics";
+import { ADMIN_EMAILS_PUBLIC } from "@/config/firebase-public";
 import { pct, relativeTime, cn } from "@/lib/utils";
 import { SITE } from "@/config/site";
 import type { AppUser, UserStatus } from "@/types";
@@ -16,6 +18,12 @@ const STATUS_CLASS: Record<UserStatus, string> = {
   inactive: "bg-muted/15 text-muted",
 };
 
+// Correos que SIEMPRE son admin (no se pueden quitar desde la tabla).
+const ADMIN_EMAILS_LOWER = ADMIN_EMAILS_PUBLIC.map((e) => e.toLowerCase());
+function isPermanentAdmin(email: string): boolean {
+  return ADMIN_EMAILS_LOWER.includes(email.toLowerCase());
+}
+
 export function UsersTable({
   users,
   editable = false,
@@ -23,12 +31,18 @@ export function UsersTable({
   users: AppUser[];
   editable?: boolean;
 }) {
+  const { firebaseUser } = useAuth();
+  const myUid = firebaseUser?.uid;
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<EnrollFilter>("all");
   const [pendingUid, setPendingUid] = useState<string | null>(null);
   const [enrollBusy, setEnrollBusy] = useState<string | null>(null);
 
   const enrolledCount = useMemo(() => users.filter((u) => u.enrolled).length, [users]);
+  const adminCount = useMemo(
+    () => users.filter((u) => u.role === "admin" || isPermanentAdmin(u.email)).length,
+    [users],
+  );
 
   const rows = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -44,9 +58,16 @@ export function UsersTable({
   }, [users, q, filter]);
 
   async function toggleRole(u: AppUser) {
+    const makingAdmin = u.role !== "admin";
+    const ok = window.confirm(
+      makingAdmin
+        ? `¿Hacer administrador a ${u.displayName}? Podrá ver y gestionar todo el panel, igual que tú.`
+        : `¿Quitar el acceso de administrador a ${u.displayName}?`,
+    );
+    if (!ok) return;
     setPendingUid(u.uid);
     try {
-      await setUserRole(u.uid, u.role === "admin" ? "user" : "admin");
+      await setUserRole(u.uid, makingAdmin ? "admin" : "user");
     } finally {
       setPendingUid(null);
     }
@@ -67,7 +88,8 @@ export function UsersTable({
         <div>
           <h3 className="font-display text-lg font-semibold">Personas ({users.length})</h3>
           <p className="text-xs text-muted">
-            {enrolledCount} inscritas en el proceso · {users.length - enrolledCount} solo registradas
+            {enrolledCount} inscritas · {users.length - enrolledCount} solo registradas ·{" "}
+            {adminCount} con acceso admin
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -165,18 +187,34 @@ export function UsersTable({
                   </td>
                   {editable && (
                     <td className="p-4">
-                      <button
-                        onClick={() => void toggleRole(u)}
-                        disabled={pendingUid === u.uid}
-                        className={`badge transition ${
-                          u.role === "admin"
-                            ? "bg-gold/20 text-gold hover:bg-gold/30"
-                            : "bg-surface-2 text-muted hover:text-fg"
-                        }`}
-                        title="Cambiar rol"
-                      >
-                        {u.role === "admin" ? "★ Admin" : "Usuario"}
-                      </button>
+                      {isPermanentAdmin(u.email) ? (
+                        <span
+                          className="badge bg-gold/20 text-gold"
+                          title="Administrador permanente (correo de la fundación)"
+                        >
+                          ★ Admin
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => void toggleRole(u)}
+                          disabled={pendingUid === u.uid || u.uid === myUid}
+                          title={
+                            u.uid === myUid
+                              ? "No puedes cambiar tu propio rol"
+                              : u.role === "admin"
+                                ? "Quitar acceso de administrador"
+                                : "Dar acceso de administrador"
+                          }
+                          className={cn(
+                            "badge transition disabled:opacity-50",
+                            u.role === "admin"
+                              ? "bg-gold/20 text-gold hover:bg-gold/30"
+                              : "bg-surface-2 text-muted hover:text-fg",
+                          )}
+                        >
+                          {u.role === "admin" ? "★ Admin" : "Hacer admin"}
+                        </button>
+                      )}
                     </td>
                   )}
                 </tr>

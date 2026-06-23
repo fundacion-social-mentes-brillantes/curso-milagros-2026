@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
-import { listUsers } from "@/lib/users";
+import { subscribeUsers } from "@/lib/users";
 import { UsersTable } from "@/components/admin/UsersTable";
 import { PageLoader } from "@/components/ui/Spinner";
 import type { AppUser } from "@/types";
@@ -12,9 +12,8 @@ function UsuariosInner() {
   const [users, setUsers] = useState<AppUser[] | null>(null);
 
   useEffect(() => {
-    listUsers()
-      .then(setUsers)
-      .catch(() => setUsers([]));
+    // En tiempo real: cualquier cambio (inscrito, rol) se ve al instante.
+    return subscribeUsers(setUsers);
   }, []);
 
   if (users === null) return <PageLoader label="Cargando personas..." />;
@@ -25,7 +24,10 @@ function UsuariosInner() {
         <div>
           <p className="section-eyebrow">Administración</p>
           <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Personas y seguimiento</h1>
-          <p className="mt-2 text-muted">Toca el rol de una persona para cambiarlo entre Usuario y Admin.</p>
+          <p className="mt-2 text-muted">
+            Para nombrar a otro administrador, toca <strong>«Hacer admin»</strong> en su fila y
+            confirma. Tendrá el mismo acceso que tú. El correo de la fundación es admin permanente.
+          </p>
         </div>
         <Link href="/admin" className="btn-ghost text-sm">
           ← Panel
