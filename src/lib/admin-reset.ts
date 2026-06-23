@@ -2,6 +2,7 @@
 
 import { addDoc, collection, getDocs, writeBatch } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
+import { isPermanentAdmin } from "@/lib/admins";
 import type { CohortArchive } from "@/types";
 
 export interface ResetResult {
@@ -28,7 +29,7 @@ export async function resetCourseForNewYear(label: string): Promise<ResetResult>
   // 1) Guardar el resumen del año (solo inscritas) en la colección "cohorts".
   const participants = docs
     .map((d) => d.data())
-    .filter((u) => u.enrolled !== false)
+    .filter((u) => u.enrolled !== false && !isPermanentAdmin(String(u.email ?? "")))
     .map((u) => ({
       name: String(u.fullName || u.displayName || "Caminante"),
       email: String(u.email || ""),

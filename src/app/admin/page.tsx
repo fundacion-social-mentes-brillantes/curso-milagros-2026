@@ -8,6 +8,7 @@ import { computeGroupStats } from "@/lib/admin-analytics";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { GroupAnalysis } from "@/components/admin/GroupAnalysis";
 import { PeopleListModal } from "@/components/admin/PeopleListModal";
+import { isPermanentAdmin } from "@/lib/admins";
 import { exportPeoplePdf } from "@/lib/pdf-export";
 import { CohortHistory } from "@/components/admin/CohortHistory";
 import { DailyRanking } from "@/components/admin/DailyRanking";
@@ -31,8 +32,9 @@ function AdminInner() {
 
   if (users === null) return <PageLoader label="Cargando panel..." />;
 
-  // Las estadísticas se calculan SOLO con las personas inscritas en el proceso.
-  const enrolled = users.filter((u) => u.enrolled);
+  // Las estadísticas se calculan SOLO con las personas inscritas en el proceso,
+  // y NUNCA con la cuenta de gestión de la fundación (no es participante).
+  const enrolled = users.filter((u) => u.enrolled && !isPermanentAdmin(u.email));
   const stats = computeGroupStats(enrolled);
   const topMovers = [...enrolled]
     .sort((a, b) => b.completedLessonsCount - a.completedLessonsCount)

@@ -15,6 +15,7 @@ import {
 import { getDb } from "@/lib/firebase";
 import { lessonDocId } from "@/config/lessons.links";
 import { bogotaDateStr, clampLesson } from "@/lib/utils";
+import { isPermanentAdmin } from "@/lib/admins";
 import type { Progress } from "@/types";
 
 function progressId(uid: string, n: number): string {
@@ -110,7 +111,9 @@ export async function setLessonDone(
   // Va en try/catch para que NUNCA impida marcar la lección como hecha
   // (p. ej. si las reglas aún no están publicadas).
   let position: number | null = null;
-  if (completed) {
+  // La cuenta de gestión de la fundación no entra al ranking (no es participante).
+  const isFoundationAccount = isPermanentAdmin(String(userSnap.data()?.email ?? ""));
+  if (completed && !isFoundationAccount) {
     try {
       const today = bogotaDateStr(now);
       const ddRef = doc(db, "dailyDone", `${today}_${uid}`);

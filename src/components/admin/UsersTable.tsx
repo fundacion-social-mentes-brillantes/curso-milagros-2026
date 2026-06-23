@@ -5,7 +5,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { setUserEnrolled, setUserRole } from "@/lib/users";
 import { STATUS_LABEL, userStatus } from "@/lib/admin-analytics";
-import { ADMIN_EMAILS_PUBLIC } from "@/config/firebase-public";
+import { isPermanentAdmin } from "@/lib/admins";
 import { pct, relativeTime, cn } from "@/lib/utils";
 import { SITE } from "@/config/site";
 import type { AppUser, UserStatus } from "@/types";
@@ -18,12 +18,6 @@ const STATUS_CLASS: Record<UserStatus, string> = {
   inactive: "bg-muted/15 text-muted",
 };
 
-// Correos que SIEMPRE son admin (no se pueden quitar desde la tabla).
-const ADMIN_EMAILS_LOWER = ADMIN_EMAILS_PUBLIC.map((e) => e.toLowerCase());
-function isPermanentAdmin(email: string): boolean {
-  return ADMIN_EMAILS_LOWER.includes(email.toLowerCase());
-}
-
 export function UsersTable({
   users,
   editable = false,
@@ -34,13 +28,16 @@ export function UsersTable({
   const { firebaseUser } = useAuth();
   const myUid = firebaseUser?.uid;
   // Solo el "super admin" (correo de la fundación) puede nombrar/quitar admins.
-  const iAmSuper = ADMIN_EMAILS_LOWER.includes((firebaseUser?.email ?? "").toLowerCase());
+  const iAmSuper = isPermanentAdmin(firebaseUser?.email);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<EnrollFilter>("all");
   const [pendingUid, setPendingUid] = useState<string | null>(null);
   const [enrollBusy, setEnrollBusy] = useState<string | null>(null);
 
-  const enrolledCount = useMemo(() => users.filter((u) => u.enrolled).length, [users]);
+  const enrolledCount = useMemo(
+    () => users.filter((u) => u.enrolled && !isPermanentAdmin(u.email)).length,
+    [users],
+  );
   const adminCount = useMemo(
     () => users.filter((u) => u.role === "admin" || isPermanentAdmin(u.email)).length,
     [users],
