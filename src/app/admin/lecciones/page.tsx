@@ -72,8 +72,13 @@ function LeccionesAdminInner() {
       </header>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[320px_1fr]">
-        {/* lista */}
-        <div className="card flex max-h-[75vh] flex-col p-3">
+        {/* lista (en celular se oculta cuando hay una lección abierta) */}
+        <div
+          className={cn(
+            "card flex max-h-[75vh] flex-col p-3",
+            selected !== null && "hidden lg:flex",
+          )}
+        >
           <input
             className="input mb-2"
             placeholder="Buscar lección..."
@@ -102,8 +107,16 @@ function LeccionesAdminInner() {
           </div>
         </div>
 
-        {/* editor */}
-        <div>
+        {/* editor (en celular se muestra solo cuando hay una lección abierta) */}
+        <div className={cn(selected === null && "hidden lg:block")}>
+          {selected !== null && (
+            <button
+              onClick={() => setSelected(null)}
+              className="btn-ghost mb-3 text-sm lg:hidden"
+            >
+              ← Volver a la lista
+            </button>
+          )}
           {loadingCurrent ? (
             <div className="grid place-items-center py-20">
               <Spinner className="h-8 w-8" />

@@ -27,7 +27,6 @@ export function UsersTable({
 }) {
   const { firebaseUser } = useAuth();
   const myUid = firebaseUser?.uid;
-  // Solo el "super admin" (correo de la fundación) puede nombrar/quitar admins.
   const iAmSuper = isPermanentAdmin(firebaseUser?.email);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<EnrollFilter>("all");
@@ -81,6 +80,71 @@ export function UsersTable({
     }
   }
 
+  // Control de "inscrito" (pastilla clara, fácil de tocar en celular).
+  function EnrolledControl({ u }: { u: AppUser }) {
+    if (!editable) {
+      return (
+        <span className={`badge ${u.enrolled ? "bg-success/15 text-success" : "bg-muted/15 text-muted"}`}>
+          {u.enrolled ? "Sí" : "No"}
+        </span>
+      );
+    }
+    return (
+      <button
+        onClick={() => void toggleEnrolled(u)}
+        disabled={enrollBusy === u.uid}
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50",
+          u.enrolled
+            ? "bg-success/20 text-success hover:bg-success/30"
+            : "border border-border bg-surface text-muted hover:text-fg",
+        )}
+      >
+        {enrollBusy === u.uid ? "…" : u.enrolled ? "✓ Inscrito" : "○ Inscribir"}
+      </button>
+    );
+  }
+
+  // Control de rol/admin.
+  function RoleControl({ u }: { u: AppUser }) {
+    if (isPermanentAdmin(u.email)) {
+      return (
+        <span className="badge bg-gold/20 text-gold" title="Administrador permanente (correo de la fundación)">
+          ★ Admin
+        </span>
+      );
+    }
+    if (!iAmSuper) {
+      return (
+        <span
+          className={cn("badge", u.role === "admin" ? "bg-gold/20 text-gold" : "bg-surface-2 text-muted")}
+          title="Solo el admin principal (fundación) puede cambiar admins"
+        >
+          {u.role === "admin" ? "★ Admin" : "Usuario"}
+        </span>
+      );
+    }
+    return (
+      <button
+        onClick={() => void toggleRole(u)}
+        disabled={pendingUid === u.uid || u.uid === myUid}
+        title={
+          u.uid === myUid
+            ? "No puedes cambiar tu propio rol"
+            : u.role === "admin"
+              ? "Quitar acceso de administrador"
+              : "Dar acceso de administrador"
+        }
+        className={cn(
+          "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50",
+          u.role === "admin" ? "bg-gold/20 text-gold hover:bg-gold/30" : "bg-surface-2 text-muted hover:text-fg",
+        )}
+      >
+        {u.role === "admin" ? "★ Admin" : "Hacer admin"}
+      </button>
+    );
+  }
+
   return (
     <div className="card overflow-hidden">
       <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -113,7 +177,7 @@ export function UsersTable({
             </button>
           ))}
           <input
-            className="input max-w-[180px]"
+            className="input max-w-[160px] flex-1 sm:flex-none"
             placeholder="Buscar..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -121,7 +185,50 @@ export function UsersTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* MÓVIL: tarjetas apiladas (fácil de leer y tocar) */}
+      <div className="space-y-2.5 p-3 md:hidden">
+        {rows.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted">No hay personas que coincidan.</p>
+        )}
+        {rows.map((u) => {
+          const status = userStatus(u);
+          return (
+            <div key={u.uid} className="rounded-xl border border-border bg-surface p-3.5">
+              <div className="flex items-center gap-3">
+                <Avatar src={u.photoURL} name={u.displayName} size={42} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{u.displayName}</p>
+                  <p className="truncate text-xs text-muted">{u.email}</p>
+                </div>
+                <span className={`badge shrink-0 ${STATUS_CLASS[status]}`}>{STATUS_LABEL[status]}</span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-muted">
+                <span className="truncate">📍 {u.country || "—"}</span>
+                <span className="truncate">📱 {u.phone || "—"}</span>
+                <span>🧭 Lección {u.currentLesson}</span>
+                <span>
+                  ✅ {u.completedLessonsCount}{" "}
+                  <span className="opacity-70">({pct(u.completedLessonsCount, SITE.totalLessons)}%)</span>
+                </span>
+                <span className="col-span-2">🕐 Última actividad: {relativeTime(u.lastActivityAt)}</span>
+              </div>
+
+              {editable && (
+                <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+                  <span className="flex items-center gap-2 text-xs text-muted">
+                    Inscrito: <EnrolledControl u={u} />
+                  </span>
+                  <RoleControl u={u} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* PC: tabla */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[680px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
@@ -164,68 +271,11 @@ export function UsersTable({
                     <span className={`badge ${STATUS_CLASS[status]}`}>{STATUS_LABEL[status]}</span>
                   </td>
                   <td className="p-4">
-                    {editable ? (
-                      <button
-                        onClick={() => void toggleEnrolled(u)}
-                        disabled={enrollBusy === u.uid}
-                        title={u.enrolled ? "Inscrito (clic para quitar)" : "No inscrito (clic para inscribir)"}
-                        className={cn(
-                          "grid h-7 w-7 place-items-center rounded-full text-sm font-bold transition",
-                          u.enrolled
-                            ? "bg-success/20 text-success hover:bg-success/30"
-                            : "border border-border bg-surface text-muted hover:text-fg",
-                        )}
-                      >
-                        {u.enrolled ? "✓" : "○"}
-                      </button>
-                    ) : (
-                      <span className={`badge ${u.enrolled ? "bg-success/15 text-success" : "bg-muted/15 text-muted"}`}>
-                        {u.enrolled ? "Sí" : "No"}
-                      </span>
-                    )}
+                    <EnrolledControl u={u} />
                   </td>
                   {editable && (
                     <td className="p-4">
-                      {isPermanentAdmin(u.email) ? (
-                        <span
-                          className="badge bg-gold/20 text-gold"
-                          title="Administrador permanente (correo de la fundación)"
-                        >
-                          ★ Admin
-                        </span>
-                      ) : iAmSuper ? (
-                        <button
-                          onClick={() => void toggleRole(u)}
-                          disabled={pendingUid === u.uid || u.uid === myUid}
-                          title={
-                            u.uid === myUid
-                              ? "No puedes cambiar tu propio rol"
-                              : u.role === "admin"
-                                ? "Quitar acceso de administrador"
-                                : "Dar acceso de administrador"
-                          }
-                          className={cn(
-                            "badge transition disabled:opacity-50",
-                            u.role === "admin"
-                              ? "bg-gold/20 text-gold hover:bg-gold/30"
-                              : "bg-surface-2 text-muted hover:text-fg",
-                          )}
-                        >
-                          {u.role === "admin" ? "★ Admin" : "Hacer admin"}
-                        </button>
-                      ) : (
-                        <span
-                          className={cn(
-                            "badge",
-                            u.role === "admin"
-                              ? "bg-gold/20 text-gold"
-                              : "bg-surface-2 text-muted",
-                          )}
-                          title="Solo el admin principal (fundación) puede cambiar admins"
-                        >
-                          {u.role === "admin" ? "★ Admin" : "Usuario"}
-                        </span>
-                      )}
+                      <RoleControl u={u} />
                     </td>
                   )}
                 </tr>
