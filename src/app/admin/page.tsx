@@ -12,6 +12,7 @@ import { isPermanentAdmin } from "@/lib/admins";
 import { exportPeoplePdf } from "@/lib/pdf-export";
 import { CohortHistory } from "@/components/admin/CohortHistory";
 import { DailyRanking } from "@/components/admin/DailyRanking";
+import { CourseRanking } from "@/components/admin/CourseRanking";
 import { Histogram, bucketLessons, BarRow } from "@/components/ui/Charts";
 import { PageLoader } from "@/components/ui/Spinner";
 import { SITE } from "@/config/site";
@@ -211,6 +212,8 @@ function AdminInner() {
       </div>
 
       <DailyRanking />
+
+      <CourseRanking />
 
       <CohortHistory />
 
