@@ -7,7 +7,7 @@ Copia y pega TODO lo de abajo a Codex. (Claude no genera imágenes; Codex sí.)
 ## Contexto
 
 Trabajas sobre una app Next.js + TypeScript + Tailwind ya funcional, en
-`C:\Claude\proyectos\curso-milagros-2026`. Es el proceso diario de **Un Curso de
+`C:\Programas creados por mi\curso-milagros-2026`. Es el proceso diario de **Un Curso de
 Milagros 2026** para **Gimnasio Emocional Mentes Brillantes**. Tu tarea es **crear
 e integrar imágenes** y pulir lo visual **sin romper la lógica**.
 

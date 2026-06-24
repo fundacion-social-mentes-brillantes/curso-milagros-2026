@@ -40,7 +40,7 @@ de admin. (No tienes que hacer nada aquí.)
 ---
 
 ## 4) Probar en tu computador
-En una terminal dentro de `C:\Claude\proyectos\curso-milagros-2026`:
+En una terminal dentro de `C:\Programas creados por mi\curso-milagros-2026`:
 ```bash
 npm run dev
 ```

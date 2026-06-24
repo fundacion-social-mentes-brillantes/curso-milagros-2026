@@ -8,7 +8,7 @@
 ---
 
 Usa tu generación de imágenes (imagegen / /image). Trabajamos sobre el proyecto
-`C:\Claude\proyectos\curso-milagros-2026`. Crea las carpetas si no existen. NO toques
+`C:\Programas creados por mi\curso-milagros-2026`. Crea las carpetas si no existen. NO toques
 ningún archivo de código; SOLO generas imágenes y las guardas con los nombres exactos.
 
 ## PARTE 1 — Logo de la marca
@@ -16,7 +16,7 @@ ningún archivo de código; SOLO generas imágenes y las guardas con los nombres
 Te adjunto el/los logo(s) oficiales de **Gimnasio Emocional Mentes Brillantes**.
 Crea una versión del logo para la web **idéntica a la nuestra** (mismos colores,
 formas, símbolo y tipografía; respeta las proporciones). Guarda en
-`C:\Claude\proyectos\curso-milagros-2026\public\images\`:
+`C:\Programas creados por mi\curso-milagros-2026\public\images\`:
 
 - `logo.png` — logo completo (símbolo + nombre), **fondo 100% transparente** (PNG con
   alfa), pensado para fondo claro (crema). Alto ≈ 160 px, ancho proporcional. Bordes nítidos.
@@ -32,7 +32,7 @@ piso, sin texto extra. Optimizado para web (cada archivo < 200 KB).
 
 Reemplaza estas imágenes para que combinen con la estética **esmeralda/oro** del video
 (las actuales son de tono cálido y ya no combinan). Guarda en
-`C:\Claude\proyectos\curso-milagros-2026\public\images\` :
+`C:\Programas creados por mi\curso-milagros-2026\public\images\` :
 
 - `hero.png` — imagen principal de la portada, **1600×1200 px**, fondo opaco. Escena
   espiritual mística en verde esmeralda/teal profundo con luz dorada (amanecer/aurora
@@ -44,7 +44,7 @@ Reemplaza estas imágenes para que combinen con la estética **esmeralda/oro** d
 ## PARTE 2 — Imágenes de referencia para las lecciones 1 a 30
 
 Crea **30 imágenes**, una por lección, en
-`C:\Claude\proyectos\curso-milagros-2026\public\images\lecciones\` con nombres EXACTOS:
+`C:\Programas creados por mi\curso-milagros-2026\public\images\lecciones\` con nombres EXACTOS:
 `001.png`, `002.png`, `003.png` … hasta `030.png` (número de lección con 3 dígitos).
 
 Especificaciones para TODAS:

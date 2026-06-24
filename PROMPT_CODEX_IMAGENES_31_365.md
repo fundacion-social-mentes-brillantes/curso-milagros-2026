@@ -7,7 +7,7 @@
 ---
 
 Usa tu generación de imágenes (imagegen / /image). Trabajamos en el proyecto
-`C:\Claude\proyectos\curso-milagros-2026`. NO toques código. NO toques ni borres las
+`C:\Programas creados por mi\curso-milagros-2026`. NO toques código. NO toques ni borres las
 imágenes `001.png`–`030.png` (esas YA están aprobadas y son la referencia de calidad).
 
 ## LO MÁS IMPORTANTE: EL ESTILO (esto se hizo mal antes y hay que corregirlo)
