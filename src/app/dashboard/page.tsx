@@ -8,7 +8,6 @@ import { subscribeUserProgress } from "@/lib/progress";
 import { getTodayPosition } from "@/lib/ranking";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { JourneyMosaic } from "@/components/dashboard/JourneyMosaic";
 import { Histogram, bucketLessons } from "@/components/ui/Charts";
 import { PageLoader } from "@/components/ui/Spinner";
 import { pct, formatDate } from "@/lib/utils";
@@ -63,11 +62,7 @@ function DashboardInner() {
         )}
       </header>
 
-      <div className="mt-8">
-        <JourneyMosaic completed={completedCount} total={SITE.totalLessons} />
-      </div>
-
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
+      <div className="mt-8 grid gap-5 lg:grid-cols-3">
         {/* progreso */}
         <div className="card flex flex-col items-center justify-center gap-4 p-6 text-center">
           <ProgressRing value={percent} size={150}>
