@@ -66,7 +66,7 @@ function AdminInner() {
           <p className="section-eyebrow">Administración</p>
           <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Panel del grupo</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
           <button
             onClick={() =>
               void exportPeoplePdf(enrolled, {
@@ -75,17 +75,17 @@ function AdminInner() {
                 fileBase: "inscritas-curso-de-milagros",
               })
             }
-            className="btn-gold text-sm"
+            className="btn-gold flex-1 justify-center text-sm sm:flex-none"
           >
             ⬇ Descargar PDF
           </button>
-          <Link href="/admin/usuarios" className="btn-ghost text-sm">
+          <Link href="/admin/usuarios" className="btn-ghost flex-1 justify-center text-sm sm:flex-none">
             Personas
           </Link>
-          <Link href="/admin/lecciones" className="btn-ghost text-sm">
+          <Link href="/admin/lecciones" className="btn-ghost flex-1 justify-center text-sm sm:flex-none">
             Lecciones
           </Link>
-          <Link href="/admin/foro" className="btn-ghost text-sm">
+          <Link href="/admin/foro" className="btn-ghost flex-1 justify-center text-sm sm:flex-none">
             Foro
           </Link>
         </div>
@@ -96,7 +96,7 @@ function AdminInner() {
         ver quiénes son y escribirles por WhatsApp.
       </p>
 
-      <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label="Inscritas"
           value={enrolled.length}
@@ -182,7 +182,7 @@ function AdminInner() {
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <GroupAnalysis users={enrolled} stats={stats} />
 
-        <div className="card p-6">
+        <div className="card p-4 sm:p-6">
           <h3 className="font-display text-lg font-semibold">¿Dónde está el grupo?</h3>
           <p className="text-sm text-muted">Cuántas personas van en cada tramo de lecciones.</p>
           <div className="mt-4">
@@ -191,7 +191,7 @@ function AdminInner() {
         </div>
       </div>
 
-      <div className="mt-6 card p-6">
+      <div className="mt-6 card p-4 sm:p-6">
         <h3 className="font-display text-lg font-semibold">Avance individual</h3>
         <p className="text-sm text-muted">Personas con más lecciones completadas.</p>
         <div className="mt-4 space-y-3">

@@ -27,7 +27,7 @@ export function CourseRanking() {
   if (!rows || rows.length === 0) return null;
 
   return (
-    <div className="mt-6 card p-6">
+    <div className="mt-6 card p-4 sm:p-6">
       <h3 className="font-display text-lg font-semibold">Madrugadores del curso ⭐</h3>
       <p className="text-sm text-muted">
         Promedio en lo que va del proceso: quién hace su lección más temprano y en qué puesto va
@@ -55,7 +55,7 @@ export function CourseRanking() {
                 {i === 0 ? "🥇 " : ""}
                 {r.name}
               </p>
-              <p className="truncate text-xs text-muted">
+              <p className="text-xs leading-relaxed text-muted">
                 ⏰ promedio {fmtAvgHour(r.avgMinute)}
                 {r.avgPosition > 0 && <> · 🏅 puesto prom. {r.avgPosition.toFixed(1)}</>}
                 {" · "}

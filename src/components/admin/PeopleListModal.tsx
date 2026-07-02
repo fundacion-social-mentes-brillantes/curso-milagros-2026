@@ -61,7 +61,7 @@ export function PeopleListModal({
                 onClick={() =>
                   void exportPeoplePdf(people, { title, subtitle: description })
                 }
-                className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-fg transition hover:bg-surface-2"
+                className="rounded-full border border-border px-3.5 py-2.5 text-xs font-semibold text-fg transition hover:bg-surface-2"
                 title="Descargar esta lista en PDF"
               >
                 ⬇ PDF
@@ -70,7 +70,7 @@ export function PeopleListModal({
             <button
               onClick={onClose}
               aria-label="Cerrar"
-              className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-fg"
+              className="grid h-10 w-10 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-fg"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6L6 18" />
@@ -98,7 +98,7 @@ export function PeopleListModal({
                     <Avatar src={u.photoURL} name={name} size={40} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{name}</p>
-                      <p className="truncate text-xs text-muted">
+                      <p className="text-xs leading-snug text-muted">
                         Lección {u.currentLesson || 1}
                         {u.country ? ` · ${u.country}` : ""}
                         {u.lastActivityAt ? ` · activa ${relativeTime(u.lastActivityAt)}` : ""}
@@ -109,7 +109,7 @@ export function PeopleListModal({
                         href={wa}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="shrink-0 rounded-full bg-success/15 px-3 py-1.5 text-xs font-semibold text-success transition hover:bg-success/25"
+                        className="shrink-0 rounded-full bg-success/15 px-3.5 py-2.5 text-xs font-semibold text-success transition hover:bg-success/25"
                         title={`Escribir a ${u.phone} por WhatsApp`}
                       >
                         WhatsApp

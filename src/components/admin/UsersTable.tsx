@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { setUserEnrolled, setUserRole } from "@/lib/users";
+import { setUserEnrolled, setUserRole, setUserVoiceReader } from "@/lib/users";
 import { STATUS_LABEL, userStatus } from "@/lib/admin-analytics";
 import { isPermanentAdmin } from "@/lib/admins";
 import { pct, relativeTime, cn } from "@/lib/utils";
@@ -32,6 +32,7 @@ export function UsersTable({
   const [filter, setFilter] = useState<EnrollFilter>("all");
   const [pendingUid, setPendingUid] = useState<string | null>(null);
   const [enrollBusy, setEnrollBusy] = useState<string | null>(null);
+  const [voiceBusy, setVoiceBusy] = useState<string | null>(null);
 
   const enrolledCount = useMemo(
     () => users.filter((u) => u.enrolled && !isPermanentAdmin(u.email)).length,
@@ -80,6 +81,15 @@ export function UsersTable({
     }
   }
 
+  async function toggleVoice(u: AppUser) {
+    setVoiceBusy(u.uid);
+    try {
+      await setUserVoiceReader(u.uid, !u.voiceReader);
+    } finally {
+      setVoiceBusy(null);
+    }
+  }
+
   // Control de "inscrito" (pastilla clara, fácil de tocar en celular).
   function EnrolledControl({ u }: { u: AppUser }) {
     if (!editable) {
@@ -101,6 +111,25 @@ export function UsersTable({
         )}
       >
         {enrollBusy === u.uid ? "…" : u.enrolled ? "✓ Inscrito" : "○ Inscribir"}
+      </button>
+    );
+  }
+
+  // Accesibilidad: lectura de la lección en voz alta (solo para quien la pida).
+  function VoiceControl({ u }: { u: AppUser }) {
+    return (
+      <button
+        onClick={() => void toggleVoice(u)}
+        disabled={voiceBusy === u.uid}
+        title="Lectura en voz alta de la lección (para personas con baja visión que la soliciten)"
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50",
+          u.voiceReader
+            ? "bg-aqua/20 text-aqua hover:bg-aqua/30"
+            : "border border-border bg-surface text-muted hover:text-fg",
+        )}
+      >
+        {voiceBusy === u.uid ? "…" : u.voiceReader ? "🔊 Voz activa" : "🔇 Voz"}
       </button>
     );
   }
@@ -215,10 +244,11 @@ export function UsersTable({
               </div>
 
               {editable && (
-                <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
                   <span className="flex items-center gap-2 text-xs text-muted">
                     Inscrito: <EnrolledControl u={u} />
                   </span>
+                  <VoiceControl u={u} />
                   <RoleControl u={u} />
                 </div>
               )}
@@ -240,6 +270,7 @@ export function UsersTable({
               <th className="p-4 font-semibold">Última actividad</th>
               <th className="p-4 font-semibold">Estado</th>
               <th className="p-4 font-semibold">Inscrito</th>
+              {editable && <th className="p-4 font-semibold">Voz</th>}
               {editable && <th className="p-4 font-semibold">Rol</th>}
             </tr>
           </thead>
@@ -273,6 +304,11 @@ export function UsersTable({
                   <td className="p-4">
                     <EnrolledControl u={u} />
                   </td>
+                  {editable && (
+                    <td className="p-4">
+                      <VoiceControl u={u} />
+                    </td>
+                  )}
                   {editable && (
                     <td className="p-4">
                       <RoleControl u={u} />

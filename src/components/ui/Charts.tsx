@@ -14,8 +14,8 @@ export function BarRow({
 }) {
   const p = pct(value, max);
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-28 shrink-0 truncate text-sm" title={label}>
+    <div className="flex items-center gap-2 sm:gap-3">
+      <div className="w-20 shrink-0 truncate text-sm sm:w-28" title={label}>
         {label}
       </div>
       <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface-2">
@@ -24,7 +24,7 @@ export function BarRow({
           style={{ width: `${p}%` }}
         />
       </div>
-      <div className="w-16 shrink-0 text-right text-xs tabular-nums text-muted">
+      <div className="w-12 shrink-0 text-right text-xs tabular-nums text-muted sm:w-16">
         {hint ?? `${p}%`}
       </div>
     </div>

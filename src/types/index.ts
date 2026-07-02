@@ -27,6 +27,11 @@ export interface AppUser {
    * no afectan las métricas del grupo que sí está haciendo el curso.
    */
   enrolled: boolean;
+  /**
+   * Accesibilidad: lectura de la lección en voz alta. SOLO un admin puede
+   * activarla (para personas con baja visión que la soliciten).
+   */
+  voiceReader: boolean;
   /** Marca de tiempo en milisegundos (Date.now) */
   createdAt: number;
   lastLoginAt: number;

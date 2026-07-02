@@ -57,7 +57,9 @@ service cloud.firestore {
                     || (isSignedIn()
                         && request.auth.uid == uid
                         && request.resource.data.role == resource.data.role
-                        && request.resource.data.enrolled == resource.data.enrolled);
+                        && request.resource.data.enrolled == resource.data.enrolled
+                        // La lectura en voz alta solo la activa/desactiva un admin.
+                        && request.resource.data.get('voiceReader', false) == resource.data.get('voiceReader', false));
       // Borrar cuentas: solo el super admin.
       allow delete: if isSuperAdmin();
     }

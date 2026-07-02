@@ -29,7 +29,7 @@ export function CohortHistory() {
   if (!cohorts || cohorts.length === 0) return null;
 
   return (
-    <div className="mt-6 card p-6">
+    <div className="mt-6 card p-4 sm:p-6">
       <h3 className="font-display text-lg font-semibold">Historial por año</h3>
       <p className="text-sm text-muted">
         Resumen de cada año cerrado. Toca uno para ver las personas y descargarlo.
@@ -39,13 +39,13 @@ export function CohortHistory() {
           <button
             key={c.id}
             onClick={() => setSelected(c)}
-            className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-left transition hover:bg-surface-2"
+            className="flex w-full flex-col items-start gap-1.5 rounded-xl border border-border bg-surface px-4 py-3 text-left transition hover:bg-surface-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
           >
             <div>
               <p className="font-display text-base font-bold">{c.label}</p>
               <p className="text-xs text-muted">Cerrado el {fmtDate(c.archivedAt)}</p>
             </div>
-            <div className="text-right text-xs text-muted">
+            <div className="text-left text-xs text-muted sm:text-right">
               <p>
                 <span className="font-semibold text-fg">{c.total}</span> personas ·{" "}
                 <span className="font-semibold text-success">{c.finishedCount}</span> terminaron
@@ -81,7 +81,7 @@ export function CohortHistory() {
                 {selected.participants.length > 0 && (
                   <button
                     onClick={() => void exportCohortPdf(selected)}
-                    className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-fg transition hover:bg-surface-2"
+                    className="rounded-full border border-border px-3.5 py-2.5 text-xs font-semibold text-fg transition hover:bg-surface-2"
                     title="Descargar este año en PDF"
                   >
                     ⬇ PDF
@@ -90,7 +90,7 @@ export function CohortHistory() {
                 <button
                   onClick={() => setSelected(null)}
                   aria-label="Cerrar"
-                  className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-fg"
+                  className="grid h-10 w-10 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-fg"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                     <path d="M6 6l12 12M18 6L6 18" />

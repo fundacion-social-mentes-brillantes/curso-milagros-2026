@@ -12,6 +12,7 @@ import { LessonImage } from "@/components/lesson/LessonImage";
 import { VideoPlayer } from "@/components/lesson/VideoPlayer";
 import { PracticeToggle } from "@/components/lesson/PracticeToggle";
 import { OriginalText } from "@/components/lesson/OriginalText";
+import { LessonReader } from "@/components/lesson/LessonReader";
 import { CommentarySections } from "@/components/lesson/CommentarySections";
 import { MarkDoneButton } from "@/components/lesson/MarkDoneButton";
 import { Forum } from "@/components/forum/Forum";
@@ -139,6 +140,9 @@ function LessonInner({ n }: { n: number }) {
 
         <div className="mt-6 space-y-6">
           <LessonImage number={lesson.number} title={lesson.title} />
+
+          {/* Lectura en voz alta (solo si un admin se la activó a esta persona) */}
+          {appUser?.voiceReader && <LessonReader lesson={lesson} />}
 
           <OriginalText lesson={lesson} />
 

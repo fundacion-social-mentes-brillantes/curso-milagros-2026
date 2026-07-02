@@ -57,7 +57,7 @@ function ForoInner() {
             key={f.key}
             onClick={() => setFilter(f.key)}
             className={cn(
-              "rounded-full px-4 py-2 text-sm font-semibold transition",
+              "rounded-full px-4 py-2.5 text-sm font-semibold transition",
               filter === f.key ? "bg-primary text-primary-fg" : "border border-border bg-surface text-muted hover:text-fg",
             )}
           >
@@ -87,21 +87,21 @@ function ForoInner() {
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 {p.status !== "hidden" ? (
-                  <button onClick={() => void moderatePost(p.id, "hidden")} className="btn-ghost px-3 py-1.5 text-xs">
+                  <button onClick={() => void moderatePost(p.id, "hidden")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
                     Ocultar
                   </button>
                 ) : (
-                  <button onClick={() => void moderatePost(p.id, "visible")} className="btn-ghost px-3 py-1.5 text-xs">
+                  <button onClick={() => void moderatePost(p.id, "visible")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
                     Mostrar
                   </button>
                 )}
                 {p.status !== "reviewed" && (
-                  <button onClick={() => void moderatePost(p.id, "reviewed")} className="btn-ghost px-3 py-1.5 text-xs">
+                  <button onClick={() => void moderatePost(p.id, "reviewed")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
                     Revisado
                   </button>
                 )}
                 {p.status !== "deleted" && (
-                  <button onClick={() => void softDeletePost(p.id)} className="btn-ghost px-3 py-1.5 text-xs text-warning">
+                  <button onClick={() => void softDeletePost(p.id)} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs text-warning sm:flex-none sm:py-1.5">
                     Borrar
                   </button>
                 )}
