@@ -107,28 +107,35 @@ export async function setLessonDone(
     ...(completed ? { lastCompletedAt: now } : {}),
   });
 
-  // Ranking diario (opcional): registra UNA vez al día el puesto por hora.
-  // Va en try/catch para que NUNCA impida marcar la lección como hecha
-  // (p. ej. si las reglas aún no están publicadas).
+  // Ranking POR LECCIÓN: el puesto refleja en qué orden hiciste ESTA lección
+  // (no el día). Así, si vas atrasado y haces la 40 mientras otros van en la 41,
+  // tu puesto es el de la lección 40. Un registro por lección por persona.
+  // Va en try/catch para que NUNCA impida marcar la lección como hecha.
   let position: number | null = null;
   // La cuenta de gestión de la fundación no entra al ranking (no es participante).
   const isFoundationAccount = isPermanentAdmin(String(userSnap.data()?.email ?? ""));
   if (completed && !isFoundationAccount) {
     try {
-      const today = bogotaDateStr(now);
-      const ddRef = doc(db, "dailyDone", `${today}_${uid}`);
+      const ddRef = doc(db, "dailyDone", `${n}_${uid}`);
       const ddSnap = await getDoc(ddRef);
       if (ddSnap.exists()) {
         position = Number(ddSnap.data().position ?? 0) || null;
       } else {
         const cnt = await getCountFromServer(
-          query(collection(db, "dailyDone"), where("date", "==", today)),
+          query(collection(db, "dailyDone"), where("lessonNumber", "==", n)),
         );
         position = cnt.data().count + 1;
         const name = String(
           userSnap.data()?.fullName || userSnap.data()?.displayName || "Caminante",
         );
-        await setDoc(ddRef, { uid, name, date: today, completedAt: now, position });
+        await setDoc(ddRef, {
+          uid,
+          name,
+          date: bogotaDateStr(now),
+          completedAt: now,
+          position,
+          lessonNumber: n,
+        });
       }
     } catch {
       position = null;

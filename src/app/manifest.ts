@@ -14,7 +14,9 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
-    orientation: "portrait",
+    // "any" (no bloquear a vertical) para que el video pueda girar a horizontal
+    // y verse grande en el celular.
+    orientation: "any",
     lang: "es",
     background_color: "#092622",
     theme_color: "#0F3630",

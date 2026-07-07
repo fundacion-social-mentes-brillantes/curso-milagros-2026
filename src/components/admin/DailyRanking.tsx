@@ -47,7 +47,10 @@ export function DailyRanking() {
                 {i === 0 ? "🥇 " : ""}
                 {r.name}
               </span>
-              <span className="shrink-0 text-xs text-muted">{formatTime(r.completedAt)}</span>
+              <span className="shrink-0 text-xs text-muted">
+                {r.lessonNumber > 0 ? `L${r.lessonNumber} · ` : ""}
+                {formatTime(r.completedAt)}
+              </span>
             </li>
           ))}
         </ul>

@@ -165,6 +165,7 @@ function LessonInner({ n }: { n: number }) {
               lessonNumber={lesson.number}
               completed={Boolean(progress?.completed)}
               completedAt={progress?.completedAt ?? null}
+              currentLesson={appUser.currentLesson || 1}
             />
           )}
 

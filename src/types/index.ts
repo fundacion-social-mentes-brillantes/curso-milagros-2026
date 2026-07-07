@@ -180,12 +180,17 @@ export interface CohortArchive {
   participants: CohortParticipant[];
 }
 
-/** Ranking diario: cuándo (y en qué puesto) hizo su lección una persona ese día. */
+/**
+ * Ranking POR LECCIÓN: en qué orden (y a qué hora) hizo cada persona una lección.
+ * `position` = puesto dentro de ESA lección (1º = primera persona en hacerla).
+ */
 export interface DailyDone {
   uid: string;
   name: string;
-  /** "YYYY-MM-DD" en horario de Colombia */
+  /** "YYYY-MM-DD" en horario de Colombia (día en que la marcó) */
   date: string;
   completedAt: number;
   position: number;
+  /** Número de la lección a la que corresponde este puesto */
+  lessonNumber: number;
 }

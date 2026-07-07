@@ -12,6 +12,7 @@ function toDailyDone(data: Record<string, unknown>): DailyDone {
     date: String(data.date ?? ""),
     completedAt: Number(data.completedAt ?? 0),
     position: Number(data.position ?? 0),
+    lessonNumber: Number(data.lessonNumber ?? 0),
   };
 }
 
@@ -20,10 +21,10 @@ export function todayBogota(): string {
   return bogotaDateStr(Date.now());
 }
 
-/** Posición de HOY de una persona (o null si aún no marcó su lección hoy). */
-export async function getTodayPosition(uid: string): Promise<number | null> {
+/** Puesto (top) de una persona en una lección concreta, o null si no la ha hecho. */
+export async function getLessonRank(uid: string, n: number): Promise<number | null> {
   const db = getDb();
-  const snap = await getDoc(doc(db, "dailyDone", `${todayBogota()}_${uid}`));
+  const snap = await getDoc(doc(db, "dailyDone", `${n}_${uid}`));
   if (!snap.exists()) return null;
   const p = Number(snap.data().position ?? 0);
   return p > 0 ? p : null;

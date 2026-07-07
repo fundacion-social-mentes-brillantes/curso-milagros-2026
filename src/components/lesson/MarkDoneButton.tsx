@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { setLessonDone } from "@/lib/progress";
-import { getTodayPosition } from "@/lib/ranking";
+import { getLessonRank } from "@/lib/ranking";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDateTime } from "@/lib/utils";
 
@@ -11,11 +12,14 @@ export function MarkDoneButton({
   lessonNumber,
   completed,
   completedAt,
+  currentLesson,
 }: {
   uid: string;
   lessonNumber: number;
   completed: boolean;
   completedAt: number | null;
+  /** Lección en la que va la persona (no puede marcar más adelante que esta). */
+  currentLesson: number;
 }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(completed);
@@ -23,14 +27,14 @@ export function MarkDoneButton({
   const [position, setPosition] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Si ya estaba hecha, recupera el puesto de hoy (si la hizo hoy).
+  // Si ya estaba hecha, recupera su puesto EN ESTA lección.
   useEffect(() => {
     if (completed) {
-      getTodayPosition(uid)
+      getLessonRank(uid, lessonNumber)
         .then(setPosition)
         .catch(() => {});
     }
-  }, [completed, uid]);
+  }, [completed, uid, lessonNumber]);
 
   async function toggle(next: boolean) {
     setBusy(true);
@@ -47,6 +51,27 @@ export function MarkDoneButton({
     }
   }
 
+  // Mejora 3: no se puede marcar una lección MÁS ADELANTE de donde va la persona.
+  const ahead = !done && lessonNumber > currentLesson;
+  if (ahead) {
+    return (
+      <div className="card flex flex-col items-center gap-3 p-6 text-center">
+        <span className="text-3xl" aria-hidden>
+          🌱
+        </span>
+        <p className="font-display text-lg font-semibold">Aún no es tu lección de hoy</p>
+        <p className="max-w-sm text-sm text-muted">
+          Vas en la <strong className="text-fg">lección {currentLesson}</strong>. El proceso se
+          hace <strong>una lección a la vez, en orden</strong>. Cuando termines las anteriores
+          podrás marcar esta.
+        </p>
+        <Link href={`/lecciones/${currentLesson}`} className="btn-primary mt-1">
+          Ir a mi lección {currentLesson}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="card flex flex-col items-center gap-3 p-6 text-center">
       {done ? (
@@ -59,7 +84,7 @@ export function MarkDoneButton({
           </p>
           {position && (
             <p className="font-display text-base font-bold text-gold">
-              🌅 ¡Hoy fuiste el #{position} en hacer tu lección!
+              🌅 ¡Fuiste el #{position} en hacer la lección {lessonNumber}!
             </p>
           )}
           {at && <p className="text-xs text-muted">Marcada el {formatDateTime(at)}</p>}

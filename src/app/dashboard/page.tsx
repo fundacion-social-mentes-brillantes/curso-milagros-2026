@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { subscribeUserProgress } from "@/lib/progress";
-import { getTodayPosition } from "@/lib/ranking";
+import { getLessonRank } from "@/lib/ranking";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Histogram, bucketLessons } from "@/components/ui/Charts";
@@ -17,19 +17,28 @@ import type { Progress } from "@/types";
 function DashboardInner() {
   const { appUser } = useAuth();
   const [progress, setProgress] = useState<Progress[] | null>(null);
-  const [position, setPosition] = useState<number | null>(null);
+  const [rank, setRank] = useState<{ lesson: number; position: number } | null>(null);
 
   useEffect(() => {
     if (!appUser) return;
     return subscribeUserProgress(appUser.uid, setProgress);
   }, [appUser?.uid]);
 
+  // Puesto en la ÚLTIMA lección que completó (top por lección, no por día).
   useEffect(() => {
-    if (!appUser) return;
-    getTodayPosition(appUser.uid)
-      .then(setPosition)
+    if (!appUser || !progress) return;
+    const doneList = progress.filter((p) => p.completed);
+    if (doneList.length === 0) {
+      setRank(null);
+      return;
+    }
+    const last = [...doneList].sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))[0];
+    if (!last) return;
+    const lessonNumber = last.lessonNumber;
+    getLessonRank(appUser.uid, lessonNumber)
+      .then((p) => setRank(p ? { lesson: lessonNumber, position: p } : null))
       .catch(() => {});
-  }, [appUser?.uid]);
+  }, [appUser?.uid, progress]);
 
   if (!appUser) return <PageLoader />;
 
@@ -55,9 +64,9 @@ function DashboardInner() {
             ? "Hoy es un hermoso día para comenzar tu primera lección."
             : "Qué bueno tenerte de vuelta. Continúa cuando estés listo."}
         </p>
-        {position && (
+        {rank && (
           <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-gold/15 px-4 py-2 text-sm font-bold text-gold">
-            🌅 Hoy fuiste el #{position} en hacer tu lección
+            🌅 Fuiste el #{rank.position} en hacer la lección {rank.lesson}
           </div>
         )}
       </header>
