@@ -38,4 +38,8 @@ yarn-error.log*
 *.webm
 /Videos*/
 
+# audio generado por TTS (pesa mucho; se aloja aparte, no en el repo)
+/audio-generado/
+tts-key.txt
+
 .vercel
