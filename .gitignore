@@ -42,5 +42,6 @@ yarn-error.log*
 /audio-generado/
 tts-key.txt
 gemini-key.txt
+gemini-keys.txt
 
 .vercel
