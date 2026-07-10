@@ -3,11 +3,89 @@
 import { useEffect, useRef, useState } from "react";
 import type { Lesson } from "@/types";
 
+const RATES = [
+  { label: "🐢 Lenta", value: 0.85 },
+  { label: "Normal", value: 1 },
+  { label: "Rápida", value: 1.15 },
+] as const;
+
 /**
- * Texto para ESCUCHAR: quita los números de párrafo ("1.") y de oración ("2 ")
- * para que la voz no los lea. Solo afecta el audio; el texto visible queda
- * intacto (el texto del Curso no se modifica).
+ * Lector en voz alta de la lección (accesibilidad). Si existe un audio narrado
+ * de alta calidad para la lección (public/audio/lecciones/{NNN}.mp3) lo reproduce;
+ * si no, usa la voz del propio dispositivo como respaldo.
  */
+export function LessonReader({ lesson }: { lesson: Lesson }) {
+  const num = String(lesson.number).padStart(3, "0");
+  const audioUrl = `/audio/lecciones/${num}.mp3`;
+  const [hasFile, setHasFile] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch(audioUrl, { method: "HEAD" })
+      .then((r) => active && setHasFile(r.ok))
+      .catch(() => active && setHasFile(false));
+    return () => {
+      active = false;
+    };
+  }, [audioUrl]);
+
+  if (hasFile === null) return null;
+  if (hasFile) return <FilePlayer url={audioUrl} />;
+  return <SpeechPlayer lesson={lesson} />;
+}
+
+/** Reproductor del audio narrado (MP3 de alta calidad). */
+function FilePlayer({ url }: { url: string }) {
+  const ref = useRef<HTMLAudioElement>(null);
+  const [rate, setRate] = useState(1);
+
+  function setSpeed(v: number) {
+    setRate(v);
+    if (ref.current) ref.current.playbackRate = v;
+  }
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="flex flex-col gap-3 p-4 sm:p-5">
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="text-xl">🔊</span>
+          <h2 className="font-display text-lg font-bold">Escuchar la lección</h2>
+        </div>
+        <audio
+          ref={ref}
+          src={url}
+          controls
+          preload="metadata"
+          className="w-full"
+          onLoadedMetadata={() => {
+            if (ref.current) ref.current.playbackRate = rate;
+          }}
+        >
+          Tu navegador no puede reproducir este audio.
+        </audio>
+        <div className="flex items-center gap-1.5" role="group" aria-label="Velocidad de lectura">
+          <span className="mr-1 text-xs text-muted">Velocidad:</span>
+          {RATES.map((r) => (
+            <button
+              key={r.value}
+              onClick={() => setSpeed(r.value)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                rate === r.value
+                  ? "bg-primary text-primary-fg"
+                  : "border border-border bg-surface text-muted hover:text-fg"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Respaldo: voz del dispositivo (para lecciones sin audio aún) ---------- */
+
 function speechText(lesson: Lesson): string {
   let t = lesson.originalText || "";
   t = t.replace(/^\s*\d+\.\s*/gm, "");
@@ -16,7 +94,6 @@ function speechText(lesson: Lesson): string {
   return `Lección ${lesson.number}. ${lesson.title} ${t}`;
 }
 
-/** Divide en frases cortas: evita que el navegador corte lecturas largas. */
 function toChunks(text: string): string[] {
   const sentences = text.match(/[^.!?…]+[.!?…]*\s*/g) ?? [text];
   const out: string[] = [];
@@ -33,7 +110,6 @@ function toChunks(text: string): string[] {
   return out;
 }
 
-/** Elige la voz en español MÁS NATURAL disponible en el dispositivo. */
 function bestSpanishVoice(): SpeechSynthesisVoice | null {
   const es = window.speechSynthesis
     .getVoices()
@@ -55,18 +131,7 @@ function bestSpanishVoice(): SpeechSynthesisVoice | null {
 
 type ReaderState = "idle" | "playing" | "paused";
 
-const RATES = [
-  { label: "🐢 Lenta", value: 0.8 },
-  { label: "Normal", value: 0.95 },
-  { label: "Rápida", value: 1.15 },
-] as const;
-
-/**
- * Lector en voz alta de la lección (accesibilidad). Usa la voz del propio
- * dispositivo (gratis, sin internet extra). Solo se muestra a las personas a
- * las que un admin les activó la opción.
- */
-export function LessonReader({ lesson }: { lesson: Lesson }) {
+function SpeechPlayer({ lesson }: { lesson: Lesson }) {
   const [state, setState] = useState<ReaderState>("idle");
   const [rate, setRate] = useState<number>(0.95);
   const [progress, setProgress] = useState(0);
@@ -81,7 +146,6 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
       setSupported(false);
       return;
     }
-    // Algunos navegadores llenan la lista de voces tarde: precargar.
     window.speechSynthesis.getVoices();
     return () => {
       stopRef.current = true;
@@ -154,35 +218,21 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
           <span aria-hidden className="text-xl">🔊</span>
           <h2 className="font-display text-lg font-bold">Escuchar la lección</h2>
         </div>
-
         <div className="flex flex-wrap items-center gap-2.5">
           {state !== "playing" ? (
-            <button
-              onClick={play}
-              className="btn-primary px-6 py-3 text-base"
-              aria-label={state === "paused" ? "Continuar la lectura" : "Escuchar la lección en voz alta"}
-            >
+            <button onClick={play} className="btn-primary px-6 py-3 text-base">
               ▶ {state === "paused" ? "Continuar" : "Escuchar"}
             </button>
           ) : (
-            <button
-              onClick={pause}
-              className="btn-primary px-6 py-3 text-base"
-              aria-label="Pausar la lectura"
-            >
+            <button onClick={pause} className="btn-primary px-6 py-3 text-base">
               ⏸ Pausa
             </button>
           )}
           {state !== "idle" && (
-            <button
-              onClick={stop}
-              className="btn-ghost px-5 py-3 text-base"
-              aria-label="Detener la lectura"
-            >
+            <button onClick={stop} className="btn-ghost px-5 py-3 text-base">
               ⏹ Detener
             </button>
           )}
-
           <div className="ml-auto flex items-center gap-1.5" role="group" aria-label="Velocidad de lectura">
             {RATES.map((r) => (
               <button
@@ -199,7 +249,6 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
             ))}
           </div>
         </div>
-
         {state !== "idle" && (
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
             <div
