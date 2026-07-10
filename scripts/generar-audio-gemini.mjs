@@ -15,10 +15,12 @@ import path from "node:path";
 
 // --- Modelo, voz y estilo (puedes cambiarlos) --------------------------------
 const MODEL = "gemini-2.5-flash-preview-tts";
-// Voces femeninas cálidas: Sulafat, Kore, Aoede, Leda, Callirrhoe, Vindemiatrix, Zephyr.
-const VOICE = "Sulafat";
+// Voz configurable por variable de entorno (GEMINI_VOICE / GEMINI_GENERO).
+// Mujeres cálidas: Sulafat, Kore, Aoede, Leda, Callirrhoe. Hombres: Charon, Orus, Enceladus, Iapetus.
+const VOICE = process.env.GEMINI_VOICE || "Sulafat";
+const GENERO = process.env.GEMINI_GENERO || "femenina";
 const STYLE =
-  "Lee el siguiente texto como una guía espiritual de voz femenina, cálida y muy " +
+  `Lee el siguiente texto como una guía espiritual de voz ${GENERO}, cálida y muy ` +
   "humana. Hazlo con expresión y emoción reales, nunca plano: susurra con ternura " +
   "en los momentos íntimos, deja que la voz se ilumine y suba suavemente en los de " +
   "esperanza y alegría, y suene serena o conmovida cuando el texto lo pida. Haz " +
