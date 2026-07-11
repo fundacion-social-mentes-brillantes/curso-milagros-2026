@@ -60,18 +60,22 @@ function pcmToWav(pcm, rate) {
 }
 
 async function synth(text) {
-  let intentos = 0;
+  // contadores separados por causa (uno no agota al otro) y con "voz" en cada reintento
+  let min429 = 0, srv = 0, noaudio = 0, net = 0;
   while (true) {
     const disp = KEYS.filter((k) => !agotadas.has(k));
     if (disp.length === 0) return null; // todas llegaron a su límite del día
     const key = disp[rr % disp.length]; rr++;
     let res;
     try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 120000); // que nunca se cuelgue >2 min
       res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: ctrl.signal,
           body: JSON.stringify({
             contents: [{ parts: [{ text: `${STYLE}\n\nTexto:\n${text}` }] }],
             generationConfig: {
@@ -81,23 +85,38 @@ async function synth(text) {
           }),
         },
       );
-    } catch (e) { await sleep(3000); if (++intentos > 60) throw new Error("Red inestable."); continue; }
+      clearTimeout(tid);
+    } catch (e) {
+      if (++net > 8) throw new Error("Red inestable.");
+      console.log(`    · red/timeout, reintento ${net}`); await sleep(3000); continue;
+    }
     if (res.status === 429) {
       const body = await res.text();
-      if (/per ?day|perday|per-day|daily|día|dia/i.test(body)) { agotadas.add(key); continue; }
-      await sleep(5000); // límite por minuto: espera y prueba con otra clave
-      if (++intentos > 60) throw new Error("Límite por minuto persistente; intenta más tarde.");
+      if (/per[\s-]?day/i.test(body)) { // SOLO si Google dice "PerDay" → cupo del día
+        agotadas.add(key);
+        console.log(`    · una clave sin cupo del día; quedan ${KEYS.filter((k) => !agotadas.has(k)).length}`);
+        continue;
+      }
+      if (++min429 > 30) throw new Error("Límite por minuto persistente; intenta más tarde.");
+      console.log(`    · 429 por minuto, espero 6s y pruebo otra clave (${min429})`);
+      await sleep(6000);
       continue;
     }
     if (res.status >= 500) { // error interno transitorio de Google: espera y reintenta
+      if (++srv > 10) throw new Error(`Gemini ${res.status} persistente`);
+      console.log(`    · error ${res.status} de Google, reintento ${srv}`);
       await sleep(4000);
-      if (++intentos > 10) throw new Error(`Gemini ${res.status} persistente`);
       continue;
     }
     if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 150)}`);
     const data = await res.json();
     const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData);
-    if (!part) { await sleep(2000); if (++intentos > 6) throw new Error("Sin audio."); continue; }
+    if (!part) { // el modelo generó texto en vez de audio: reintenta unas pocas veces
+      if (++noaudio > 5) throw new Error("Sin audio (el modelo devolvió texto).");
+      console.log(`    · sin audio, reintento ${noaudio}`);
+      await sleep(2500);
+      continue;
+    }
     const pcm = Buffer.from(part.inlineData.data, "base64");
     const rate = Number(/rate=(\d+)/.exec(part.inlineData.mimeType || "")?.[1] ?? 24000);
     return pcmToWav(pcm, rate);
