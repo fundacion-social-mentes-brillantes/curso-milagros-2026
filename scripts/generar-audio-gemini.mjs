@@ -59,7 +59,25 @@ function pcmToWav(pcm, rate) {
   return Buffer.concat([h, pcm]);
 }
 
-async function synth(text) {
+// Parte el texto en trozos por ORACIONES, sin pasar de maxChars. Así una lección
+// larga se sintetiza por partes (cada parte es corta y NUNCA se trunca). Las
+// lecciones cortas (≤ maxChars) quedan en un solo trozo, como antes.
+function splitIntoChunks(text, maxChars = 1600) {
+  const oraciones = text.match(/[^.!?…]+[.!?…]+|\S[^.!?…]*$/g) || [text];
+  const chunks = [];
+  let cur = "";
+  for (const o of oraciones) {
+    const s = o.trim();
+    if (!s) continue;
+    if (cur && cur.length + 1 + s.length > maxChars) { chunks.push(cur); cur = s; }
+    else cur = cur ? `${cur} ${s}` : s;
+  }
+  if (cur) chunks.push(cur);
+  return chunks;
+}
+
+// Sintetiza UN trozo → devuelve {pcm, rate}. null si se agotó el cupo del día.
+async function synthChunk(text) {
   // contadores separados por causa (uno no agota al otro) y con "voz" en cada reintento
   let min429 = 0, srv = 0, noaudio = 0, net = 0;
   while (true) {
@@ -119,8 +137,31 @@ async function synth(text) {
     }
     const pcm = Buffer.from(part.inlineData.data, "base64");
     const rate = Number(/rate=(\d+)/.exec(part.inlineData.mimeType || "")?.[1] ?? 24000);
-    return pcmToWav(pcm, rate);
+    return { pcm, rate };
   }
+}
+
+// Sintetiza una lección COMPLETA (parte en trozos si es larga y los une en un WAV).
+// null si se agotó el cupo del día a mitad de camino (la lección se hará entera luego).
+async function synthLesson(fullText) {
+  const chunks = splitIntoChunks(fullText);
+  const pcms = [];
+  let rate = 24000;
+  for (let i = 0; i < chunks.length; i++) {
+    const r = await synthChunk(chunks[i]);
+    if (!r) return null; // sin cupo
+    rate = r.rate;
+    if (i > 0) { // ~0.30s de silencio entre trozos para un respiro natural
+      let sil = Math.round(rate * 2 * 0.30); if (sil % 2) sil++;
+      pcms.push(Buffer.alloc(sil));
+    }
+    pcms.push(r.pcm);
+    if (chunks.length > 1) {
+      console.log(`      trozo ${i + 1}/${chunks.length} ok`);
+      if (i < chunks.length - 1) await sleep(1500); // respiro entre peticiones (RPM)
+    }
+  }
+  return pcmToWav(Buffer.concat(pcms), rate);
 }
 
 async function main() {
@@ -138,7 +179,7 @@ async function main() {
     const outPath = path.join(OUT_DIR, `${String(n).padStart(3, "0")}.wav`);
     if (fs.existsSync(outPath)) { console.log(`• L${n} ya existe, se salta`); continue; }
     let wav;
-    try { wav = await synth(speechText(lesson)); }
+    try { wav = await synthLesson(speechText(lesson)); }
     catch (e) { console.log(`✗ L${n} falló (${e.message}); se salta`); fallidas.push(n); await sleep(DELAY_MS); continue; }
     if (!wav) {
       console.log(`\n⏸️  Todas las claves llegaron a su límite gratuito de HOY. Hechas: ${hechas}.`);
