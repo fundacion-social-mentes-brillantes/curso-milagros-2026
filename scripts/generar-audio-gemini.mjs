@@ -42,6 +42,13 @@ const agotadas = new Set(); // claves sin cupo del DÍA
 let rr = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Red inestable de Google (500/timeouts): que un rechazo suelto de la librería
+// de red NO tumbe todo el proceso. Se registra y se sigue (el reintento del
+// synthChunk se encarga de recuperar la petición).
+process.on("unhandledRejection", (e) => {
+  console.log(`    · (aviso) rechazo de red ignorado: ${String(e?.message || e).slice(0, 80)}`);
+});
+
 function speechText(lesson) {
   let t = String(lesson.originalText || "");
   t = t.replace(/^\s*\d+\.\s*/gm, "");
@@ -108,8 +115,14 @@ async function synthChunk(text) {
       if (++net > 8) throw new Error("Red inestable.");
       console.log(`    · red/timeout, reintento ${net}`); await sleep(3000); continue;
     }
+    // leer el cuerpo con protección: si el socket se corta al leer, se reintenta
+    let body;
+    try { body = await res.text(); }
+    catch (e) {
+      if (++net > 8) throw new Error("Red inestable (al leer respuesta).");
+      console.log(`    · corte al leer respuesta, reintento ${net}`); await sleep(3000); continue;
+    }
     if (res.status === 429) {
-      const body = await res.text();
       if (/per[\s-]?day/i.test(body)) { // SOLO si Google dice "PerDay" → cupo del día
         agotadas.add(key);
         console.log(`    · una clave sin cupo del día; quedan ${KEYS.filter((k) => !agotadas.has(k)).length}`);
@@ -126,8 +139,10 @@ async function synthChunk(text) {
       await sleep(4000);
       continue;
     }
-    if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 150)}`);
-    const data = await res.json();
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${body.slice(0, 150)}`);
+    let data;
+    try { data = JSON.parse(body); }
+    catch { if (++noaudio > 5) throw new Error("Respuesta no-JSON."); console.log("    · respuesta ilegible, reintento"); await sleep(1500); continue; }
     const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData);
     if (!part) { // el modelo generó texto en vez de audio: reintenta unas pocas veces
       if (++noaudio > 5) throw new Error("Sin audio (el modelo devolvió texto).");
