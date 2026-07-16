@@ -157,15 +157,43 @@ async function synthChunk(text) {
   }
 }
 
+// Mide los segundos CON VOZ real de un PCM (ignora silencios): sirve para
+// validar que el trozo de verdad narró el texto (Gemini a veces devuelve un
+// audio con casi pura mudez o cortado a la mitad).
+function segundosDeVoz(pcm, rate) {
+  const AMP = 500;
+  const WIN = Math.max(1, Math.floor(0.02 * rate));
+  const n = Math.floor(pcm.length / 2);
+  let voiced = 0;
+  for (let i = 0; i < n; i += WIN) {
+    const end = Math.min(i + WIN, n);
+    let pk = 0;
+    for (let j = i; j < end; j++) { const v = pcm.readInt16LE(j * 2); const a = v < 0 ? -v : v; if (a > pk) pk = a; }
+    if (pk >= AMP) voiced += end - i;
+  }
+  return voiced / rate;
+}
+
 // Sintetiza una lección COMPLETA (parte en trozos si es larga y los une en un WAV).
-// null si se agotó el cupo del día a mitad de camino (la lección se hará entera luego).
+// Cada trozo se VALIDA: si vuelve con muy poca voz para su texto (cortado o
+// mudo), se reintenta hasta 3 veces. null si se agotó el cupo del día.
 async function synthLesson(fullText) {
   const chunks = splitIntoChunks(fullText);
   const pcms = [];
   let rate = 24000;
   for (let i = 0; i < chunks.length; i++) {
-    const r = await synthChunk(chunks[i]);
-    if (!r) return null; // sin cupo
+    let r = null;
+    for (let intento = 1; intento <= 3; intento++) {
+      r = await synthChunk(chunks[i]);
+      if (!r) return null; // sin cupo
+      const voz = segundosDeVoz(r.pcm, r.rate);
+      const minVoz = chunks[i].length / 22; // narración real ≈ 11-16 chars/s; <22 = corto seguro
+      if (voz >= minVoz) break;
+      console.log(`      ! trozo ${i + 1}/${chunks.length} salió corto (${voz.toFixed(0)}s de voz para ${chunks[i].length} chars); reintento ${intento}`);
+      r = null;
+      await sleep(2500);
+    }
+    if (!r) throw new Error(`trozo ${i + 1}/${chunks.length} salió cortado 3 veces`);
     rate = r.rate;
     if (i > 0) { // ~0.30s de silencio entre trozos para un respiro natural
       let sil = Math.round(rate * 2 * 0.30); if (sil % 2) sil++;
