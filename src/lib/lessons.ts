@@ -41,7 +41,7 @@ export function toLesson(id: string, data: Record<string, unknown>): Lesson {
 /** Lee el archivo estático de una lección (incluido en la app). */
 async function fetchStaticLesson(n: number): Promise<Lesson | null> {
   try {
-    const res = await fetch(`/lessons/${lessonDocId(n)}.json`, { cache: "force-cache" });
+    const res = await fetch(`/lessons/${lessonDocId(n)}.json`, { cache: "no-cache" });
     if (!res.ok) return null;
     return toLesson(lessonDocId(n), (await res.json()) as Record<string, unknown>);
   } catch {
@@ -72,7 +72,7 @@ interface IndexEntry {
 /** Lista de las 365 lecciones (desde el índice estático; respaldo Firestore). */
 export async function listLessons(): Promise<Lesson[]> {
   try {
-    const res = await fetch(`/lessons/index.json`, { cache: "force-cache" });
+    const res = await fetch(`/lessons/index.json`, { cache: "no-cache" });
     if (res.ok) {
       const idx = (await res.json()) as IndexEntry[];
       if (Array.isArray(idx) && idx.length > 0) {
