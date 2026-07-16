@@ -51,6 +51,7 @@ process.on("unhandledRejection", (e) => {
 
 function speechText(lesson) {
   let t = String(lesson.originalText || "");
+  t = t.replace(/^\s*#{1,2}\s*/gm, ""); // quita marcadores de encabezado (# / ##)
   t = t.replace(/^\s*\d+\.\s*/gm, "");
   t = t.replace(/([\s"“(¿¡])\d{1,2}\s+(?=[A-ZÁÉÍÓÚÜÑ¿¡"“])/g, "$1");
   t = t.replace(/\s+/g, " ").trim();

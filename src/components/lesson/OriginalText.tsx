@@ -49,12 +49,16 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
 }
 
 type Block =
+  | { kind: "heading"; level: 1 | 2; text: string }
   | { kind: "para"; num: string; text: string }
   | { kind: "example"; num: string; text: string }
   | { kind: "plain"; text: string };
 
 function classify(raw: string): Block {
   const flat = raw.replace(/\s*\n\s*/g, " ").trim(); // une cortes a media frase
+  // Encabezados: "# Título" (grande) o "## Subtítulo" (mediano).
+  const head = flat.match(/^(#{1,2})\s+(.+)$/);
+  if (head) return { kind: "heading", level: head[1]?.length === 1 ? 1 : 2, text: head[2] ?? "" };
   const para = flat.match(/^(\d{1,3})\.\s+([\s\S]*)$/);
   if (para) return { kind: "para", num: para[1] ?? "", text: para[2] ?? "" };
   const ex = flat.match(/^(\d{1,2})\s?([A-ZÁÉÍÓÚÑ¿«"][\s\S]*)$/);
@@ -95,7 +99,25 @@ function BookText({ text }: { text: string }) {
       return;
     }
     flush(`g${bi}`);
-    if (b.kind === "para") {
+    if (b.kind === "heading") {
+      out.push(
+        b.level === 1 ? (
+          <h3
+            key={bi}
+            className="mt-8 text-center font-display text-xl font-bold tracking-wide text-gold first:mt-0 sm:text-2xl"
+          >
+            {b.text}
+          </h3>
+        ) : (
+          <p
+            key={bi}
+            className="-mt-1 mb-1 text-center font-display text-base font-semibold text-fg/75"
+          >
+            {b.text}
+          </p>
+        ),
+      );
+    } else if (b.kind === "para") {
       out.push(
         <p key={bi} className={PARA_CLASS}>
           <span className="mr-1 font-display font-bold text-gold">{b.num}.</span>

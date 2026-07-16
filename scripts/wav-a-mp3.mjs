@@ -15,6 +15,34 @@ import lamejs from "@breezystack/lamejs";
 const SRC = "audio-generado";
 const OUT = "public/audio/lecciones";
 const KBPS = 64; // suficiente para voz, archivos pequeños
+const MAX_SILENCIO = 0.8; // recorta cualquier pausa a máximo este nº de segundos
+
+// Recorta los silencios largos (dead air) a MAX_SILENCIO segundos. El TTS a
+// veces deja huecos enormes (hasta decenas de segundos); esto los limita a una
+// pausa natural, mejora el ritmo y acorta el audio. No toca la voz.
+function capSilences(pcm, rate, maxSil = MAX_SILENCIO) {
+  const AMP = 500; // por debajo de esto se considera silencio
+  const WIN = Math.max(1, Math.floor(0.02 * rate)); // ventanas de 20 ms
+  const maxKeep = Math.floor(maxSil * rate);
+  const out = new Int16Array(pcm.length);
+  let o = 0;
+  let keptSil = 0;
+  for (let i = 0; i < pcm.length; i += WIN) {
+    const end = Math.min(i + WIN, pcm.length);
+    let peak = 0;
+    for (let j = i; j < end; j++) { const a = pcm[j] < 0 ? -pcm[j] : pcm[j]; if (a > peak) peak = a; }
+    if (peak < AMP) {
+      const room = Math.max(0, maxKeep - keptSil);
+      const take = Math.min(end - i, room);
+      for (let j = i; j < i + take; j++) out[o++] = pcm[j];
+      keptSil += end - i;
+    } else {
+      keptSil = 0;
+      for (let j = i; j < end; j++) out[o++] = pcm[j];
+    }
+  }
+  return out.subarray(0, o);
+}
 
 function wavToMp3(wavBuf) {
   const sampleRate = wavBuf.readUInt32LE(24);
@@ -33,11 +61,12 @@ function wavToMp3(wavBuf) {
     }
     pos += 8 + size + (size % 2);
   }
-  const pcm = new Int16Array(
+  const raw = new Int16Array(
     wavBuf.buffer,
     wavBuf.byteOffset + dataOffset,
     Math.floor(dataLen / 2),
   );
+  const pcm = capSilences(raw, sampleRate); // recorta pausas larguísimas
   const enc = new lamejs.Mp3Encoder(channels === 2 ? 2 : 1, sampleRate, KBPS);
   const out = [];
   const block = 1152;
