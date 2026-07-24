@@ -20,7 +20,10 @@ const STYLE =
   "se ilumine y se eleve con esperanza, y que suene conmovida —casi a punto de quebrarse— " +
   "en lo más hondo. Ritmo pausado y meditativo, con pausas naturales y respiros entre las " +
   "ideas, dando tiempo a que cada frase se asiente. Entonación suave, expresiva y bella. " +
-  "Español latino, claro y sereno.";
+  "Español latino, claro y sereno. IMPORTANTE: lee ÚNICAMENTE el texto dado, palabra por " +
+  "palabra y hasta el final. No añadas saludos, despedidas, comentarios, ni ninguna " +
+  "palabra que no esté en el texto; no digas \"hola\" ni nada parecido. Guarda silencio " +
+  "en cuanto termines la última palabra del texto.";
 
 const DELAY_MS = 4000; // entre lecciones (con 5 claves ≈ respeta 3/min por clave)
 const LESSONS_DIR = "public/lessons";
