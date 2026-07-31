@@ -18,7 +18,13 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
-const MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-pro";
+// Modelo del bot. Hoy v4-flash (0731): mas capaz que v4-pro y ~3x mas barato.
+// Para volver a Pro NO hay que tocar codigo: basta definir DEEPSEEK_MODEL en el entorno.
+const MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
+// El modo "pensar" queda apagado a proposito (mas rapido y barato). DeepSeek lo
+// enciende por defecto, por eso hay que mandarlo explicitamente. Se enciende
+// cuando haga falta cambiando "disabled" por "enabled".
+const THINKING = { type: "disabled" } as const;
 const FIREBASE_API_KEY =
   process.env.NEXT_PUBLIC_FIREBASE_API_KEY || FIREBASE_PUBLIC.apiKey;
 
@@ -141,6 +147,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       },
       body: JSON.stringify({
         model: MODEL,
+        thinking: THINKING,
         messages: [{ role: "system", content: system }, ...cleaned],
         stream: true,
         temperature: 0.7,
