@@ -15,7 +15,8 @@
 let cache: Record<number, string> | null = null;
 let cargando: Promise<Record<number, string>> | null = null;
 
-async function cargar(): Promise<Record<number, string>> {
+/** Base fija: el mapa que ya viene con la app (public/videos.json). */
+async function cargarBase(): Promise<Record<number, string>> {
   try {
     const res = await fetch("/videos.json", { cache: "no-cache" });
     if (!res.ok) return {};
@@ -29,6 +30,39 @@ async function cargar(): Promise<Record<number, string>> {
   } catch {
     return {};
   }
+}
+
+/**
+ * Lo último del canal, tal cual lo deja Make cada noche (public/videos-canal.json):
+ * la respuesta cruda de YouTube con los títulos y los IDs. Aquí se traduce
+ * "LECCIÓN 91 UCDM" → 91. Así Make no tiene que entender nada: solo copia.
+ */
+async function cargarCanal(): Promise<Record<number, string>> {
+  try {
+    const res = await fetch("/videos-canal.json", { cache: "no-cache" });
+    if (!res.ok) return {};
+    const data = (await res.json()) as {
+      items?: { snippet?: { title?: string; resourceId?: { videoId?: string } } }[];
+    };
+    const out: Record<number, string> = {};
+    for (const it of data.items ?? []) {
+      const titulo = it.snippet?.title ?? "";
+      const id = it.snippet?.resourceId?.videoId ?? "";
+      const m = titulo.match(/LECCI[OÓ]N\s+(\d{1,3})\b/i);
+      if (m && m[1] && /^[a-zA-Z0-9_-]{11}$/.test(id)) {
+        const n = Number(m[1]);
+        if (n >= 1 && n <= 365 && !out[n]) out[n] = id;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+async function cargar(): Promise<Record<number, string>> {
+  const [base, canal] = await Promise.all([cargarBase(), cargarCanal()]);
+  return { ...base, ...canal }; // lo del canal (más reciente) manda
 }
 
 /** Devuelve el ID/enlace de YouTube de una lección, o null si aún no hay. */
