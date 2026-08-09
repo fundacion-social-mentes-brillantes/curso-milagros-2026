@@ -195,3 +195,58 @@ export async function setLessonDone(
 
   return { position };
 }
+
+/**
+ * "Mi cuaderno": nota corta y PRIVADA de la persona para una lección.
+ * Vive en el mismo documento del avance (no hace falta otra colección).
+ */
+export async function getLessonNote(uid: string, n: number): Promise<string> {
+  const db = getDb();
+  try {
+    const snap = await getDoc(doc(db, "progress", await progressId(uid, n)));
+    return snap.exists() ? String(snap.data().nota ?? "") : "";
+  } catch {
+    return "";
+  }
+}
+
+export async function saveLessonNote(uid: string, n: number, nota: string): Promise<void> {
+  const db = getDb();
+  const ciclo = await cicloActual();
+  await setDoc(
+    doc(db, "progress", idProgreso(ciclo, uid, n)),
+    {
+      userId: uid,
+      ciclo,
+      lessonId: lessonDocId(n),
+      lessonNumber: n,
+      nota: nota.slice(0, 1000),
+      notaEn: Date.now(),
+    },
+    { merge: true },
+  );
+}
+
+/** Todas las notas del ciclo actual, de la más vieja a la más nueva. */
+export async function getUserNotes(
+  uid: string,
+): Promise<{ lessonNumber: number; nota: string; notaEn: number }[]> {
+  const items = await getUserProgress(uid);
+  const db = getDb();
+  const ciclo = await cicloActual();
+  const q = query(
+    collection(db, "progress"),
+    where("userId", "==", uid),
+    ...(filtrarPorCiclo(ciclo) ? [where("ciclo", "==", ciclo)] : []),
+  );
+  const snap = await getDocs(q);
+  void items;
+  return snap.docs
+    .map((d) => ({
+      lessonNumber: Number(d.data().lessonNumber ?? 0),
+      nota: String(d.data().nota ?? "").trim(),
+      notaEn: Number(d.data().notaEn ?? 0),
+    }))
+    .filter((x) => x.nota.length > 0)
+    .sort((a, b) => a.lessonNumber - b.lessonNumber);
+}

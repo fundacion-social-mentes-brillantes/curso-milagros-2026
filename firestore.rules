@@ -80,7 +80,12 @@ service cloud.firestore {
       allow create, update: if isSignedIn()
                   && request.resource.data.userId == request.auth.uid
                   && request.resource.data.keys().hasOnly(
-                       ['userId', 'lessonId', 'lessonNumber', 'completed', 'completedAt'])
+                       ['userId', 'ciclo', 'lessonId', 'lessonNumber',
+                        'completed', 'completedAt', 'nota', 'notaEn'])
+                  // El cuaderno: una nota corta y privada de la persona.
+                  && (!request.resource.data.keys().hasAny(['nota'])
+                      || (request.resource.data.nota is string
+                          && request.resource.data.nota.size() <= 1000))
                   && request.resource.data.lessonNumber is int
                   && request.resource.data.completed is bool
                   && request.resource.data.lessonId is string

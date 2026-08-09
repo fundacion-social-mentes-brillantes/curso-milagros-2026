@@ -147,3 +147,66 @@ export async function exportCohortPdf(cohort: CohortArchive): Promise<void> {
 
   doc.save(`historial-${slugify(cohort.label)}.pdf`);
 }
+
+/**
+ * "Mi libro del año": el PDF con todo lo que la persona escribió en su
+ * cuaderno, lección por lección. Es lo único del proceso escrito por ella
+ * misma, y al terminar el año es la prueba de su propio camino.
+ */
+export async function exportarMiLibro(
+  nombre: string,
+  notas: { lessonNumber: number; nota: string }[],
+): Promise<void> {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const ancho = doc.internal.pageSize.getWidth();
+  const alto = doc.internal.pageSize.getHeight();
+  const margen = 56;
+
+  // Portada
+  doc.setFillColor(11, 59, 54);
+  doc.rect(0, 0, ancho, alto, "F");
+  doc.setTextColor(242, 200, 121);
+  doc.setFont("times", "bold");
+  doc.setFontSize(34);
+  doc.text("Mi libro del año", ancho / 2, alto / 2 - 40, { align: "center" });
+  doc.setFont("times", "italic");
+  doc.setFontSize(15);
+  doc.setTextColor(245, 239, 226);
+  doc.text(nombre, ancho / 2, alto / 2 + 4, { align: "center" });
+  doc.setFontSize(11);
+  doc.text(
+    `${notas.length} ${notas.length === 1 ? "día escrito" : "días escritos"} · Un Curso de Milagros`,
+    ancho / 2,
+    alto / 2 + 30,
+    { align: "center" },
+  );
+  doc.setFontSize(10);
+  doc.text("Gimnasio Emocional Mentes Brillantes", ancho / 2, alto - 60, { align: "center" });
+
+  // Páginas con las notas
+  doc.addPage();
+  doc.setTextColor(20, 20, 20);
+  let y = margen;
+
+  for (const n of notas) {
+    const lineas = doc.splitTextToSize(n.nota, ancho - margen * 2 - 12);
+    const altoBloque = 26 + lineas.length * 15 + 14;
+    if (y + altoBloque > alto - margen) {
+      doc.addPage();
+      y = margen;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(180, 140, 50);
+    doc.text(`Lección ${n.lessonNumber}`, margen, y);
+    y += 16;
+    doc.setFont("times", "normal");
+    doc.setFontSize(12);
+    doc.setTextColor(30, 30, 30);
+    doc.text(lineas, margen + 10, y);
+    y += lineas.length * 15 + 16;
+  }
+
+  doc.save(`Mi libro del año — ${nombre}.pdf`);
+}

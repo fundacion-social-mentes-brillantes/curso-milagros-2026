@@ -16,6 +16,7 @@ import { LessonReader } from "@/components/lesson/LessonReader";
 import { CommentarySections } from "@/components/lesson/CommentarySections";
 import { MarkDoneButton } from "@/components/lesson/MarkDoneButton";
 import { SoloPro } from "@/components/lesson/SoloPro";
+import { Cuaderno } from "@/components/lesson/Cuaderno";
 import { Forum } from "@/components/forum/Forum";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PageLoader } from "@/components/ui/Spinner";
@@ -181,6 +182,9 @@ function LessonInner({ n }: { n: number }) {
               mostrarPuesto={esPro}
             />
           )}
+
+          {/* Mi cuaderno: la línea del día, privada. Al final del año es su libro. */}
+          {appUser && esPro && <Cuaderno uid={appUser.uid} lessonNumber={lesson.number} />}
 
           {/* Cómo practicarla (texto corto, desplegable) */}
           <PracticeToggle steps={lesson.commentary.practicalInstructions} />

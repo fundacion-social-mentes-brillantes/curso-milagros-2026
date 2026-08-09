@@ -8,6 +8,7 @@ import { subscribeUserProgress } from "@/lib/progress";
 import { getLessonRank } from "@/lib/ranking";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { MiLibro } from "@/components/dashboard/MiLibro";
 import { Histogram, bucketLessons } from "@/components/ui/Charts";
 import { PageLoader } from "@/components/ui/Spinner";
 import { pct, formatDate } from "@/lib/utils";
@@ -111,6 +112,9 @@ function DashboardInner() {
         <StatCard label="Lección actual" value={current} icon="🧭" tone="default" />
         <StatCard label="Avance del proceso" value={`${percent}%`} icon="🌟" tone="gold" />
       </div>
+
+      {/* Su cuaderno del año, listo para descargar */}
+      <MiLibro nombre={appUser.fullName || appUser.displayName} uid={appUser.uid} />
 
       {/* distribución + recientes */}
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
