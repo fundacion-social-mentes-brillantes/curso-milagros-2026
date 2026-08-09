@@ -16,7 +16,8 @@ function NewYearInner() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLabel(String(new Date().getFullYear()));
+    // El que COMIENZA, no el que está corriendo.
+    setLabel(String(new Date().getFullYear() + 1));
   }, []);
 
   const ready = text.trim().toUpperCase() === PHRASE;

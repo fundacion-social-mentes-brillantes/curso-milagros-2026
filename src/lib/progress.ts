@@ -167,13 +167,11 @@ export async function setLessonDone(
           ),
         );
         position = cnt.data().count + 1;
-        const name = String(
-          userSnap.data()?.fullName || userSnap.data()?.displayName || "Caminante",
-        );
+        // Sin el nombre: era un dato personal que cualquiera con sesión podía
+        // leer. El nombre para mostrar vive en /directorio (solo Portadores).
         await setDoc(ddRef, {
           uid,
           ciclo,
-          name,
           date: bogotaDateStr(now),
           completedAt: now,
           position,

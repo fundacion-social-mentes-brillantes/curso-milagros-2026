@@ -3,7 +3,7 @@
 import { addDoc, collection, getDocs, writeBatch } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { isPermanentAdmin } from "@/lib/admins";
-import { cicloActual, fijarCiclo } from "@/lib/ciclo";
+import { cicloActual, fijarCiclo, limpiarCiclo } from "@/lib/ciclo";
 import type { CohortArchive } from "@/types";
 
 export interface ResetResult {
@@ -36,9 +36,18 @@ const POR_DOCUMENTO = 600;
  */
 export async function resetCourseForNewYear(label: string): Promise<ResetResult> {
   const db = getDb();
-  const cleanLabel = label.trim() || String(new Date().getFullYear());
+  // Seguro para ir dentro del id de los documentos (sin "/" ni acentos).
+  const cleanLabel = limpiarCiclo(label);
   const cicloViejo = await cicloActual();
   const archivedAt = Date.now();
+
+  // Si el año nuevo se llama igual que el que está corriendo, el reinicio no
+  // haría NADA (los documentos seguirían siendo los mismos). Mejor avisar.
+  if (cleanLabel === cicloViejo) {
+    throw new Error(
+      `El proceso actual ya se llama "${cicloViejo}". Escribe el nombre del año que COMIENZA (por ejemplo "${Number(cicloViejo) ? Number(cicloViejo) + 1 : "2027"}").`,
+    );
+  }
 
   // 0) Leer las personas (sirve para el historial y para el reinicio).
   const docs = (await getDocs(collection(db, "users"))).docs;
@@ -73,8 +82,10 @@ export async function resetCourseForNewYear(label: string): Promise<ResetResult>
 
   for (let i = 0; i < partes.length; i++) {
     await addDoc(collection(db, "cohorts"), {
-      label: cleanLabel,
-      ciclo: cicloViejo,
+      // El historial lleva el nombre del año que TERMINA (antes se guardaba
+      // con el del que empieza y confundía al leer el PDF).
+      label: cicloViejo,
+      nuevoCiclo: cleanLabel,
       archivedAt,
       total,
       finishedCount,
@@ -115,7 +126,7 @@ export async function resetCourseForNewYear(label: string): Promise<ResetResult>
   if (ops > 0) await batch.commit();
 
   // progressDeleted queda en 0 a propósito: ya no se borra nada.
-  return { usersReset, progressDeleted: 0, archivedLabel: cleanLabel };
+  return { usersReset, progressDeleted: 0, archivedLabel: cicloViejo };
 }
 
 /**

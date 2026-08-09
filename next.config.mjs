@@ -40,7 +40,26 @@ const nextConfig = {
     ],
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Imágenes y audios: se guardan en el teléfono un año. Nunca cambian
+      // (cada lección tiene su archivo), así que se descargan UNA sola vez.
+      // Para quien tiene datos contados, esto es la diferencia.
+      {
+        source: "/images/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
+        source: "/audio/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      // Las lecciones sí pueden corregirse: se revalidan, pero sin volver a
+      // bajarlas si no cambiaron.
+      {
+        source: "/lessons/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
+      },
+    ];
   },
 };
 

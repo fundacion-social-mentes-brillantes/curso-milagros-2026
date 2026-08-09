@@ -9,6 +9,7 @@ import { getLessonRank } from "@/lib/ranking";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { MiLibro } from "@/components/dashboard/MiLibro";
+import { MisCompaneros } from "@/components/dashboard/MisCompaneros";
 import { Histogram, bucketLessons } from "@/components/ui/Charts";
 import { PageLoader } from "@/components/ui/Spinner";
 import { pct, formatDate } from "@/lib/utils";
@@ -48,6 +49,8 @@ function DashboardInner() {
   const current = appUser.currentLesson || 1;
   const percent = pct(completedCount, SITE.totalLessons);
   const firstName = appUser.displayName.split(" ")[0] ?? "Caminante";
+  // El ranking de compañeros es de quien sostiene el proceso.
+  const esPortador = appUser.plan !== "ordinario" || appUser.role === "admin";
 
   const recent = [...completed]
     .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
@@ -112,6 +115,9 @@ function DashboardInner() {
         <StatCard label="Lección actual" value={current} icon="🧭" tone="default" />
         <StatCard label="Avance del proceso" value={`${percent}%`} icon="🌟" tone="gold" />
       </div>
+
+      {/* Quiénes caminan hoy (solo Portadores de Luz) */}
+      {esPortador && <MisCompaneros uid={appUser.uid} />}
 
       {/* Su cuaderno del año, listo para descargar */}
       <MiLibro nombre={appUser.fullName || appUser.displayName} uid={appUser.uid} />

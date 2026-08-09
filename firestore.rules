@@ -29,6 +29,15 @@ service cloud.firestore {
       );
     }
 
+    // Portador de Luz = quien sostiene el proceso con su aporte. Ve el ranking
+    // con sus compañeros. Los perfiles sin el campo cuentan como Portador (para
+    // que nadie pierda lo que ya tenía).
+    function esPortadorDeLuz() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('plan', 'pro') != 'ordinario';
+    }
+
     // "Super admin" = el correo de la fundación. Es el ÚNICO que puede nombrar o
     // quitar administradores (cambiar el rol) y borrar cuentas.
     function isSuperAdmin() {
@@ -161,6 +170,19 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --- DIRECTORIO DE COMPAÑEROS ---
+    // SOLO el nombre para mostrar (nada de correo ni teléfono). Cada quien
+    // escribe el suyo; lo leen los Portadores de Luz, para poder ver con
+    // quiénes están caminando en el ranking.
+    match /directorio/{uid} {
+      allow read: if isAdmin() || esPortadorDeLuz() || (isSignedIn() && request.auth.uid == uid);
+      allow write: if isSignedIn()
+                   && request.auth.uid == uid
+                   && request.resource.data.keys().hasOnly(['nombre'])
+                   && request.resource.data.nombre is string
+                   && request.resource.data.nombre.size() <= 60;
+    }
+
     // --- CONFIGURACIÓN DEL CURSO ---
     // Guarda el "ciclo" (el año que se está corriendo): 2026, 2027…
     // Todos necesitan leerlo para que su avance quede en el año correcto,
@@ -179,6 +201,10 @@ service cloud.firestore {
     // Lectura para personas con sesión (para contar el puesto y para el admin).
     // Cada quien solo puede crear su propio registro; editar/borrar solo admin.
     match /dailyDone/{id} {
+      // Se puede leer con sesión porque la app necesita CONTAR cuántas personas
+      // hicieron cada lección para dar el puesto. Ya no hay datos personales
+      // aquí: solo el identificador interno, la lección y la hora. Los NOMBRES
+      // viven en /directorio, que solo ven los Portadores de Luz.
       allow read: if isSignedIn();
       // El id SIEMPRE termina en el uid de la persona ("93_uid" o "2027_93_uid").
       // Sin esa comprobación, alguien podía crear el registro de OTRA persona
@@ -187,7 +213,7 @@ service cloud.firestore {
                     && request.resource.data.uid == request.auth.uid
                     && id.matches('.*_' + request.auth.uid)
                     && request.resource.data.keys().hasOnly(
-                         ['uid', 'ciclo', 'name', 'date', 'completedAt',
+                         ['uid', 'ciclo', 'date', 'completedAt',
                           'position', 'lessonNumber'])
                     && request.resource.data.lessonNumber is int
                     && request.resource.data.lessonNumber >= 1

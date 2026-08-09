@@ -14,6 +14,8 @@ import type { User } from "firebase/auth";
 import { getDb } from "@/lib/firebase";
 import { lessonDocId } from "@/config/lessons.links";
 import { clampLesson } from "@/lib/utils";
+import { cicloActual, idProgreso } from "@/lib/ciclo";
+import { guardarMiNombre } from "@/lib/directorio";
 import type { AppUser, Plan, Role } from "@/types";
 
 function toAppUser(uid: string, data: Record<string, unknown>): AppUser {
@@ -87,6 +89,12 @@ export async function ensureUserProfile(user: User): Promise<void> {
     lastLoginAt: now,
     lastActivityAt: now,
   });
+  // Mantiene su nombre al día en el directorio de compañeros.
+  const yaTiene = snap.data();
+  void guardarMiNombre(
+    user.uid,
+    String(yaTiene?.fullName || yaTiene?.displayName || user.displayName || ""),
+  );
 }
 
 /**
@@ -101,13 +109,17 @@ export async function completeUserProfile(
   const db = getDb();
   const now = Date.now();
   const start = data.startLesson ? clampLesson(data.startLesson) : 1;
+  // Con el ciclo puesto: si no, en 2027 estas lecciones quedarían invisibles
+  // (se guardarían con el formato del primer año y nadie las volvería a ver).
+  const ciclo = await cicloActual();
 
   if (start > 1) {
     let batch = writeBatch(db);
     let ops = 0;
     for (let n = 1; n < start; n++) {
-      batch.set(doc(db, "progress", `${uid}_${n}`), {
+      batch.set(doc(db, "progress", idProgreso(ciclo, uid, n)), {
         userId: uid,
+        ciclo,
         lessonId: lessonDocId(n),
         lessonNumber: n,
         completed: true,
@@ -122,6 +134,9 @@ export async function completeUserProfile(
     }
     if (ops > 0) await batch.commit();
   }
+
+  // El nombre también al directorio (lo ven los compañeros en el ranking).
+  void guardarMiNombre(uid, data.fullName.trim());
 
   await updateDoc(doc(db, "users", uid), {
     fullName: data.fullName.trim(),

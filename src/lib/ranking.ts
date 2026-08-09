@@ -9,7 +9,7 @@ import type { AppUser, DailyDone } from "@/types";
 function toDailyDone(data: Record<string, unknown>): DailyDone {
   return {
     uid: String(data.uid ?? ""),
-    name: String(data.name ?? "Caminante"),
+    name: String(data.name ?? ""),
     date: String(data.date ?? ""),
     completedAt: Number(data.completedAt ?? 0),
     position: Number(data.position ?? 0),

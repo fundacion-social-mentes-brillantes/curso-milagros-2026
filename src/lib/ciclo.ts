@@ -40,9 +40,22 @@ export async function cicloActual(): Promise<string> {
   return cache;
 }
 
+/**
+ * Deja el nombre del ciclo seguro para usarlo dentro del id de un documento:
+ * solo letras, números y guiones. Un "/" partiría la ruta y rompería la app.
+ */
+export function limpiarCiclo(texto: string): string {
+  const limpio = String(texto ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9-]/g, "")
+    .slice(0, 20);
+  return limpio || String(new Date().getFullYear());
+}
+
 /** (Admin) Cambia el ciclo activo: así arranca un año nuevo sin borrar nada. */
 export async function fijarCiclo(ciclo: string): Promise<void> {
-  const limpio = ciclo.trim() || String(new Date().getFullYear());
+  const limpio = limpiarCiclo(ciclo);
   await setDoc(doc(getDb(), "config", "curso"), { ciclo: limpio, cambiadoEn: Date.now() });
   cache = limpio;
   cargando = null;
