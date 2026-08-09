@@ -32,6 +32,10 @@ function toAppUser(uid: string, data: Record<string, unknown>): AppUser {
     voiceReader: Boolean(data.voiceReader),
     // Sin el campo (perfiles antiguos) = "pro": nadie pierde lo que ya tenía.
     plan: data.plan === "ordinario" ? "ordinario" : "pro",
+    // Acumulado del ranking (así el panel no relee toda la colección).
+    rankDias: Number(data.rankDias ?? 0),
+    rankSumaPuesto: Number(data.rankSumaPuesto ?? 0),
+    rankSumaMinuto: Number(data.rankSumaMinuto ?? 0),
     createdAt: Number(data.createdAt ?? 0),
     lastLoginAt: Number(data.lastLoginAt ?? 0),
     lastActivityAt: Number(data.lastActivityAt ?? 0),
