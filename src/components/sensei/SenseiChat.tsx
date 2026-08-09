@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { getClientAuth } from "@/lib/firebase";
+import { cn } from "@/lib/utils";
 import {
   SENSEI_EMOJI,
   SENSEI_NAME,
@@ -41,6 +42,24 @@ export function SenseiChat() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // "Pensar a fondo": lo elige la persona y se recuerda para la próxima vez.
+  const [pensar, setPensar] = useState(false);
+
+  useEffect(() => {
+    try {
+      setPensar(localStorage.getItem("lumi:pensar") === "1");
+    } catch {
+      /* sin localStorage: se queda en rápido */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("lumi:pensar", pensar ? "1" : "0");
+    } catch {
+      /* no pasa nada si el navegador no deja guardar */
+    }
+  }, [pensar]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -129,7 +148,7 @@ export function SenseiChat() {
       const res = await fetch("/api/sensei", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: outgoing, idToken, lessonNumber }),
+        body: JSON.stringify({ messages: outgoing, idToken, lessonNumber, pensar }),
       });
 
       if (!res.ok || !res.body) {
@@ -359,9 +378,31 @@ export function SenseiChat() {
                   </svg>
                 </button>
               </div>
+              {/* Cada quien elige: respuesta rápida o que Lumi piense a fondo. */}
+              <div className="mt-2 flex items-center justify-center">
+                <button
+                  onClick={() => setPensar((v) => !v)}
+                  disabled={busy}
+                  aria-pressed={pensar}
+                  title={
+                    pensar
+                      ? "Lumi razona antes de responder: más profundo, pero tarda un poco más."
+                      : "Respuestas rápidas (lo normal). Actívalo para preguntas difíciles."
+                  }
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold transition disabled:opacity-50",
+                    pensar
+                      ? "border-gold/40 bg-gold/15 text-gold"
+                      : "border-border bg-bg/40 text-muted hover:text-fg",
+                  )}
+                >
+                  {pensar ? "🧠 Pensando a fondo" : "⚡ Respuesta rápida"}
+                </button>
+              </div>
               <p className="mt-1.5 text-center text-[10px] text-muted">
-                Lumi es una guía con IA; puede equivocarse. El texto original del
-                Curso es siempre la fuente.
+                {pensar
+                  ? "Lumi se toma unos segundos más para pensarlo mejor."
+                  : "Lumi es una guía con IA; puede equivocarse. El texto original del Curso es siempre la fuente."}
               </p>
             </div>
           </div>

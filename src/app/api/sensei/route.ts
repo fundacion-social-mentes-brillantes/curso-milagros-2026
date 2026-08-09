@@ -21,10 +21,11 @@ const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
 // Modelo del bot. Hoy v4-flash (0731): mas capaz que v4-pro y ~3x mas barato.
 // Para volver a Pro NO hay que tocar codigo: basta definir DEEPSEEK_MODEL en el entorno.
 const MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
-// El modo "pensar" queda apagado a proposito (mas rapido y barato). DeepSeek lo
-// enciende por defecto, por eso hay que mandarlo explicitamente. Se enciende
-// cuando haga falta cambiando "disabled" por "enabled".
-const THINKING = { type: "disabled" } as const;
+// Modo "pensar": lo elige la PERSONA en el chat (interruptor "Pensar a fondo").
+// Apagado = rapido y barato (lo normal). Encendido = el modelo razona antes de
+// responder: tarda mas y cuesta mas, pero afina las preguntas dificiles.
+const THINKING_OFF = { type: "disabled" } as const;
+const THINKING_ON = { type: "enabled" } as const;
 const FIREBASE_API_KEY =
   process.env.NEXT_PUBLIC_FIREBASE_API_KEY || FIREBASE_PUBLIC.apiKey;
 
@@ -139,11 +140,13 @@ export async function POST(req: NextRequest): Promise<Response> {
     return json({ error: "bad-request" }, 400);
   }
 
-  const { messages, idToken, lessonNumber } = (body ?? {}) as {
+  const { messages, idToken, lessonNumber, pensar } = (body ?? {}) as {
     messages?: unknown;
     idToken?: unknown;
     lessonNumber?: unknown;
+    pensar?: unknown;
   };
+  const pensarAFondo = pensar === true;
 
   const cleaned = sanitizeMessages(messages);
   if (cleaned.length === 0) {
@@ -185,11 +188,12 @@ export async function POST(req: NextRequest): Promise<Response> {
       },
       body: JSON.stringify({
         model: MODEL,
-        thinking: THINKING,
+        thinking: pensarAFondo ? THINKING_ON : THINKING_OFF,
         messages: [{ role: "system", content: system }, ...cleaned],
         stream: true,
         temperature: 0.7,
-        max_tokens: 800,
+        // Pensando necesita margen extra (parte se va en su razonamiento).
+        max_tokens: pensarAFondo ? 1600 : 800,
       }),
     });
   } catch {
