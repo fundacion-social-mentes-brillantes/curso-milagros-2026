@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { lessonDocId } from "@/config/lessons.links";
+import { videoDeLeccion } from "@/lib/videos-map";
 import { emptyCommentary } from "@/lib/lesson-template";
 import type { Lesson, LessonCommentary } from "@/types";
 
@@ -27,10 +28,11 @@ export function toLesson(id: string, data: Record<string, unknown>): Lesson {
     sourceUrl: String(data.sourceUrl ?? ""),
     commentary: { ...emptyCommentary(), ...c },
     commentaryReady: Boolean(data.commentaryReady),
+    // Solo YouTube: si viniera un tipo antiguo (drive/direct) se ignora.
     video: {
-      type: v.type ?? "none",
-      url: v.url ?? "",
-      status: v.status ?? "soon",
+      type: v.type === "youtube" ? "youtube" : "none",
+      url: v.type === "youtube" ? (v.url ?? "") : "",
+      status: v.status === "available" ? "available" : "soon",
     },
     commonImageUrl: (data.commonImageUrl as string | null) ?? null,
     createdAt: Number(data.createdAt ?? 0),
@@ -50,17 +52,30 @@ async function fetchStaticLesson(n: number): Promise<Lesson | null> {
 }
 
 /**
+ * Completa el video con el mapa automático (videos.json, que mantiene Make)
+ * SOLO si la lección todavía no tiene uno puesto a mano por el admin.
+ */
+async function conVideoAutomatico(lesson: Lesson): Promise<Lesson> {
+  if (lesson.video.url) return lesson; // el admin ya puso uno: manda el suyo
+  const id = await videoDeLeccion(lesson.number);
+  if (!id) return lesson;
+  return { ...lesson, video: { type: "youtube", url: id, status: "available" } };
+}
+
+/**
  * Lee una lección. Prioriza la edición del admin (Firestore) y, si no existe,
- * usa el contenido fijo que viaja con la app (public/lessons).
+ * usa el contenido fijo que viaja con la app (public/lessons). En ambos casos
+ * el video se completa con el mapa automático si hace falta.
  */
 export async function getLessonByNumber(n: number): Promise<Lesson | null> {
   try {
     const snap = await getDoc(doc(getDb(), "lessons", lessonDocId(n)));
-    if (snap.exists()) return toLesson(snap.id, snap.data());
+    if (snap.exists()) return conVideoAutomatico(toLesson(snap.id, snap.data()));
   } catch {
     /* sin conexión / sin permisos → respaldo estático */
   }
-  return fetchStaticLesson(n);
+  const estatica = await fetchStaticLesson(n);
+  return estatica ? conVideoAutomatico(estatica) : null;
 }
 
 interface IndexEntry {

@@ -12,7 +12,6 @@
     "rules:deploy": "tsx scripts/deploy-rules.ts",
     "seed": "tsx scripts/seed.ts",
     "import:textos": "tsx scripts/import-original-texts.ts",
-    "videos:apply": "tsx scripts/apply-videos.ts",
     "set:admin": "tsx scripts/set-admin.ts"
   },
   "dependencies": {

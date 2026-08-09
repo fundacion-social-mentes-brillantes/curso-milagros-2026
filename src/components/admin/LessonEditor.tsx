@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { updateLesson } from "@/lib/lessons";
 import { Spinner } from "@/components/ui/Spinner";
-import type { Lesson, LessonCommentary, VideoStatus, VideoType } from "@/types";
+import { youtubeId } from "@/lib/video";
+import type { Lesson, LessonCommentary } from "@/types";
 
 function linesToArray(text: string): string[] {
   return text
@@ -40,9 +41,7 @@ export function LessonEditor({
   const c = lesson.commentary;
   const [form, setForm] = useState({
     title: lesson.title,
-    videoType: lesson.video.type,
     videoUrl: lesson.video.url,
-    videoStatus: lesson.video.status,
     originalText: lesson.originalText,
     teachingExplanation: c.teachingExplanation,
     purpose: c.purpose,
@@ -104,11 +103,11 @@ export function LessonEditor({
       originalTextLoaded: originalText.trim().length > 0,
       commentary,
       commentaryReady: form.commentaryReady,
-      video: {
-        type: form.videoType as VideoType,
-        url: form.videoUrl.trim(),
-        status: form.videoStatus as VideoStatus,
-      },
+      // Solo YouTube: si hay enlace queda disponible; si se borra, vuelve a
+      // mandar el video automático que sincroniza Make (public/videos.json).
+      video: form.videoUrl.trim()
+        ? { type: "youtube", url: form.videoUrl.trim(), status: "available" }
+        : { type: "none", url: "", status: "soon" },
     };
 
     try {
@@ -129,38 +128,33 @@ export function LessonEditor({
             <input className="input" value={form.title} onChange={(e) => set("title", e.target.value)} />
           </Field>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Tipo de video">
-              <select
-                className="input"
-                value={form.videoType}
-                onChange={(e) => set("videoType", e.target.value as VideoType)}
-              >
-                <option value="none">Sin video</option>
-                <option value="drive">Google Drive</option>
-                <option value="youtube">YouTube</option>
-                <option value="direct">URL directa (.mp4)</option>
-              </select>
-            </Field>
-            <Field label="Estado">
-              <select
-                className="input"
-                value={form.videoStatus}
-                onChange={(e) => set("videoStatus", e.target.value as VideoStatus)}
-              >
-                <option value="soon">Disponible pronto</option>
-                <option value="available">Disponible</option>
-              </select>
-            </Field>
-            <Field label="Enlace del video" hint="pega el link completo">
-              <input
-                className="input"
-                placeholder="https://drive.google.com/file/d/..."
-                value={form.videoUrl}
-                onChange={(e) => set("videoUrl", e.target.value)}
-              />
-            </Field>
-          </div>
+          <Field
+            label="Video de YouTube"
+            hint="pega el enlace del video; déjalo vacío para usar el automático"
+          >
+            <input
+              className="input"
+              placeholder="https://www.youtube.com/watch?v=..."
+              value={form.videoUrl}
+              onChange={(e) => set("videoUrl", e.target.value)}
+            />
+          </Field>
+          <p className="text-xs text-muted">
+            {form.videoUrl.trim() ? (
+              youtubeId(form.videoUrl) ? (
+                <span className="text-success">✓ Enlace de YouTube válido: se mostrará este video.</span>
+              ) : (
+                <span className="text-gold">
+                  ⚠ No parece un enlace de YouTube. Copia el que sale en “Compartir”.
+                </span>
+              )
+            ) : (
+              <>
+                Vacío = el video lo pone solo la sincronización nocturna del canal
+                (los videos titulados “LECCIÓN N UCDM”).
+              </>
+            )}
+          </p>
         </div>
       </div>
 

@@ -46,12 +46,16 @@ export interface AppUser {
 /** Estado del video asociado a una lección. */
 export type VideoStatus = "available" | "soon";
 
-/** De dónde se reproduce el video. */
-export type VideoType = "drive" | "youtube" | "direct" | "none";
+/**
+ * De dónde se reproduce el video. Desde jul-2026 SOLO se usa YouTube: los
+ * videos del curso viven en el canal de GEMB (no listados) y el enlace se
+ * sincroniza solo. "none" = todavía no hay video para esa lección.
+ */
+export type VideoType = "youtube" | "none";
 
 export interface LessonVideo {
   type: VideoType;
-  /** URL o ID según el tipo (ver lib/video.ts) */
+  /** Enlace de YouTube (o el ID de 11 caracteres). */
   url: string;
   status: VideoStatus;
 }

@@ -1,7 +1,6 @@
 // Módulo PURO (sin "use client", sin Firebase): lo usan la app y los scripts.
 // Por eso usa imports relativos, para funcionar también al correr con tsx.
 import { lessonDocId, lessonSourceUrl } from "../config/lessons.links";
-import { videoFor } from "../config/videos.config";
 import type { Lesson, LessonCommentary } from "../types";
 
 export function emptyCommentary(): LessonCommentary {
@@ -23,7 +22,6 @@ export function emptyCommentary(): LessonCommentary {
 
 /** Construye una lección "plantilla" (estructura vacía lista para llenar). */
 export function buildStubLesson(number: number, now: number): Lesson {
-  const v = videoFor(number);
   return {
     id: lessonDocId(number),
     number,
@@ -33,7 +31,8 @@ export function buildStubLesson(number: number, now: number): Lesson {
     sourceUrl: lessonSourceUrl(number),
     commentary: emptyCommentary(),
     commentaryReady: false,
-    video: { type: v.type, url: v.url, status: v.status },
+    // El video lo pone el mapa automático (public/videos.json, vía Make).
+    video: { type: "none", url: "", status: "soon" },
     commonImageUrl: null,
     createdAt: now,
     updatedAt: now,
