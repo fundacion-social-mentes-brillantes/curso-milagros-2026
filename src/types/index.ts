@@ -8,9 +8,14 @@
 export type Role = "admin" | "user";
 
 /**
- * Plan de la persona. Lo asigna SOLO un admin (según quién pagó).
- * - "pro": acceso completo (video, Lumi, audio narrado y sus logros).
- * - "ordinario": el texto del Curso y su guía completa, siempre gratis.
+ * Plan de la persona. Lo asigna SOLO un admin (según quién aportó).
+ * En pantalla se llaman:
+ * - "pro"       → **Portador de Luz**: acompaña el camino Y lo sostiene para
+ *                 otros. Tiene video, Lumi, la lección narrada y sus logros.
+ * - "ordinario" → **Caminante**: recorre el camino. Siempre tendrá gratis el
+ *                 texto del Curso y su guía completa.
+ * (Los nombres internos se mantienen para no romper los datos ya guardados;
+ * lo que ve la gente sale de PLAN_NOMBRE en src/config/planes.ts.)
  * Los perfiles antiguos (sin el campo) se consideran "pro" para que nadie
  * pierda lo que ya tenía.
  */
@@ -43,6 +48,14 @@ export interface AppUser {
   voiceReader: boolean;
   /** Plan de acceso (lo cambia solo un admin). Ver `Plan`. */
   plan: Plan;
+  /**
+   * Acumulado del ranking, que se va sumando al marcar cada lección. Existe
+   * para que el panel NO tenga que leer toda la colección `dailyDone` (eso
+   * agotaba la cuota gratis de Firebase).
+   */
+  rankDias?: number;
+  rankSumaPuesto?: number;
+  rankSumaMinuto?: number;
   /** Marca de tiempo en milisegundos (Date.now) */
   createdAt: number;
   lastLoginAt: number;

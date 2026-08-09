@@ -3,7 +3,8 @@
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { bogotaDateStr } from "@/lib/utils";
-import type { DailyDone } from "@/types";
+import { cicloActual, filtrarPorCiclo, idRanking } from "@/lib/ciclo";
+import type { AppUser, DailyDone } from "@/types";
 
 function toDailyDone(data: Record<string, unknown>): DailyDone {
   return {
@@ -24,7 +25,7 @@ export function todayBogota(): string {
 /** Puesto (top) de una persona en una lección concreta, o null si no la ha hecho. */
 export async function getLessonRank(uid: string, n: number): Promise<number | null> {
   const db = getDb();
-  const snap = await getDoc(doc(db, "dailyDone", `${n}_${uid}`));
+  const snap = await getDoc(doc(db, "dailyDone", idRanking(await cicloActual(), n, uid)));
   if (!snap.exists()) return null;
   const p = Number(snap.data().position ?? 0);
   return p > 0 ? p : null;
@@ -33,8 +34,13 @@ export async function getLessonRank(uid: string, n: number): Promise<number | nu
 /** (Admin) Ranking de un día, ordenado por hora (1º = más temprano). */
 export async function listDailyDone(date: string): Promise<DailyDone[]> {
   const db = getDb();
+  const ciclo = await cicloActual();
   const snap = await getDocs(
-    query(collection(db, "dailyDone"), where("date", "==", date)),
+    query(
+      collection(db, "dailyDone"),
+      ...(filtrarPorCiclo(ciclo) ? [where("ciclo", "==", ciclo)] : []),
+      where("date", "==", date),
+    ),
   );
   return snap.docs
     .map((d) => toDailyDone(d.data()))
@@ -64,31 +70,27 @@ export interface CourseRankRow {
 
 /**
  * (Admin) Ranking ACUMULADO del curso: por cada persona, promedio de la hora a
- * la que hace su lección y de su puesto diario. Ordenado de quien madruga más
- * (en promedio) a quien lo hace más tarde. Lee todos los registros del ranking.
+ * la que hace su lección y de su puesto.
+ *
+ * IMPORTANTE: se calcula con el acumulado que cada persona lleva en SU PROPIO
+ * perfil (rankDias / rankSumaPuesto / rankSumaMinuto, que se van sumando al
+ * marcar cada lección). Antes se leía la colección `dailyDone` COMPLETA en cada
+ * visita al panel: con 100 personas eran decenas de miles de lecturas por
+ * visita y se agotaba la cuota gratis de Firebase. Ahora cuesta CERO lecturas
+ * extra, porque el panel ya tiene la lista de personas cargada.
  */
-export async function getCourseRanking(): Promise<CourseRankRow[]> {
-  const db = getDb();
-  const snap = await getDocs(collection(db, "dailyDone"));
-  const byUid = new Map<string, { name: string; positions: number[]; minutes: number[] }>();
-  for (const d of snap.docs) {
-    const data = d.data();
-    const uid = String(data.uid ?? "");
-    if (!uid) continue;
-    const completedAt = Number(data.completedAt ?? 0);
-    const position = Number(data.position ?? 0);
-    const e = byUid.get(uid) ?? { name: "Caminante", positions: [], minutes: [] };
-    e.name = String(data.name ?? e.name);
-    if (position > 0) e.positions.push(position);
-    if (completedAt > 0) e.minutes.push(minuteOfDayBogota(completedAt));
-    byUid.set(uid, e);
-  }
+export function getCourseRanking(users: AppUser[]): CourseRankRow[] {
   const rows: CourseRankRow[] = [];
-  for (const [uid, e] of byUid) {
-    const days = Math.max(e.minutes.length, e.positions.length);
-    if (days === 0) continue;
-    const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
-    rows.push({ uid, name: e.name, days, avgPosition: avg(e.positions), avgMinute: avg(e.minutes) });
+  for (const u of users) {
+    const days = Number(u.rankDias ?? 0);
+    if (days <= 0) continue;
+    rows.push({
+      uid: u.uid,
+      name: u.fullName || u.displayName || "Caminante",
+      days,
+      avgPosition: Number(u.rankSumaPuesto ?? 0) / days,
+      avgMinute: Number(u.rankSumaMinuto ?? 0) / days,
+    });
   }
   // Más temprano en promedio primero.
   rows.sort((a, b) => a.avgMinute - b.avgMinute);

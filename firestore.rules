@@ -123,6 +123,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --- CONFIGURACIÓN DEL CURSO ---
+    // Guarda el "ciclo" (el año que se está corriendo): 2026, 2027…
+    // Todos necesitan leerlo para que su avance quede en el año correcto,
+    // pero SOLO un admin puede cambiarlo (cambiarlo reinicia el proceso).
+    match /config/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // --- HISTORIAL DE AÑOS (resúmenes de años cerrados; solo admin, contiene datos) ---
     match /cohorts/{id} {
       allow read, write: if isAdmin();

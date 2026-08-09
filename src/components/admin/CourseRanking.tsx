@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { getCourseRanking } from "@/lib/ranking";
 import type { CourseRankRow } from "@/lib/ranking";
+import type { AppUser } from "@/types";
 
 /** Hora promedio (minuto del día) en formato "6:42 a. m." */
 function fmtAvgHour(min: number): string {
@@ -15,16 +16,12 @@ function fmtAvgHour(min: number): string {
 }
 
 /** Ranking acumulado del curso: quién hace su lección más temprano en promedio. */
-export function CourseRanking() {
-  const [rows, setRows] = useState<CourseRankRow[] | null>(null);
+export function CourseRanking({ users }: { users: AppUser[] }) {
+  // Se calcula con lo que cada persona ya lleva acumulado en su perfil:
+  // sin lecturas extra a Firebase.
+  const rows: CourseRankRow[] = useMemo(() => getCourseRanking(users), [users]);
 
-  useEffect(() => {
-    getCourseRanking()
-      .then(setRows)
-      .catch(() => setRows([]));
-  }, []);
-
-  if (!rows || rows.length === 0) return null;
+  if (rows.length === 0) return null;
 
   return (
     <div className="mt-6 card p-4 sm:p-6">

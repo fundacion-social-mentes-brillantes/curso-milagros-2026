@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { setUserEnrolled, setUserPlan, setUserRole, setUserVoiceReader } from "@/lib/users";
+import { planInfo } from "@/config/planes";
 import { STATUS_LABEL, userStatus } from "@/lib/admin-analytics";
 import { isPermanentAdmin } from "@/lib/admins";
 import { pct, relativeTime, cn } from "@/lib/utils";
@@ -125,13 +126,15 @@ export function UsersTable({
     );
   }
 
-  // Plan: "pro" (aportó) u "ordinario". Decide video, Lumi, audio y logros.
+  // Plan: Portador de Luz (sostiene el proceso) o Caminante. Decide video,
+  // Lumi, la lección narrada y sus logros.
   function PlanControl({ u }: { u: AppUser }) {
-    const esPro = u.plan !== "ordinario";
+    const info = planInfo(u.plan);
+    const esPortador = u.plan !== "ordinario";
     if (!editable) {
       return (
-        <span className={`badge ${esPro ? "bg-gold/20 text-gold" : "bg-muted/15 text-muted"}`}>
-          {esPro ? "★ Pro" : "Ordinario"}
+        <span className={`badge ${esPortador ? "bg-gold/20 text-gold" : "bg-aqua/15 text-aqua"}`}>
+          {info.emoji} {info.nombre}
         </span>
       );
     }
@@ -139,15 +142,15 @@ export function UsersTable({
       <button
         onClick={() => void togglePlan(u)}
         disabled={planBusy === u.uid}
-        title="Pro: ve el video, Lumi, el audio narrado y sus logros. Ordinario: texto y guía (siempre gratis)."
+        title="Portador de Luz: sostiene el proceso; ve el video, Lumi y la lección narrada. Caminante: texto y guía completa (gratis siempre)."
         className={cn(
           "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50",
-          esPro
+          esPortador
             ? "bg-gold/20 text-gold hover:bg-gold/30"
             : "border border-border bg-surface text-muted hover:text-fg",
         )}
       >
-        {planBusy === u.uid ? "…" : esPro ? "★ Pro" : "○ Ordinario"}
+        {planBusy === u.uid ? "…" : `${info.emoji} ${info.nombre}`}
       </button>
     );
   }

@@ -213,7 +213,7 @@ function AdminInner() {
 
       <DailyRanking />
 
-      <CourseRanking />
+      <CourseRanking users={enrolled} />
 
       <CohortHistory />
 
