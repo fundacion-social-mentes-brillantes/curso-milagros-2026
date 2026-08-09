@@ -14,7 +14,7 @@ import type { User } from "firebase/auth";
 import { getDb } from "@/lib/firebase";
 import { lessonDocId } from "@/config/lessons.links";
 import { clampLesson } from "@/lib/utils";
-import type { AppUser, Role } from "@/types";
+import type { AppUser, Plan, Role } from "@/types";
 
 function toAppUser(uid: string, data: Record<string, unknown>): AppUser {
   return {
@@ -30,6 +30,8 @@ function toAppUser(uid: string, data: Record<string, unknown>): AppUser {
     // Si el campo no existe (usuarios antiguos), se asume inscrito.
     enrolled: data.enrolled === undefined ? true : Boolean(data.enrolled),
     voiceReader: Boolean(data.voiceReader),
+    // Sin el campo (perfiles antiguos) = "pro": nadie pierde lo que ya tenía.
+    plan: data.plan === "ordinario" ? "ordinario" : "pro",
     createdAt: Number(data.createdAt ?? 0),
     lastLoginAt: Number(data.lastLoginAt ?? 0),
     lastActivityAt: Number(data.lastActivityAt ?? 0),
@@ -62,6 +64,9 @@ export async function ensureUserProfile(user: User): Promise<void> {
       profileComplete: false,
       enrolled: true,
       voiceReader: false,
+      // Quien se registra entra como "ordinario"; el admin lo pasa a "pro"
+      // cuando confirma su pago.
+      plan: "ordinario" satisfies Plan,
       createdAt: now,
       lastLoginAt: now,
       lastActivityAt: now,
@@ -185,4 +190,13 @@ export async function setUserEnrolled(uid: string, enrolled: boolean): Promise<v
 export async function setUserVoiceReader(uid: string, voiceReader: boolean): Promise<void> {
   const db = getDb();
   await updateDoc(doc(db, "users", uid), { voiceReader });
+}
+
+/**
+ * (Admin) Cambia el plan de una persona: "pro" (pagó) u "ordinario".
+ * Es lo único que decide si ve el video, Lumi y el audio narrado.
+ */
+export async function setUserPlan(uid: string, plan: Plan): Promise<void> {
+  const db = getDb();
+  await updateDoc(doc(db, "users", uid), { plan });
 }

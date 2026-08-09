@@ -15,6 +15,7 @@ import { OriginalText } from "@/components/lesson/OriginalText";
 import { LessonReader } from "@/components/lesson/LessonReader";
 import { CommentarySections } from "@/components/lesson/CommentarySections";
 import { MarkDoneButton } from "@/components/lesson/MarkDoneButton";
+import { SoloPro } from "@/components/lesson/SoloPro";
 import { Forum } from "@/components/forum/Forum";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PageLoader } from "@/components/ui/Spinner";
@@ -66,6 +67,8 @@ function FacebookReminder() {
 
 function LessonInner({ n }: { n: number }) {
   const { appUser } = useAuth();
+  // Plan Pro: ve el video, la lección narrada y sus logros. Los admin siempre.
+  const esPro = appUser?.plan !== "ordinario" || appUser?.role === "admin";
   const [lesson, setLesson] = useState<Lesson | null | undefined>(undefined);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [showGuide, setShowGuide] = useState(false);
@@ -141,8 +144,9 @@ function LessonInner({ n }: { n: number }) {
         <div className="mt-6 space-y-6">
           <LessonImage number={lesson.number} title={lesson.title} />
 
-          {/* Lectura en voz alta (solo si un admin se la activó a esta persona) */}
-          {appUser?.voiceReader && <LessonReader lesson={lesson} />}
+          {/* Lección narrada: es del plan Pro, pero se respeta la activación
+              manual de accesibilidad (voiceReader) para quien la necesite. */}
+          {(esPro || appUser?.voiceReader) && <LessonReader lesson={lesson} />}
 
           <OriginalText lesson={lesson} />
 
@@ -152,7 +156,15 @@ function LessonInner({ n }: { n: number }) {
               <span aria-hidden>🎬</span>
               <h2 className="font-display text-xl font-bold">Video de la lección</h2>
             </div>
-            <VideoPlayer video={lesson.video} title={lesson.title} />
+            {esPro ? (
+              <VideoPlayer video={lesson.video} title={lesson.title} />
+            ) : (
+              <SoloPro
+                icono="🎬"
+                titulo="El video de hoy es del plan Pro"
+                descripcion="Cada lección tiene su video explicado. Tu texto y tu guía completa siguen aquí, siempre."
+              />
+            )}
           </div>
 
           {/* Conecta con la comunidad en Facebook (debajo del video) */}
@@ -166,6 +178,7 @@ function LessonInner({ n }: { n: number }) {
               completed={Boolean(progress?.completed)}
               completedAt={progress?.completedAt ?? null}
               currentLesson={appUser.currentLesson || 1}
+              mostrarPuesto={esPro}
             />
           )}
 

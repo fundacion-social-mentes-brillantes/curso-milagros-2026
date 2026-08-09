@@ -7,6 +7,15 @@
 
 export type Role = "admin" | "user";
 
+/**
+ * Plan de la persona. Lo asigna SOLO un admin (según quién pagó).
+ * - "pro": acceso completo (video, Lumi, audio narrado y sus logros).
+ * - "ordinario": el texto del Curso y su guía completa, siempre gratis.
+ * Los perfiles antiguos (sin el campo) se consideran "pro" para que nadie
+ * pierda lo que ya tenía.
+ */
+export type Plan = "pro" | "ordinario";
+
 export type UserStatus = "active" | "paused" | "inactive";
 
 export interface AppUser {
@@ -32,6 +41,8 @@ export interface AppUser {
    * activarla (para personas con baja visión que la soliciten).
    */
   voiceReader: boolean;
+  /** Plan de acceso (lo cambia solo un admin). Ver `Plan`. */
+  plan: Plan;
   /** Marca de tiempo en milisegundos (Date.now) */
   createdAt: number;
   lastLoginAt: number;

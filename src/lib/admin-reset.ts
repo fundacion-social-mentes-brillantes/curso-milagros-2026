@@ -58,12 +58,18 @@ export async function resetCourseForNewYear(label: string): Promise<ResetResult>
     participants,
   });
 
-  // 2) Borrar el progreso (en lotes de 400).
+  // 2) Borrar el progreso SOLO de quienes reinician (plan "pro"); el de los
+  //    "ordinario" se conserva intacto.
+  const uidsQueReinician = new Set(
+    docs.filter((d) => d.data().plan !== "ordinario").map((d) => d.id),
+  );
   const progressSnap = await getDocs(collection(db, "progress"));
   let progressDeleted = 0;
   let batch = writeBatch(db);
   let ops = 0;
   for (const d of progressSnap.docs) {
+    const dueño = String(d.data().userId ?? "");
+    if (dueño && !uidsQueReinician.has(dueño)) continue;
     batch.delete(d.ref);
     ops++;
     progressDeleted++;
@@ -75,11 +81,14 @@ export async function resetCourseForNewYear(label: string): Promise<ResetResult>
   }
   if (ops > 0) await batch.commit();
 
-  // 3) Reiniciar el avance de cada persona (sin tocar sus datos ni rol/inscripción).
+  // 3) Reiniciar el avance SOLO de quienes siguen el proceso (plan "pro").
+  //    A los "ordinario" no se les toca nada: su avance queda como está.
+  //    (Los perfiles antiguos sin el campo `plan` cuentan como "pro".)
   let usersReset = 0;
   batch = writeBatch(db);
   ops = 0;
   for (const d of docs) {
+    if (d.data().plan === "ordinario") continue;
     batch.update(d.ref, {
       currentLesson: 1,
       completedLessonsCount: 0,

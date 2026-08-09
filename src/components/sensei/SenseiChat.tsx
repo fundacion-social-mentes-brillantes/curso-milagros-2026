@@ -34,7 +34,7 @@ function Formatted({ text }: { text: string }) {
 }
 
 export function SenseiChat() {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, appUser } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -87,6 +87,8 @@ export function SenseiChat() {
 
   // Solo para usuarios con sesión (protege el saldo y mantiene la portada limpia).
   if (!firebaseUser) return null;
+  // Lumi es del plan Pro (además, cada respuesta cuesta saldo de la fundación).
+  if (appUser && appUser.plan === "ordinario" && appUser.role !== "admin") return null;
 
   function clearChat() {
     setMessages([]);

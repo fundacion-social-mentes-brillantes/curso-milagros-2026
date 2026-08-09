@@ -59,7 +59,10 @@ service cloud.firestore {
                         && request.resource.data.role == resource.data.role
                         && request.resource.data.enrolled == resource.data.enrolled
                         // La lectura en voz alta solo la activa/desactiva un admin.
-                        && request.resource.data.get('voiceReader', false) == resource.data.get('voiceReader', false));
+                        && request.resource.data.get('voiceReader', false) == resource.data.get('voiceReader', false)
+                        // El plan (pro / ordinario) SOLO lo cambia un admin:
+                        // nadie puede darse acceso Pro a sí mismo.
+                        && request.resource.data.get('plan', 'pro') == resource.data.get('plan', 'pro'));
       // Borrar cuentas: solo el super admin.
       allow delete: if isSuperAdmin();
     }

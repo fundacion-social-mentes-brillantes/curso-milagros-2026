@@ -13,6 +13,7 @@ export function MarkDoneButton({
   completed,
   completedAt,
   currentLesson,
+  mostrarPuesto = true,
 }: {
   uid: string;
   lessonNumber: number;
@@ -20,6 +21,8 @@ export function MarkDoneButton({
   completedAt: number | null;
   /** Lección en la que va la persona (no puede marcar más adelante que esta). */
   currentLesson: number;
+  /** El puesto del día ("fuiste el #N") es del plan Pro. */
+  mostrarPuesto?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(completed);
@@ -82,7 +85,7 @@ export function MarkDoneButton({
           <p className="font-display text-lg font-semibold text-success">
             ¡Lección realizada!
           </p>
-          {position && (
+          {mostrarPuesto && position && (
             <p className="font-display text-base font-bold text-gold">
               🌅 ¡Fuiste el #{position} en hacer la lección {lessonNumber}!
             </p>

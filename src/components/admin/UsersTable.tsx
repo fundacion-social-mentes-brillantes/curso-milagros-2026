@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { setUserEnrolled, setUserRole, setUserVoiceReader } from "@/lib/users";
+import { setUserEnrolled, setUserPlan, setUserRole, setUserVoiceReader } from "@/lib/users";
 import { STATUS_LABEL, userStatus } from "@/lib/admin-analytics";
 import { isPermanentAdmin } from "@/lib/admins";
 import { pct, relativeTime, cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ export function UsersTable({
   const [pendingUid, setPendingUid] = useState<string | null>(null);
   const [enrollBusy, setEnrollBusy] = useState<string | null>(null);
   const [voiceBusy, setVoiceBusy] = useState<string | null>(null);
+  const [planBusy, setPlanBusy] = useState<string | null>(null);
 
   const enrolledCount = useMemo(
     () => users.filter((u) => u.enrolled && !isPermanentAdmin(u.email)).length,
@@ -81,6 +82,15 @@ export function UsersTable({
     }
   }
 
+  async function togglePlan(u: AppUser) {
+    setPlanBusy(u.uid);
+    try {
+      await setUserPlan(u.uid, u.plan === "ordinario" ? "pro" : "ordinario");
+    } finally {
+      setPlanBusy(null);
+    }
+  }
+
   async function toggleVoice(u: AppUser) {
     setVoiceBusy(u.uid);
     try {
@@ -111,6 +121,33 @@ export function UsersTable({
         )}
       >
         {enrollBusy === u.uid ? "…" : u.enrolled ? "✓ Inscrito" : "○ Inscribir"}
+      </button>
+    );
+  }
+
+  // Plan: "pro" (aportó) u "ordinario". Decide video, Lumi, audio y logros.
+  function PlanControl({ u }: { u: AppUser }) {
+    const esPro = u.plan !== "ordinario";
+    if (!editable) {
+      return (
+        <span className={`badge ${esPro ? "bg-gold/20 text-gold" : "bg-muted/15 text-muted"}`}>
+          {esPro ? "★ Pro" : "Ordinario"}
+        </span>
+      );
+    }
+    return (
+      <button
+        onClick={() => void togglePlan(u)}
+        disabled={planBusy === u.uid}
+        title="Pro: ve el video, Lumi, el audio narrado y sus logros. Ordinario: texto y guía (siempre gratis)."
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50",
+          esPro
+            ? "bg-gold/20 text-gold hover:bg-gold/30"
+            : "border border-border bg-surface text-muted hover:text-fg",
+        )}
+      >
+        {planBusy === u.uid ? "…" : esPro ? "★ Pro" : "○ Ordinario"}
       </button>
     );
   }
@@ -248,6 +285,7 @@ export function UsersTable({
                   <span className="flex items-center gap-2 text-xs text-muted">
                     Inscrito: <EnrolledControl u={u} />
                   </span>
+                  <PlanControl u={u} />
                   <VoiceControl u={u} />
                   <RoleControl u={u} />
                 </div>
@@ -270,6 +308,7 @@ export function UsersTable({
               <th className="p-4 font-semibold">Última actividad</th>
               <th className="p-4 font-semibold">Estado</th>
               <th className="p-4 font-semibold">Inscrito</th>
+              <th className="p-4 font-semibold">Plan</th>
               {editable && <th className="p-4 font-semibold">Voz</th>}
               {editable && <th className="p-4 font-semibold">Rol</th>}
             </tr>
@@ -303,6 +342,9 @@ export function UsersTable({
                   </td>
                   <td className="p-4">
                     <EnrolledControl u={u} />
+                  </td>
+                  <td className="p-4">
+                    <PlanControl u={u} />
                   </td>
                   {editable && (
                     <td className="p-4">
