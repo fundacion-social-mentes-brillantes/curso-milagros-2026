@@ -83,6 +83,33 @@ function rateLimited(uid: string): boolean {
   return false;
 }
 
+/**
+ * Trae el texto REAL de una lección desde los archivos de la app.
+ * Se lee aquí en el servidor (no se confía en el navegador) para que Lumi
+ * hable de la lección con el texto exacto y no de memoria.
+ */
+async function fetchLessonText(
+  origin: string,
+  n: number,
+): Promise<{ title: string; text: string } | null> {
+  try {
+    const id = String(n).padStart(3, "0");
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(`${origin}/lessons/${id}.json`, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { title?: string; originalText?: string };
+    const text = String(data.originalText ?? "")
+      .replace(/^\s*#{1,2}\s*/gm, "") // quita los marcadores de encabezado
+      .trim();
+    if (!text) return null;
+    return { title: String(data.title ?? ""), text: text.slice(0, 6000) };
+  } catch {
+    return null; // si falla, Lumi sigue funcionando sin el texto
+  }
+}
+
 function sanitizeMessages(input: unknown): ChatMessage[] {
   if (!Array.isArray(input)) return [];
   return input
@@ -135,6 +162,17 @@ export async function POST(req: NextRequest): Promise<Response> {
   const lesson = Number(lessonNumber);
   if (Number.isInteger(lesson) && lesson >= 1 && lesson <= 365) {
     system += `\n\nCONTEXTO ACTUAL: la persona está leyendo la lección ${lesson} del Curso. Si su pregunta se relaciona, ten presente esa lección.`;
+    // Le damos el texto REAL de la lección (leído aquí en el servidor, no
+    // enviado por el navegador). Sin esto el modelo la recita de memoria y
+    // se equivoca en títulos y contenidos.
+    const real = await fetchLessonText(req.nextUrl.origin, lesson);
+    if (real) {
+      system +=
+        `\n\nTEXTO REAL DE LA LECCIÓN ${lesson} (título: «${real.title}»). Es la fuente de verdad:\n---\n${real.text}\n---\n` +
+        `Usa SIEMPRE este texto para hablar de esta lección: su título, su idea y su práctica. ` +
+        `Nunca lo cambies por lo que recuerdes, y si la persona pregunta por otra lección que no está aquí, ` +
+        `dile con humildad que la abra en la app para leerla juntos en vez de citarla de memoria.`;
+    }
   }
 
   let upstream: Response;
