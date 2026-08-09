@@ -81,6 +81,11 @@ export function SenseiChat() {
   // Memoria local: Lumi recuerda tu conversación en ESTE dispositivo (privada, sin servidor).
   useEffect(() => {
     const uid = firebaseUser?.uid;
+    // Al cambiar de persona (o al cerrar sesión) se BORRA lo que hay en
+    // pantalla. Sin esto, en un computador compartido la siguiente persona
+    // veía la conversación privada de la anterior.
+    setMessages([]);
+    setOpen(false);
     if (!uid) return;
     try {
       const raw = localStorage.getItem(`lumi:chat:${uid}`);

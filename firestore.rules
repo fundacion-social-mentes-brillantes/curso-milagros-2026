@@ -44,9 +44,11 @@ service cloud.firestore {
       allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow list: if isAdmin();
       // Cada quien crea su propio perfil y SOLO como 'user'.
+      // Nadie puede nacer siendo admin ni con el plan de pago.
       allow create: if isSignedIn()
                     && request.auth.uid == uid
-                    && request.resource.data.role == 'user';
+                    && request.resource.data.role == 'user'
+                    && request.resource.data.get('plan', 'ordinario') == 'ordinario';
       // Puedes editar tu propio perfil, pero NO tu rol. El admin sí puede.
       // Super admin: puede todo, incluido cambiar roles (nombrar/quitar admins).
       // Otros admins: gestionan personas pero NO pueden cambiar el rol.
@@ -57,7 +59,9 @@ service cloud.firestore {
                     || (isSignedIn()
                         && request.auth.uid == uid
                         && request.resource.data.role == resource.data.role
-                        && request.resource.data.enrolled == resource.data.enrolled
+                        // .get(): los perfiles más antiguos no tienen el campo
+                        // y sin esto no podían ni editar sus propios datos.
+                        && request.resource.data.get('enrolled', true) == resource.data.get('enrolled', true)
                         // La lectura en voz alta solo la activa/desactiva un admin.
                         && request.resource.data.get('voiceReader', false) == resource.data.get('voiceReader', false)
                         // El plan (pro / ordinario) SOLO lo cambia un admin:
@@ -77,20 +81,40 @@ service cloud.firestore {
     match /progress/{pid} {
       allow read: if isSignedIn()
                   && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow create, update: if isSignedIn()
-                  && request.resource.data.userId == request.auth.uid
-                  && request.resource.data.keys().hasOnly(
-                       ['userId', 'ciclo', 'lessonId', 'lessonNumber',
-                        'completed', 'completedAt', 'nota', 'notaEn'])
-                  // El cuaderno: una nota corta y privada de la persona.
-                  && (!request.resource.data.keys().hasAny(['nota'])
-                      || (request.resource.data.nota is string
-                          && request.resource.data.nota.size() <= 1000))
-                  && request.resource.data.lessonNumber is int
-                  && request.resource.data.completed is bool
-                  && request.resource.data.lessonId is string
-                  && (request.resource.data.completedAt == null
-                      || request.resource.data.completedAt is int);
+      // Forma válida de un documento de avance (se usa al crear y al editar).
+      // Los campos se validan SOLO si vienen: así se puede guardar únicamente
+      // la nota del cuaderno en una lección que todavía no está marcada.
+      function avanceValido() {
+        return request.resource.data.userId == request.auth.uid
+               && request.resource.data.keys().hasOnly(
+                    ['userId', 'ciclo', 'lessonId', 'lessonNumber',
+                     'completed', 'completedAt', 'nota', 'notaEn'])
+               && request.resource.data.lessonNumber is int
+               && request.resource.data.lessonNumber >= 1
+               && request.resource.data.lessonNumber <= 400
+               && (!request.resource.data.keys().hasAny(['nota'])
+                   || (request.resource.data.nota is string
+                       && request.resource.data.nota.size() <= 1000))
+               && (!request.resource.data.keys().hasAny(['completed'])
+                   || request.resource.data.completed is bool)
+               && (!request.resource.data.keys().hasAny(['lessonId'])
+                   || request.resource.data.lessonId is string)
+               && (!request.resource.data.keys().hasAny(['ciclo'])
+                   || request.resource.data.ciclo is string)
+               && (!request.resource.data.keys().hasAny(['notaEn'])
+                   || request.resource.data.notaEn is int)
+               && (!request.resource.data.keys().hasAny(['completedAt'])
+                   || request.resource.data.completedAt == null
+                   || request.resource.data.completedAt is int);
+      }
+      allow create: if isSignedIn() && avanceValido();
+      // CLAVE: al editar hay que ser YA el dueño y no se puede cambiar de dueño.
+      // Sin esto, cualquiera podía adueñarse del avance de otra persona (el id
+      // es predecible) y leer su cuaderno privado.
+      allow update: if isSignedIn()
+                  && resource.data.userId == request.auth.uid
+                  && request.resource.data.userId == resource.data.userId
+                  && avanceValido();
       allow delete: if isAdmin()
                   || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
@@ -115,10 +139,19 @@ service cloud.firestore {
                     && (request.resource.data.parentId == null
                         || request.resource.data.parentId is string);
       // El autor puede editar/borrar lo suyo (sin cambiar de dueño); el admin todo.
+      // El autor edita SU mensaje, pero no puede deshacer la moderación del
+      // admin ni cambiar de dueño, ni saltarse el límite de tamaño.
       allow update: if isAdmin()
                     || (isSignedIn()
                         && resource.data.userId == request.auth.uid
-                        && request.resource.data.userId == resource.data.userId);
+                        && request.resource.data.userId == resource.data.userId
+                        && request.resource.data.status == resource.data.status
+                        && request.resource.data.keys().hasOnly(
+                             ['lessonNumber', 'userId', 'userName', 'userPhoto',
+                              'message', 'createdAt', 'parentId', 'status'])
+                        && request.resource.data.message is string
+                        && request.resource.data.message.size() > 0
+                        && request.resource.data.message.size() <= 5000);
       allow delete: if isAdmin();
     }
 
@@ -147,7 +180,20 @@ service cloud.firestore {
     // Cada quien solo puede crear su propio registro; editar/borrar solo admin.
     match /dailyDone/{id} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      // El id SIEMPRE termina en el uid de la persona ("93_uid" o "2027_93_uid").
+      // Sin esa comprobación, alguien podía crear el registro de OTRA persona
+      // antes que ella y dejarle el puesto congelado para siempre.
+      allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && id.matches('.*_' + request.auth.uid)
+                    && request.resource.data.keys().hasOnly(
+                         ['uid', 'ciclo', 'name', 'date', 'completedAt',
+                          'position', 'lessonNumber'])
+                    && request.resource.data.lessonNumber is int
+                    && request.resource.data.lessonNumber >= 1
+                    && request.resource.data.lessonNumber <= 400
+                    && request.resource.data.position is int
+                    && request.resource.data.completedAt is int;
       allow update, delete: if isAdmin();
     }
   }

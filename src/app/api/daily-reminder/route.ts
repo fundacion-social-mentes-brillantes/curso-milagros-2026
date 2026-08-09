@@ -19,12 +19,15 @@ const OPEN_URL = "https://curso-milagros.vercel.app/lecciones";
 
 export async function GET(req: NextRequest): Promise<Response> {
   // Solo Vercel Cron (que envía el secreto) puede dispararlo.
+  // Si por lo que sea faltara CRON_SECRET, se CIERRA (antes quedaba abierto a
+  // cualquiera, que habría podido mandarle notificaciones a todo el grupo).
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return new Response("unauthorized", { status: 401 });
-    }
+  if (!secret) {
+    return new Response("unauthorized", { status: 401 });
+  }
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${secret}`) {
+    return new Response("unauthorized", { status: 401 });
   }
 
   const apiKey = process.env.ONESIGNAL_REST_API_KEY;

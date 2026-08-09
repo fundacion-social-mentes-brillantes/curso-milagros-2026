@@ -13,7 +13,7 @@ import { getLessonNote, saveLessonNote } from "@/lib/progress";
 export function Cuaderno({ uid, lessonNumber }: { uid: string; lessonNumber: number }) {
   const [texto, setTexto] = useState("");
   const [cargado, setCargado] = useState(false);
-  const [estado, setEstado] = useState<"quieto" | "guardando" | "guardado">("quieto");
+  const [estado, setEstado] = useState<"quieto" | "guardando" | "guardado" | "error">("quieto");
   const guardadoRef = useRef("");
 
   useEffect(() => {
@@ -42,7 +42,8 @@ export function Cuaderno({ uid, lessonNumber }: { uid: string; lessonNumber: num
       setEstado("guardado");
       setTimeout(() => setEstado("quieto"), 2500);
     } catch {
-      setEstado("quieto");
+      // Antes se perdía el texto sin decir nada.
+      setEstado("error");
     }
   }
 
@@ -56,7 +57,13 @@ export function Cuaderno({ uid, lessonNumber }: { uid: string; lessonNumber: num
           <h3 className="font-display text-sm font-semibold">Mi cuaderno</h3>
         </div>
         <span className="text-[11px] text-muted">
-          {estado === "guardando" ? "guardando…" : estado === "guardado" ? "guardado ✓" : "solo tú lo ves"}
+          {estado === "guardando"
+            ? "guardando…"
+            : estado === "guardado"
+              ? "guardado ✓"
+              : estado === "error"
+                ? "⚠️ no se pudo guardar, inténtalo de nuevo"
+                : "solo tú lo ves"}
         </span>
       </div>
 

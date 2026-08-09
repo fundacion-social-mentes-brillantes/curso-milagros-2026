@@ -41,6 +41,34 @@ function json(data: unknown, status: number): Response {
   });
 }
 
+/**
+ * ¿Esta persona puede usar a Lumi? Se comprueba AQUÍ, en el servidor, leyendo
+ * su propio perfil con su propio token (las reglas se lo permiten). Antes el
+ * candado era solo visual: cualquier cuenta de Google podía llamar a esta ruta
+ * y gastar el saldo de la fundación.
+ */
+async function puedeUsarLumi(uid: string, idToken: string): Promise<boolean> {
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${FIREBASE_PUBLIC.projectId}/databases/(default)/documents/users/${uid}`,
+      { headers: { Authorization: `Bearer ${idToken}` }, signal: ctrl.signal },
+    );
+    clearTimeout(tid);
+    if (!res.ok) return false;
+    const data = (await res.json()) as {
+      fields?: { plan?: { stringValue?: string }; role?: { stringValue?: string } };
+    };
+    const plan = data.fields?.plan?.stringValue;
+    const role = data.fields?.role?.stringValue;
+    // Sin el campo (perfiles antiguos) cuenta como Portador de Luz.
+    return plan !== "ordinario" || role === "admin";
+  } catch {
+    return false;
+  }
+}
+
 /** Verifica el idToken contra Google y devuelve el uid del usuario (o null). */
 async function verifyUser(idToken: unknown): Promise<string | null> {
   if (typeof idToken !== "string" || idToken.length < 20) return null;
@@ -159,6 +187,9 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
   if (rateLimited(uid)) {
     return json({ error: "rate-limit" }, 429);
+  }
+  if (!(await puedeUsarLumi(uid, idToken as string))) {
+    return json({ error: "solo-portador" }, 403);
   }
 
   let system = SENSEI_SYSTEM_PROMPT;
