@@ -25,7 +25,17 @@ const { P, leerUno } = require("../shared/tablas");
 const { SENSEI_SYSTEM_PROMPT } = require("../shared/lumi-prompt");
 
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
-const MODELO = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
+/*
+ * El modelo de Lumi: DeepSeek V4.1 Flash.
+ *
+ * Su identificador actual es `deepseek-flash`. El nombre viejo
+ * `deepseek-v4-flash` todavia se acepta y lo atiende el MISMO modelo, pero es
+ * un alias heredado y algun dia lo retiraran; por eso se usa el nuevo.
+ *
+ * Para cambiar de modelo NO hay que tocar codigo: basta definir DEEPSEEK_MODEL
+ * en las variables de Azure.
+ */
+const MODELO = process.env.DEEPSEEK_MODEL || "deepseek-flash";
 const PENSAR_NO = { type: "disabled" };
 const PENSAR_SI = { type: "enabled" };
 
