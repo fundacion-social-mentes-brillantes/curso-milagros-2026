@@ -49,6 +49,18 @@ jobs:
           NEXT_PUBLIC_ASSETS_URL: https://stgembcurso.blob.core.windows.net
         run: npm run build
 
+      - name: Dejar constancia de lo que se publica
+        # Un archivo diminuto con el cambio exacto y la hora. Sirve para
+        # responder sin adivinar a "¿lo que está en vivo es lo último?":
+        # basta abrir /despliegue.txt en el navegador y compararlo con GitHub.
+        run: |
+          {
+            echo "cambio:  ${GITHUB_SHA}"
+            echo "cuando:  $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "lo lanzo: ${GITHUB_EVENT_NAME}"
+          } > out/despliegue.txt
+          cat out/despliegue.txt
+
       - name: Publicar en Azure
         uses: Azure/static-web-apps-deploy@v1
         with:
