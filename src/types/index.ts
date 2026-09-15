@@ -49,6 +49,13 @@ export interface AppUser {
   /** Plan de acceso (lo cambia solo un admin). Ver `Plan`. */
   plan: Plan;
   /**
+   * Grupo al que pertenece ("Grupo 1", "Martes", "Sede norte"…). Lo pone un
+   * admin. Existe para poder llevar VARIOS grupos a la vez y ver cómo va cada
+   * uno por separado: sin esto, todas las cifras del panel salen mezcladas.
+   * Vacío = sin grupo asignado.
+   */
+  grupo: string;
+  /**
    * Acumulado del ranking, que se va sumando al marcar cada lección. Existe
    * para que el panel NO tenga que leer toda la colección `dailyDone` (eso
    * agotaba la cuota gratis de Firebase).

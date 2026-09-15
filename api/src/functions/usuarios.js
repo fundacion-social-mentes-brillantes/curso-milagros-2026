@@ -54,6 +54,7 @@ function aPerfil(uid, d) {
     enrolled: d.enrolled !== false,
     voiceReader: Boolean(d.voiceReader),
     plan: d.plan === "ordinario" ? "ordinario" : "pro",
+    grupo: String(d.grupo ?? ""),
     rankDias: Number(d.rankDias ?? 0),
     rankSumaPuesto: Number(d.rankSumaPuesto ?? 0),
     rankSumaMinuto: Number(d.rankSumaMinuto ?? 0),
@@ -231,6 +232,13 @@ app.http("usuariosEditar", {
     if (typeof body.enrolled === "boolean") cambios.enrolled = body.enrolled;
     if (typeof body.voiceReader === "boolean") cambios.voiceReader = body.voiceReader;
     if (body.plan === "pro" || body.plan === "ordinario") cambios.plan = body.plan;
+
+    // El grupo es texto libre a propósito: cada quien nombra sus grupos como
+    // le sirva ("Grupo 1", "Martes", "Sede norte"). Se recorta para que no se
+    // cuele un texto enorme en la tabla del panel.
+    if (typeof body.grupo === "string") {
+      cambios.grupo = body.grupo.trim().slice(0, 30);
+    }
 
     // Cambiar roles es lo más delicado: solo la cuenta de la fundación, y nunca
     // sobre sí misma (para no quedarse sin ningún administrador por error).

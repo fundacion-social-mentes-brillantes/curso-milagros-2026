@@ -103,6 +103,14 @@ export async function setUserVoiceReader(uid: string, voiceReader: boolean): Pro
 }
 
 /**
+ * (Admin) Asigna el grupo de una persona. Vacío la deja sin grupo.
+ * Sirve para llevar varios grupos a la vez y ver cada uno por separado.
+ */
+export async function setUserGrupo(uid: string, grupo: string): Promise<void> {
+  await cambiarPersona(uid, { grupo });
+}
+
+/**
  * (Admin) Cambia el plan: "pro" (Portador de Luz) u "ordinario" (Caminante).
  * Es lo único que decide si ve el video, a Lumi y la lección narrada.
  */

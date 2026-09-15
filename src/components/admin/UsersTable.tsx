@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { setUserEnrolled, setUserPlan, setUserRole, setUserVoiceReader } from "@/lib/users";
+import { setUserEnrolled, setUserGrupo, setUserPlan, setUserRole, setUserVoiceReader } from "@/lib/users";
 import { planInfo } from "@/config/planes";
 import { STATUS_LABEL, userStatus } from "@/lib/admin-analytics";
 import { isPermanentAdmin } from "@/lib/admins";
@@ -42,6 +42,13 @@ export function UsersTable({
   const [enrollBusy, setEnrollBusy] = useState<string | null>(null);
   const [voiceBusy, setVoiceBusy] = useState<string | null>(null);
   const [planBusy, setPlanBusy] = useState<string | null>(null);
+  const [grupoBusy, setGrupoBusy] = useState<string | null>(null);
+
+  /** Los grupos que ya existen, para poder elegirlos sin volver a escribirlos. */
+  const gruposExistentes = useMemo(
+    () => [...new Set(users.map((u) => (u.grupo || "").trim()).filter(Boolean))].sort(),
+    [users],
+  );
 
   const enrolledCount = useMemo(
     () => users.filter((u) => u.enrolled && !isPermanentAdmin(u.email)).length,
@@ -115,6 +122,10 @@ export function UsersTable({
     );
   }
 
+  async function cambiarGrupo(u: AppUser, grupo: string) {
+    await guardarCambio(u.uid, setGrupoBusy, () => setUserGrupo(u.uid, grupo));
+  }
+
   async function toggleVoice(u: AppUser) {
     await guardarCambio(u.uid, setVoiceBusy, () =>
       setUserVoiceReader(u.uid, !u.voiceReader),
@@ -172,6 +183,49 @@ export function UsersTable({
       >
         {planBusy === u.uid ? "…" : `${info.emoji} ${info.nombre}`}
       </button>
+    );
+  }
+
+  /**
+   * Grupo de la persona.
+   *
+   * Es un desplegable con los grupos que ya existen más la opción de crear uno.
+   * Se hizo así, y no como texto libre suelto, porque escribiendo a mano
+   * acaban conviviendo "Grupo 1", "grupo 1" y "Grupo1" como si fueran tres
+   * grupos distintos, y entonces las cifras por grupo dejan de servir.
+   */
+  function GrupoControl({ u }: { u: AppUser }) {
+    const actual = (u.grupo || "").trim();
+    if (!editable) {
+      return <span className="text-sm text-muted">{actual || "—"}</span>;
+    }
+    return (
+      <select
+        value={actual}
+        disabled={grupoBusy === u.uid}
+        aria-label={`Grupo de ${u.displayName}`}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "__nuevo__") {
+            const nombre = window.prompt(
+              "Nombre del grupo nuevo (por ejemplo: Grupo 2)",
+              "",
+            );
+            if (nombre && nombre.trim()) void cambiarGrupo(u, nombre.trim());
+            return;
+          }
+          void cambiarGrupo(u, v);
+        }}
+        className="max-w-[10rem] rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-fg outline-none transition focus:border-aqua/60 disabled:opacity-50"
+      >
+        <option value="">Sin grupo</option>
+        {gruposExistentes.map((g) => (
+          <option key={g} value={g}>
+            {g}
+          </option>
+        ))}
+        <option value="__nuevo__">➕ Nuevo grupo…</option>
+      </select>
     );
   }
 
@@ -316,6 +370,9 @@ export function UsersTable({
                   <PlanControl u={u} />
                   <VoiceControl u={u} />
                   <RoleControl u={u} />
+                  <span className="flex items-center gap-2 text-xs text-muted">
+                    Grupo: <GrupoControl u={u} />
+                  </span>
                 </div>
               )}
             </div>
@@ -337,6 +394,7 @@ export function UsersTable({
               <th className="p-4 font-semibold">Estado</th>
               <th className="p-4 font-semibold">Inscrito</th>
               <th className="p-4 font-semibold">Plan</th>
+              <th className="p-4 font-semibold">Grupo</th>
               {editable && <th className="p-4 font-semibold">Voz</th>}
               {editable && <th className="p-4 font-semibold">Rol</th>}
             </tr>
@@ -373,6 +431,9 @@ export function UsersTable({
                   </td>
                   <td className="p-4">
                     <PlanControl u={u} />
+                  </td>
+                  <td className="p-4">
+                    <GrupoControl u={u} />
                   </td>
                   {editable && (
                     <td className="p-4">
