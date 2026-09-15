@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-} from "firebase/firestore";
-import { getDb } from "@/lib/firebase";
+import { llamar, llamarSeguro } from "@/lib/api";
 import { lessonDocId } from "@/config/lessons.links";
 import { videoDeLeccion } from "@/lib/videos-map";
 import { emptyCommentary } from "@/lib/lesson-template";
@@ -68,12 +61,14 @@ async function conVideoAutomatico(lesson: Lesson): Promise<Lesson> {
  * el video se completa con el mapa automático si hace falta.
  */
 export async function getLessonByNumber(n: number): Promise<Lesson | null> {
-  try {
-    const snap = await getDoc(doc(getDb(), "lessons", lessonDocId(n)));
-    if (snap.exists()) return conVideoAutomatico(toLesson(snap.id, snap.data()));
-  } catch {
-    /* sin conexión / sin permisos → respaldo estático */
-  }
+  // Primero la edición del admin (si existe); si no, el contenido fijo que
+  // viaja con la app. Que la API no responda NO deja a nadie sin su lección.
+  const editada = await llamarSeguro<Record<string, unknown> | null>(
+    `/lecciones/${n}`,
+    null,
+    { publica: true },
+  );
+  if (editada) return conVideoAutomatico(toLesson(lessonDocId(n), editada));
   const estatica = await fetchStaticLesson(n);
   return estatica ? conVideoAutomatico(estatica) : null;
 }
@@ -106,14 +101,9 @@ export async function listLessons(): Promise<Lesson[]> {
     /* respaldo Firestore */
   }
 
-  try {
-    const snap = await getDocs(collection(getDb(), "lessons"));
-    return snap.docs
-      .map((d) => toLesson(d.id, d.data()))
-      .sort((a, b) => a.number - b.number);
-  } catch {
-    return [];
-  }
+  // El índice estático viaja dentro de la app, así que llegar aquí significa
+  // que el propio sitio no cargó. No hay respaldo mejor que una lista vacía.
+  return [];
 }
 
 /**
@@ -124,6 +114,8 @@ export async function updateLesson(
   n: number,
   patch: Partial<Omit<Lesson, "id">>,
 ): Promise<void> {
-  const ref = doc(getDb(), "lessons", lessonDocId(n));
-  await setDoc(ref, { number: n, ...patch, updatedAt: Date.now() }, { merge: true });
+  await llamar(`/lecciones/${n}`, {
+    metodo: "PUT",
+    cuerpo: { number: n, ...patch },
+  });
 }

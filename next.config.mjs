@@ -1,36 +1,42 @@
 /** @type {import('next').NextConfig} */
 
-// Cabeceras de seguridad aplicadas a todas las rutas. Conservadoras a propósito:
-// protegen sin romper el login de Google, Firebase, ni los videos de YouTube/Drive.
-const securityHeaders = [
-  // Evita que otro sitio incruste la app en un iframe (clickjacking).
-  { key: "X-Frame-Options", value: "SAMEORIGIN" },
-  // Evita que el navegador "adivine" tipos de archivo (MIME-sniffing).
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  // No filtrar URLs internas completas al navegar a otros sitios.
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  // Desactiva APIs del navegador que la app no usa.
-  {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
-  },
-  // Fuerza HTTPS en visitas futuras.
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains",
-  },
-  // CSP mínima y SEGURA: bloquea clickjacking (frame-ancestors), la inyección de
-  // <base> y los plugins, SIN restringir scripts/conexiones/imágenes/iframes
-  // (por eso no rompe Firebase, el login de Google ni los videos).
-  {
-    key: "Content-Security-Policy",
-    value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'",
-  },
-];
+// ────────────────────────────────────────────────────────────────────────────
+// IMPORTANTE (migración a Azure Static Web Apps)
+//
+// Azure Static Web Apps sirve ARCHIVOS, no un servidor de Next.js. Por eso la
+// app se "exporta" a HTML (output: "export"): al compilar se genera una carpeta
+// `out/` con una página ya hecha para cada ruta, incluidas las 365 lecciones.
+//
+// Consecuencia directa: aquí ya NO pueden vivir las cabeceras de seguridad ni
+// las reglas de caché. Un archivo suelto no puede añadir cabeceras por sí mismo;
+// quien las pone es el servidor que lo entrega. Todas esas reglas se movieron,
+// sin perder ninguna, al archivo `staticwebapp.config.json` de la raíz, que es
+// donde Azure las lee. Si hay que tocar seguridad o caché, se toca ALLÍ.
+// ────────────────────────────────────────────────────────────────────────────
 
 const nextConfig = {
   reactStrictMode: true,
+
+  // Genera el sitio como archivos estáticos en `out/`. Es la única forma
+  // plenamente soportada por Azure Static Web Apps.
+  output: "export",
+
+  // Cada ruta se guarda como una carpeta con su `index.html`
+  // (p. ej. `out/lecciones/42/index.html` en vez de `out/lecciones/42.html`).
+  // Cualquier servidor de archivos sabe entregar un `index.html`, así que así
+  // los enlaces funcionan en Azure sin configuración extra.
+  trailingSlash: true,
+
   images: {
+    // El "optimizador de imágenes" de Next es un programa que corre en un
+    // servidor: redimensiona la foto al vuelo. En un sitio estático ese
+    // servidor no existe, así que se apaga y las imágenes se sirven tal cual.
+    // Sin esto, el build falla en los 4 sitios que usan <Image>.
+    unoptimized: true,
+    // Se conservan como documentación de los dominios externos de los que
+    // vienen imágenes (fotos de perfil de Google, miniaturas de Drive).
+    // Con `unoptimized: true` Next ya no los valida, pero si algún día se
+    // vuelve a un servidor, la lista sigue aquí.
     remotePatterns: [
       // Fotos de perfil de Google
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
@@ -38,28 +44,6 @@ const nextConfig = {
       { protocol: "https", hostname: "drive.google.com" },
       { protocol: "https", hostname: "lh3.google.com" },
     ],
-  },
-  async headers() {
-    return [
-      { source: "/:path*", headers: securityHeaders },
-      // Imágenes y audios: se guardan en el teléfono un año. Nunca cambian
-      // (cada lección tiene su archivo), así que se descargan UNA sola vez.
-      // Para quien tiene datos contados, esto es la diferencia.
-      {
-        source: "/images/:path*",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
-      },
-      {
-        source: "/audio/:path*",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
-      },
-      // Las lecciones sí pueden corregirse: se revalidan, pero sin volver a
-      // bajarlas si no cambiaron.
-      {
-        source: "/lessons/:path*",
-        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
-      },
-    ];
   },
 };
 

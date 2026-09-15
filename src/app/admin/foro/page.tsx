@@ -87,21 +87,21 @@ function ForoInner() {
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 {p.status !== "hidden" ? (
-                  <button onClick={() => void moderatePost(p.id, "hidden")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
+                  <button onClick={() => void moderatePost(p, "hidden")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
                     Ocultar
                   </button>
                 ) : (
-                  <button onClick={() => void moderatePost(p.id, "visible")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
+                  <button onClick={() => void moderatePost(p, "visible")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
                     Mostrar
                   </button>
                 )}
                 {p.status !== "reviewed" && (
-                  <button onClick={() => void moderatePost(p.id, "reviewed")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
+                  <button onClick={() => void moderatePost(p, "reviewed")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
                     Revisado
                   </button>
                 )}
                 {p.status !== "deleted" && (
-                  <button onClick={() => void softDeletePost(p.id)} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs text-warning sm:flex-none sm:py-1.5">
+                  <button onClick={() => void softDeletePost(p)} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs text-warning sm:flex-none sm:py-1.5">
                     Borrar
                   </button>
                 )}

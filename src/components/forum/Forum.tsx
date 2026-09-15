@@ -101,7 +101,7 @@ export function Forum({ lessonNumber }: { lessonNumber: number }) {
               )}
               {(mine || canModerate) && !isDeleted && (
                 <button
-                  onClick={() => void softDeletePost(post.id)}
+                  onClick={() => void softDeletePost(post)}
                   className="text-muted hover:text-warning"
                 >
                   Borrar
@@ -110,16 +110,16 @@ export function Forum({ lessonNumber }: { lessonNumber: number }) {
               {canModerate && (
                 <>
                   {post.status !== "hidden" ? (
-                    <button onClick={() => void moderatePost(post.id, "hidden")} className="text-muted hover:text-fg">
+                    <button onClick={() => void moderatePost(post, "hidden")} className="text-muted hover:text-fg">
                       Ocultar
                     </button>
                   ) : (
-                    <button onClick={() => void moderatePost(post.id, "visible")} className="text-aqua hover:underline">
+                    <button onClick={() => void moderatePost(post, "visible")} className="text-aqua hover:underline">
                       Mostrar
                     </button>
                   )}
                   {post.status !== "reviewed" && post.status !== "deleted" && (
-                    <button onClick={() => void moderatePost(post.id, "reviewed")} className="text-muted hover:text-fg">
+                    <button onClick={() => void moderatePost(post, "reviewed")} className="text-muted hover:text-fg">
                       Marcar revisado
                     </button>
                   )}

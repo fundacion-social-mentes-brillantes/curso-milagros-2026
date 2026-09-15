@@ -5,7 +5,7 @@
   "description": "Proceso diario de Un Curso de Milagros 2026 — Gimnasio Emocional Mentes Brillantes",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/limpiar-out.mjs",
     "start": "next start",
     "lint": "next lint",
     "build:data": "tsx scripts/build-lessons-data.ts",

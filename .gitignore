@@ -45,3 +45,9 @@ gemini-key.txt
 gemini-keys.txt
 
 .vercel
+.env*
+
+# artefactos de despliegue a Azure
+/despertador.zip
+/funcion-avisos/node_modules
+/api/node_modules

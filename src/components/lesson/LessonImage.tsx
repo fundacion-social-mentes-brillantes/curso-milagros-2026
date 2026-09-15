@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { lessonDocId } from "@/config/lessons.links";
+import { imagenLeccion } from "@/config/assets";
 
 /**
- * Imagen de referencia de la lección: /images/lecciones/{id}.webp
+ * Imagen de referencia de la lección (ver src/config/assets.ts).
  *
  * WebP y 1280 px de ancho: las mismas 365 imágenes pasaron de 462 MB a 74 MB
  * (84% menos), que en celular con datos contados se nota muchísimo.
@@ -18,7 +19,7 @@ export function LessonImage({ number, title }: { number: number; title: string }
     <figure className="overflow-hidden rounded-2xl border border-border shadow-soft animate-fade-in">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={`/images/lecciones/${lessonDocId(number)}.webp`}
+        src={imagenLeccion(lessonDocId(number))}
         alt={`Imagen de referencia de la lección ${number}: ${title}`}
         width={1280}
         height={720}

@@ -1,0 +1,16 @@
+{
+  "name": "curso-milagros-api",
+  "version": "1.0.0",
+  "description": "API del curso: datos en Azure Table Storage, identidad con el login de Google",
+  "main": "src/functions/*.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.5.0",
+    "@azure/data-tables": "^13.3.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

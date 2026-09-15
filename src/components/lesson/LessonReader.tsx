@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { audioLeccion } from "@/config/assets";
 import type { Lesson } from "@/types";
 
 const RATES = [
@@ -11,12 +12,12 @@ const RATES = [
 
 /**
  * Lector en voz alta de la lección (accesibilidad). Si existe un audio narrado
- * de alta calidad para la lección (public/audio/lecciones/{NNN}.mp3) lo reproduce;
+ * de alta calidad para la lección lo reproduce (ver src/config/assets.ts);
  * si no, usa la voz del propio dispositivo como respaldo.
  */
 export function LessonReader({ lesson }: { lesson: Lesson }) {
   const num = String(lesson.number).padStart(3, "0");
-  const audioUrl = `/audio/lecciones/${num}.mp3`;
+  const audioUrl = audioLeccion(num);
   const [hasFile, setHasFile] = useState<boolean | null>(null);
 
   useEffect(() => {

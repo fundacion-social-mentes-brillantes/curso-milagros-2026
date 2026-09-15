@@ -1,0 +1,12 @@
+{
+  "name": "curso-milagros-avisos",
+  "version": "1.0.0",
+  "description": "Despertador de las 3 a.m.: dispara el recordatorio diario del curso",
+  "main": "src/functions/*.js",
+  "dependencies": {
+    "@azure/functions": "^4.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

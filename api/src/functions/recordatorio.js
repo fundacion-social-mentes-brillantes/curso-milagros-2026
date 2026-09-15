@@ -1,0 +1,274 @@
+"use strict";
+
+/**
+ * EL RECORDATORIO DIARIO, personal (GET /api/recordatorio-diario).
+ *
+ * Corre UNA vez de madrugada y deja el día entero preparado para cada persona:
+ * el aviso de las 3 a.m. más tres recordatorios repartidos al azar, TODOS con
+ * la misma idea —la de la lección en la que va— y un enlace que la lleva justo
+ * a esa lección.
+ *
+ * Que los tres del día se dejen programados de una vez, con el texto YA FIJADO,
+ * no es un capricho: es lo que garantiza que si marcas la lección a las 10 a.m.,
+ * los de la tarde te sigan recordando LA MISMA idea y no la de mañana. El Curso
+ * pide repetir la idea del día durante todo el día.
+ *
+ * Quién lo dispara: una función con temporizador aparte (Azure Static Web Apps
+ * solo admite funciones que respondan a peticiones web, no a relojes). Esa
+ * función solo llama a esta ruta con el secreto; toda la lógica vive aquí.
+ */
+
+const { app } = require("@azure/functions");
+const { P, leerUno, leerTodo, guardar } = require("../shared/tablas");
+const { cicloActivo } = require("../shared/ciclo");
+
+const ONESIGNAL_APP_ID = "7959aae1-aace-4889-b89f-d307ad2ad95c";
+const SITIO =
+  process.env.SITIO_URL || "https://cursodemilagros.gimnasioemocionalmb.com";
+
+/** Los tres recordatorios caen al azar en esta franja (hora de Colombia). */
+const FRANJA_INICIO = 8 * 60; // 8:00 a. m.
+const FRANJA_FIN = 21 * 60; // 9:00 p. m.
+const RECORDATORIOS = 3;
+const SEPARACION_MINIMA = 150; // 2 h 30 min entre uno y otro
+
+/**
+ * No todas las lecciones tienen una frase repetible: las de repaso (52 a 60,
+ * 85, 87) se titulan "El repaso de hoy abarca las siguientes ideas:", y un par
+ * (213, 359) se quedaron sin título. Esos días va un texto que sí dice algo,
+ * con el enlace correcto igual.
+ */
+const FRASE_DE_REPASO = /^(el\s+)?repaso\b|abarca las siguientes ideas/i;
+const RESPALDO = "Tu lección de hoy te espera. Entra y hazla con calma. 🌿";
+
+/** Las ideas se leen del propio sitio, así nunca se desfasan del contenido. */
+let ideas = null;
+async function cargarIdeas() {
+  if (ideas) return ideas;
+  const res = await fetch(`${SITIO}/lessons/index.json`);
+  if (!res.ok) throw new Error("no pude leer el índice de lecciones");
+  const lista = await res.json();
+  ideas = new Map(lista.map((l) => [Number(l.number), String(l.title ?? "").trim()]));
+  return ideas;
+}
+
+function ideaDe(mapa, leccion) {
+  const t = (mapa.get(leccion) ?? "").trim();
+  if (!t || FRASE_DE_REPASO.test(t)) return { idea: RESPALDO, esRepaso: true };
+  return { idea: t, esRepaso: false };
+}
+
+/** Fecha de hoy en Colombia (YYYY-MM-DD). Colombia es siempre UTC-5. */
+function fechaBogota(ms) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(ms));
+}
+
+function instanteBogota(fecha, minutoDelDia) {
+  const h = String(Math.floor(minutoDelDia / 60)).padStart(2, "0");
+  const m = String(minutoDelDia % 60).padStart(2, "0");
+  return Date.parse(`${fecha}T${h}:${m}:00-05:00`);
+}
+
+function horaBogota(ms) {
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(ms));
+}
+
+/**
+ * Tres momentos al azar, siempre separados y en orden: la franja se parte en
+ * tres tramos y se sortea un minuto dentro de cada uno. Así cambian cada día
+ * pero nunca se amontonan.
+ */
+function horariosDelDia() {
+  const tramo = Math.floor((FRANJA_FIN - FRANJA_INICIO) / RECORDATORIOS);
+  const minutos = [];
+  for (let i = 0; i < RECORDATORIOS; i++) {
+    const desde = FRANJA_INICIO + i * tramo;
+    const margen = Math.max(1, Math.min(tramo, tramo - 20));
+    let minuto = desde + Math.floor(Math.random() * margen);
+    const anterior = minutos[minutos.length - 1];
+    if (anterior !== undefined && minuto - anterior < SEPARACION_MINIMA) {
+      minuto = anterior + SEPARACION_MINIMA;
+    }
+    minutos.push(Math.min(minuto, FRANJA_FIN));
+  }
+  return minutos;
+}
+
+async function enviar(envio, apiKey) {
+  const cuerpo = {
+    app_id: ONESIGNAL_APP_ID,
+    // Cada persona quedó enlazada con su uid desde el navegador (OneSignal.login).
+    include_aliases: { external_id: envio.uids },
+    target_channel: "push",
+    headings: { en: envio.titulo, es: envio.titulo },
+    contents: { en: envio.idea, es: envio.idea },
+    url: `${SITIO}/lecciones/${envio.leccion}`,
+  };
+  if (envio.cuando !== null) cuerpo.send_after = new Date(envio.cuando).toISOString();
+
+  try {
+    const res = await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Basic ${apiKey}` },
+      body: JSON.stringify(cuerpo),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+app.http("recordatorioDiario", {
+  route: "recordatorio-diario",
+  methods: ["GET", "POST"],
+  authLevel: "anonymous",
+  handler: async (request, context) => {
+    // Solo quien tenga el secreto puede dispararlo: si no, cualquiera podría
+    // mandarle notificaciones a toda la comunidad.
+    const secreto = process.env.CRON_SECRET;
+    if (!secreto) return { status: 401, body: "unauthorized" };
+    const dado =
+      (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "") ||
+      request.query.get("clave") ||
+      "";
+    if (dado !== secreto) return { status: 401, body: "unauthorized" };
+
+    const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+    if (!apiKey) return { status: 503, jsonBody: { error: "falta-onesignal" } };
+
+    const hoy = fechaBogota(Date.now());
+    const forzar = request.query.get("forzar") === "1";
+    const simular = request.query.get("simular") === "1";
+
+    try {
+      // Candado: si hoy ya se programó, no se repite. Evita que un disparo
+      // doble le mande a la gente el día por partida doble.
+      if (!forzar && !simular) {
+        const marca = await leerUno("recordatorios", P.recordatorios(), hoy);
+        if (marca) {
+          return { jsonBody: { ok: true, omitido: "ya-programado-hoy", fecha: hoy } };
+        }
+      }
+
+      const ciclo = await cicloActivo();
+      const mapa = await cargarIdeas();
+
+      const personas = (await leerTodo("users"))
+        .filter((u) => u.enrolled !== false)
+        .map((u) => ({
+          uid: u._fila,
+          leccion: Math.min(Math.max(Number(u.currentLesson ?? 1), 1), 365),
+        }));
+
+      if (personas.length === 0) {
+        return { jsonBody: { ok: true, personas: 0, envios: 0, fecha: hoy } };
+      }
+
+      // Quienes van en la misma lección reciben el mismo mensaje: se agrupan
+      // para mandar un envío por lección en vez de uno por persona.
+      const porLeccion = new Map();
+      for (const p of personas) {
+        const g = porLeccion.get(p.leccion);
+        if (g) g.push(p.uid);
+        else porLeccion.set(p.leccion, [p.uid]);
+      }
+
+      const momentos = horariosDelDia();
+      const ahora = Date.now();
+      const lista = [];
+
+      for (const [leccion, uids] of porLeccion) {
+        const { idea, esRepaso } = ideaDe(mapa, leccion);
+
+        // 1) El de la madrugada: sale ya y queda esperando en el teléfono.
+        lista.push({
+          uids,
+          leccion,
+          idea,
+          titulo: esRepaso ? `Lección ${leccion} · Repaso` : `Lección ${leccion}`,
+          cuando: null,
+        });
+
+        // 2) Los tres del día: misma idea, mismo enlace, a horas al azar.
+        for (const minuto of momentos) {
+          const cuando = instanteBogota(hoy, minuto);
+          if (!Number.isFinite(cuando) || cuando <= ahora) continue;
+          lista.push({
+            uids,
+            leccion,
+            idea,
+            titulo: esRepaso
+              ? `Vuelve a tu repaso · Lección ${leccion}`
+              : `Repite tu idea de hoy · Lección ${leccion}`,
+            cuando,
+          });
+        }
+      }
+
+      if (simular) {
+        return {
+          jsonBody: {
+            ok: true,
+            simulacion: true,
+            fecha: hoy,
+            ciclo,
+            personas: personas.length,
+            lecciones: porLeccion.size,
+            envios: lista.length,
+            plan: lista.map((e) => ({
+              leccion: e.leccion,
+              personas: e.uids.length,
+              cuando: e.cuando === null ? "ahora (3 a.m.)" : horaBogota(e.cuando),
+              titulo: e.titulo,
+              idea: e.idea,
+              enlace: `${SITIO}/lecciones/${e.leccion}`,
+            })),
+          },
+        };
+      }
+
+      // De a pocos, para no saturar ni pasarse del tiempo límite.
+      let logrados = 0;
+      for (let i = 0; i < lista.length; i += 6) {
+        const tanda = lista.slice(i, i + 6);
+        const r = await Promise.all(tanda.map((e) => enviar(e, apiKey)));
+        logrados += r.filter(Boolean).length;
+      }
+
+      await guardar("recordatorios", P.recordatorios(), hoy, {
+        fecha: hoy,
+        personas: personas.length,
+        lecciones: porLeccion.size,
+        envios: lista.length,
+        logrados,
+        creadoEn: ahora,
+      });
+
+      return {
+        jsonBody: {
+          ok: true,
+          fecha: hoy,
+          personas: personas.length,
+          lecciones: porLeccion.size,
+          envios: lista.length,
+          logrados,
+        },
+      };
+    } catch (err) {
+      context.error("fallo en el recordatorio:", err);
+      return {
+        status: 500,
+        jsonBody: { error: "fallo", detalle: err instanceof Error ? err.message : String(err) },
+      };
+    }
+  },
+});

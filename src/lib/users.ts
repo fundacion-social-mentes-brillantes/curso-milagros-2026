@@ -1,221 +1,111 @@
 "use client";
 
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  setDoc,
-  updateDoc,
-  writeBatch,
-} from "firebase/firestore";
 import type { User } from "firebase/auth";
-import { getDb } from "@/lib/firebase";
-import { lessonDocId } from "@/config/lessons.links";
-import { clampLesson } from "@/lib/utils";
-import { cicloActual, idProgreso } from "@/lib/ciclo";
-import { guardarMiNombre } from "@/lib/directorio";
+import { llamar, llamarSeguro, cargarUnaVez } from "@/lib/api";
 import type { AppUser, Plan, Role } from "@/types";
 
-function toAppUser(uid: string, data: Record<string, unknown>): AppUser {
-  return {
-    uid,
-    displayName: String(data.displayName ?? "Caminante"),
-    email: String(data.email ?? ""),
-    photoURL: (data.photoURL as string | null) ?? null,
-    role: (data.role as Role) ?? "user",
-    fullName: String(data.fullName ?? data.displayName ?? ""),
-    country: String(data.country ?? ""),
-    phone: String(data.phone ?? ""),
-    profileComplete: Boolean(data.profileComplete),
-    // Si el campo no existe (usuarios antiguos), se asume inscrito.
-    enrolled: data.enrolled === undefined ? true : Boolean(data.enrolled),
-    voiceReader: Boolean(data.voiceReader),
-    // Sin el campo (perfiles antiguos) = "pro": nadie pierde lo que ya tenía.
-    plan: data.plan === "ordinario" ? "ordinario" : "pro",
-    // Acumulado del ranking (así el panel no relee toda la colección).
-    rankDias: Number(data.rankDias ?? 0),
-    rankSumaPuesto: Number(data.rankSumaPuesto ?? 0),
-    rankSumaMinuto: Number(data.rankSumaMinuto ?? 0),
-    createdAt: Number(data.createdAt ?? 0),
-    lastLoginAt: Number(data.lastLoginAt ?? 0),
-    lastActivityAt: Number(data.lastActivityAt ?? 0),
-    currentLesson: Number(data.currentLesson ?? 1),
-    completedLessonsCount: Number(data.completedLessonsCount ?? 0),
-    lastCompletedAt: Number(data.lastCompletedAt ?? 0),
-  };
-}
+/**
+ * Personas del proceso.
+ *
+ * El login sigue siendo el de Google (Firebase); lo que cambió es DÓNDE vive el
+ * perfil: antes en Firestore, ahora detrás de la API. Las funciones de este
+ * archivo conservan el mismo nombre y la misma forma de siempre, así que
+ * ninguna pantalla tuvo que cambiar.
+ *
+ * Nota sobre `subscribe*`: antes eran "en vivo" (la pantalla se actualizaba
+ * sola). Ahora piden los datos una vez. Se mantiene la misma firma —le pasas
+ * una función y te devuelve otra para cancelar— para no tocar las pantallas.
+ */
 
 /**
- * Crea el perfil si no existe y actualiza datos de login.
- * NUNCA escala el rol: en creación queda como "user" (el admin se asigna
- * en el servidor vía /api/session).
+ * Asegura que la persona tiene perfil. El servidor lo crea en la primera
+ * llamada a `/api/yo`, así que basta con pedirlo.
+ *
+ * Importante: el rol NUNCA se manda desde aquí. Quien nace, nace participante.
  */
-export async function ensureUserProfile(user: User): Promise<void> {
-  const db = getDb();
-  const ref = doc(db, "users", user.uid);
-  const snap = await getDoc(ref);
-  const now = Date.now();
-
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      displayName: user.displayName ?? "Caminante",
-      email: user.email ?? "",
-      photoURL: user.photoURL ?? null,
-      role: "user" satisfies Role,
-      fullName: user.displayName ?? "",
-      country: "",
-      phone: "",
-      profileComplete: false,
-      enrolled: true,
-      voiceReader: false,
-      // Quien se registra entra como "ordinario"; el admin lo pasa a "pro"
-      // cuando confirma su pago.
-      plan: "ordinario" satisfies Plan,
-      createdAt: now,
-      lastLoginAt: now,
-      lastActivityAt: now,
-      currentLesson: 1,
-      completedLessonsCount: 0,
-      lastCompletedAt: 0,
-    });
-    return;
-  }
-
-  await updateDoc(ref, {
-    displayName: user.displayName ?? "Caminante",
-    photoURL: user.photoURL ?? null,
-    lastLoginAt: now,
-    lastActivityAt: now,
-  });
-  // Mantiene su nombre al día en el directorio de compañeros.
-  const yaTiene = snap.data();
-  void guardarMiNombre(
-    user.uid,
-    String(yaTiene?.fullName || yaTiene?.displayName || user.displayName || ""),
-  );
+export async function ensureUserProfile(_user: User): Promise<void> {
+  await llamarSeguro<AppUser | null>("/yo", null);
 }
 
 /**
  * Guarda los datos de registro y marca el perfil como completo.
- * Si se indica `startLesson` (> 1), marca como HECHAS las lecciones anteriores
- * (solo para el primer año, que ya había comenzado) y deja a la persona en esa lección.
+ *
+ * Si la persona dice "voy en la lección 60", el servidor da por hechas las 59
+ * anteriores. Eso solo se acepta la PRIMERA vez que se completa el registro:
+ * después, el avance solo cambia marcando lecciones una a una.
  */
 export async function completeUserProfile(
-  uid: string,
+  _uid: string,
   data: { fullName: string; country: string; phone: string; startLesson?: number },
 ): Promise<void> {
-  const db = getDb();
-  const now = Date.now();
-  const start = data.startLesson ? clampLesson(data.startLesson) : 1;
-  // Con el ciclo puesto: si no, en 2027 estas lecciones quedarían invisibles
-  // (se guardarían con el formato del primer año y nadie las volvería a ver).
-  const ciclo = await cicloActual();
-
-  if (start > 1) {
-    let batch = writeBatch(db);
-    let ops = 0;
-    for (let n = 1; n < start; n++) {
-      batch.set(doc(db, "progress", idProgreso(ciclo, uid, n)), {
-        userId: uid,
-        ciclo,
-        lessonId: lessonDocId(n),
-        lessonNumber: n,
-        completed: true,
-        completedAt: now,
-      });
-      ops++;
-      if (ops >= 400) {
-        await batch.commit();
-        batch = writeBatch(db);
-        ops = 0;
-      }
-    }
-    if (ops > 0) await batch.commit();
-  }
-
-  // El nombre también al directorio (lo ven los compañeros en el ranking).
-  void guardarMiNombre(uid, data.fullName.trim());
-
-  await updateDoc(doc(db, "users", uid), {
-    fullName: data.fullName.trim(),
-    displayName: data.fullName.trim() || "Caminante",
-    country: data.country.trim(),
-    phone: data.phone.trim(),
-    profileComplete: true,
-    currentLesson: start,
-    completedLessonsCount: start - 1,
-    lastActivityAt: now,
+  await llamar<AppUser>("/yo", {
+    metodo: "PATCH",
+    cuerpo: {
+      fullName: data.fullName,
+      country: data.country,
+      phone: data.phone,
+      ...(data.startLesson ? { startLesson: data.startLesson } : {}),
+    },
   });
 }
 
-export async function touchActivity(uid: string): Promise<void> {
-  const db = getDb();
-  try {
-    await updateDoc(doc(db, "users", uid), { lastActivityAt: Date.now() });
-  } catch {
-    /* silencioso: no debe romper la app */
-  }
+/** "Sigo por aquí". Si falla no pasa nada: es solo una estadística. */
+export async function touchActivity(_uid: string): Promise<void> {
+  await llamarSeguro("/yo/actividad", null, { metodo: "POST" });
 }
 
 export function subscribeAppUser(
-  uid: string,
+  _uid: string,
   cb: (user: AppUser | null) => void,
 ): () => void {
-  const db = getDb();
-  return onSnapshot(doc(db, "users", uid), (snap) => {
-    cb(snap.exists() ? toAppUser(snap.id, snap.data()) : null);
-  });
+  return cargarUnaVez(() => llamarSeguro<AppUser | null>("/yo", null), cb);
 }
 
-export async function getAppUser(uid: string): Promise<AppUser | null> {
-  const db = getDb();
-  const snap = await getDoc(doc(db, "users", uid));
-  return snap.exists() ? toAppUser(snap.id, snap.data()) : null;
+export async function getAppUser(_uid: string): Promise<AppUser | null> {
+  return llamarSeguro<AppUser | null>("/yo", null);
 }
 
 /** (Admin) Lista todas las personas. */
 export async function listUsers(): Promise<AppUser[]> {
-  const db = getDb();
-  const snap = await getDocs(collection(db, "users"));
-  return snap.docs.map((d) => toAppUser(d.id, d.data()));
+  const r = await llamarSeguro<{ usuarios: AppUser[] }>("/usuarios", { usuarios: [] });
+  return r.usuarios;
 }
 
-/** (Admin) Escucha EN TIEMPO REAL a todas las personas (refleja cambios al instante). */
+/** (Admin) Todas las personas. Ya no es en vivo; se piden una vez. */
 export function subscribeUsers(cb: (users: AppUser[]) => void): () => void {
-  const db = getDb();
-  return onSnapshot(collection(db, "users"), (snap) => {
-    cb(snap.docs.map((d) => toAppUser(d.id, d.data())));
+  return cargarUnaVez(listUsers, cb);
+}
+
+/** Cambio hecho por un admin sobre OTRA persona. */
+async function cambiarPersona(uid: string, cambios: Record<string, unknown>): Promise<void> {
+  await llamar<AppUser>(`/usuarios/${encodeURIComponent(uid)}`, {
+    metodo: "PATCH",
+    cuerpo: cambios,
   });
 }
 
-/** (Admin) Cambia el rol de una persona. */
+/** (Admin) Cambia el rol. Solo lo permite la cuenta principal de la fundación. */
 export async function setUserRole(uid: string, role: Role): Promise<void> {
-  const db = getDb();
-  await updateDoc(doc(db, "users", uid), { role });
+  await cambiarPersona(uid, { role });
 }
 
-/** (Admin) Inscribe o desinscribe a una persona del proceso activo. */
+/** (Admin) Inscribe o desinscribe del proceso activo. */
 export async function setUserEnrolled(uid: string, enrolled: boolean): Promise<void> {
-  const db = getDb();
-  await updateDoc(doc(db, "users", uid), { enrolled });
+  await cambiarPersona(uid, { enrolled });
 }
 
 /**
- * (Admin) Activa o desactiva la lectura en voz alta para una persona
+ * (Admin) Activa la lectura en voz alta para una persona
  * (accesibilidad: solo para quien la solicite).
  */
 export async function setUserVoiceReader(uid: string, voiceReader: boolean): Promise<void> {
-  const db = getDb();
-  await updateDoc(doc(db, "users", uid), { voiceReader });
+  await cambiarPersona(uid, { voiceReader });
 }
 
 /**
- * (Admin) Cambia el plan de una persona: "pro" (pagó) u "ordinario".
- * Es lo único que decide si ve el video, Lumi y el audio narrado.
+ * (Admin) Cambia el plan: "pro" (Portador de Luz) u "ordinario" (Caminante).
+ * Es lo único que decide si ve el video, a Lumi y la lección narrada.
  */
 export async function setUserPlan(uid: string, plan: Plan): Promise<void> {
-  const db = getDb();
-  await updateDoc(doc(db, "users", uid), { plan });
+  await cambiarPersona(uid, { plan });
 }

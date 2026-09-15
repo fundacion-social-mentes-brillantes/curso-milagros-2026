@@ -1,49 +1,39 @@
 "use client";
 
-import {
-  addDoc,
-  collection,
-  doc,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { getDb } from "@/lib/firebase";
+import { llamar, llamarSeguro, cargarUnaVez } from "@/lib/api";
 import type { AppUser, ForumPost, ForumStatus } from "@/types";
 
-function toPost(id: string, data: Record<string, unknown>): ForumPost {
-  return {
-    id,
-    lessonNumber: Number(data.lessonNumber ?? 0),
-    userId: String(data.userId ?? ""),
-    userName: String(data.userName ?? "Caminante"),
-    userPhoto: (data.userPhoto as string | null) ?? null,
-    message: String(data.message ?? ""),
-    createdAt: Number(data.createdAt ?? 0),
-    parentId: (data.parentId as string | null) ?? null,
-    status: (data.status as ForumStatus) ?? "visible",
-  };
+/**
+ * Foro de cada lección.
+ *
+ * Dos cosas cambiaron al salir de Firestore:
+ *
+ * 1. Ya no es "en vivo". Antes los mensajes nuevos aparecían solos; ahora la
+ *    lista se pide al abrir y al publicar. Con el uso que tiene, casi no se nota.
+ *
+ * 2. El autor ya NO viaja desde el navegador. Antes se mandaban nombre y foto
+ *    junto al mensaje, y quien supiera hacerlo podía publicar con el nombre de
+ *    otra persona. Ahora el servidor lo saca del pase de Google.
+ */
+
+async function pedirMensajes(n: number): Promise<ForumPost[]> {
+  const r = await llamarSeguro<{ mensajes: ForumPost[] }>(`/foro/${n}`, {
+    mensajes: [],
+  });
+  return [...r.mensajes].sort((a, b) => a.createdAt - b.createdAt);
 }
 
-/**
- * Escucha los mensajes de una lección. Una sola condición de igualdad
- * (sin orderBy) evita índices compuestos; se ordena en el cliente.
- */
+/** Mensajes de una lección, del más viejo al más nuevo. */
 export function subscribeLessonPosts(
   n: number,
   cb: (posts: ForumPost[]) => void,
 ): () => void {
-  const db = getDb();
-  const q = query(collection(db, "forumPosts"), where("lessonNumber", "==", n));
-  return onSnapshot(q, (snap) => {
-    const posts = snap.docs
-      .map((d) => toPost(d.id, d.data()))
-      .sort((a, b) => a.createdAt - b.createdAt);
-    cb(posts);
-  });
+  return cargarUnaVez(() => pedirMensajes(n), cb);
+}
+
+/** Vuelve a pedir los mensajes (después de publicar o moderar). */
+export async function listLessonPosts(n: number): Promise<ForumPost[]> {
+  return pedirMensajes(n);
 }
 
 export async function addPost(args: {
@@ -54,46 +44,49 @@ export async function addPost(args: {
 }): Promise<void> {
   const message = args.message.trim();
   if (!message) return;
-  const db = getDb();
-  await addDoc(collection(db, "forumPosts"), {
-    lessonNumber: args.lessonNumber,
-    userId: args.user.uid,
-    userName: args.user.displayName,
-    userPhoto: args.user.photoURL ?? null,
-    message,
-    createdAt: Date.now(),
-    parentId: args.parentId ?? null,
-    status: "visible" satisfies ForumStatus,
+  // `user` se conserva en la firma para no tocar las pantallas, pero NO se
+  // envía: el servidor decide quién eres. Suplantar ya no es posible.
+  await llamar(`/foro/${args.lessonNumber}`, {
+    metodo: "POST",
+    cuerpo: { message, parentId: args.parentId ?? null },
   });
 }
 
-/** (Admin) Cambia el estado de un mensaje: ocultar, revisar, restaurar. */
+/**
+ * Cambia el estado de un mensaje.
+ *
+ * Recibe el mensaje entero (no solo su id) porque ahora hace falta saber a qué
+ * lección pertenece: es lo que le dice al servidor dónde está guardado.
+ */
 export async function moderatePost(
-  id: string,
+  post: Pick<ForumPost, "id" | "lessonNumber">,
   status: ForumStatus,
 ): Promise<void> {
-  const db = getDb();
-  await updateDoc(doc(db, "forumPosts", id), { status });
+  await llamar(`/foro/${post.lessonNumber}/${encodeURIComponent(post.id)}`, {
+    metodo: "PATCH",
+    cuerpo: { status },
+  });
 }
 
-/** Borrado suave (autor o admin): marca como "deleted". */
-export async function softDeletePost(id: string): Promise<void> {
-  const db = getDb();
-  await updateDoc(doc(db, "forumPosts", id), { status: "deleted" });
+/** Borrado suave. Lo puede hacer el autor con el suyo, o un admin con cualquiera. */
+export async function softDeletePost(
+  post: Pick<ForumPost, "id" | "lessonNumber">,
+): Promise<void> {
+  await moderatePost(post, "deleted");
 }
 
 /** (Admin) Mensajes recientes de todas las lecciones, para moderar. */
 export function subscribeRecentPosts(
   cb: (posts: ForumPost[]) => void,
-  max = 200,
+  _max = 200,
 ): () => void {
-  const db = getDb();
-  const q = query(
-    collection(db, "forumPosts"),
-    orderBy("createdAt", "desc"),
-    limit(max),
+  return cargarUnaVez(
+    async () =>
+      (
+        await llamarSeguro<{ mensajes: ForumPost[] }>("/foro-reciente", {
+          mensajes: [],
+        })
+      ).mensajes,
+    cb,
   );
-  return onSnapshot(q, (snap) => {
-    cb(snap.docs.map((d) => toPost(d.id, d.data())));
-  });
 }
