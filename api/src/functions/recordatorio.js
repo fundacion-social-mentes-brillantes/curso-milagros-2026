@@ -135,12 +135,47 @@ app.http("recordatorioDiario", {
     // Solo quien tenga el secreto puede dispararlo: si no, cualquiera podría
     // mandarle notificaciones a toda la comunidad.
     const secreto = process.env.CRON_SECRET;
-    if (!secreto) return { status: 401, body: "unauthorized" };
-    const dado =
-      (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "") ||
-      request.query.get("clave") ||
-      "";
-    if (dado !== secreto) return { status: 401, body: "unauthorized" };
+    // Los dos rechazos se distinguen a proposito: "sin-secreto" avisa de que
+    // falta configurar la variable en Azure, y "clave-incorrecta" de que quien
+    // llama no tiene la buena. Ninguno revela el secreto.
+    if (!secreto) return { status: 401, body: "sin-secreto-configurado" };
+    /*
+     * La clave puede venir por cabecera o por parámetro, y se aceptan LAS DOS.
+     *
+     * Ojo con la cabecera: Azure Static Web Apps mete su propio testigo interno
+     * en `Authorization` antes de entregarnos la petición (llega con ~365
+     * caracteres que no son nuestros). Por eso no vale con "si hay cabecera,
+     * usa la cabecera": hay que mirar las dos y quedarse con la que coincida.
+     * Esto costó una tarde de depuración; no volver a la versión de antes.
+     */
+    const deCabecera = (request.headers.get("authorization") || "")
+      .replace(/^Bearer\s+/i, "")
+      .trim();
+    const deParametro = (request.query.get("clave") || "").trim();
+    const deCabeceraPropia = (request.headers.get("x-clave-cron") || "").trim();
+    const dado = [deCabecera, deParametro, deCabeceraPropia].find((v) => v === secreto) || "";
+    if (dado !== secreto) return { status: 401, body: "clave-incorrecta" };
+
+    // Diagnostico: dice si Azure entrego las variables, con LONGITUDES y nunca
+    // valores. Va DESPUES de comprobar la clave: si estuviera antes, cualquiera
+    // podria sondear la configuracion del servidor sin permiso.
+    if (request.query.get("diag") === "1") {
+      return {
+        jsonBody: {
+          secretoConfigurado: Boolean(secreto),
+          longitudSecreto: secreto ? secreto.length : 0,
+          longitudCabecera: deCabecera.length,
+          longitudParametro: deParametro.length,
+          coinciden: dado === secreto,
+          tablas: Boolean(process.env.TABLES_CONNECTION_STRING),
+          onesignal: Boolean(process.env.ONESIGNAL_REST_API_KEY),
+          longitudOnesignal: (process.env.ONESIGNAL_REST_API_KEY || "").length,
+          deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
+          sitio: process.env.SITIO_URL || "(sin definir)",
+        },
+      };
+    }
+
 
     const apiKey = process.env.ONESIGNAL_REST_API_KEY;
     if (!apiKey) return { status: 503, jsonBody: { error: "falta-onesignal" } };

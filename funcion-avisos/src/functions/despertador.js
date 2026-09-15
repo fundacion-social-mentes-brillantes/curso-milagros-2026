@@ -32,9 +32,12 @@ app.timer("despertadorDiario", {
     }
 
     try {
+      // Se manda en una cabecera PROPIA, no en `Authorization`: Azure Static
+      // Web Apps sustituye esa última por su testigo interno antes de entregar
+      // la petición, y el secreto nunca llegaría.
       const res = await fetch(DESTINO, {
         method: "POST",
-        headers: { Authorization: `Bearer ${secreto}` },
+        headers: { "x-clave-cron": secreto },
       });
       const texto = await res.text();
       // Queda registrado para poder mirar mañana si algo no llegó.
