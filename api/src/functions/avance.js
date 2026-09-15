@@ -81,8 +81,14 @@ function aAvance(f) {
   };
 }
 
-/** Lee de una vez todo mi avance del ciclo: es una sola consulta a mi partición. */
-async function misFilas(uid) {
+/**
+ * Lee de una vez todo mi avance del ciclo: una sola consulta a mi partición.
+ *
+ * El ciclo llega SIEMPRE como parámetro. Esta función vive fuera de las rutas,
+ * así que no puede verlo por su cuenta: si se le olvida, no da un error claro,
+ * revienta con un 500 que no dice nada.
+ */
+async function misFilas(ciclo, uid) {
   const filas = await leerParticion("progress", P.progress(ciclo, uid));
   return filas.map(aAvance).sort((a, b) => a.lessonNumber - b.lessonNumber);
 }
@@ -93,7 +99,7 @@ app.http("avanceLista", {
   methods: ["GET"],
   authLevel: "anonymous",
   handler: manejar("sesion", async (_req, _ctx, { persona, ciclo }) => {
-    return json({ avance: await misFilas(persona.uid) });
+    return json({ avance: await misFilas(ciclo, persona.uid) });
   }),
 });
 
@@ -253,7 +259,7 @@ app.http("notasLista", {
   methods: ["GET"],
   authLevel: "anonymous",
   handler: manejar("sesion", async (_req, _ctx, { persona, ciclo }) => {
-    const filas = await misFilas(persona.uid);
+    const filas = await misFilas(ciclo, persona.uid);
     const notas = filas
       .filter((f) => f.nota.trim().length > 0)
       .map((f) => ({ lessonNumber: f.lessonNumber, nota: f.nota, notaEn: f.notaEn }));

@@ -55,7 +55,9 @@ export async function llamar<T>(ruta: string, opciones: Opciones = {}): Promise<
   if (!publica) {
     const token = await pase();
     if (!token) throw new ErrorApi(401, "sin-sesion");
-    cabeceras.Authorization = `Bearer ${token}`;
+    // En cabecera PROPIA, no en `Authorization`: Azure Static Web Apps pisa esa
+    // ultima con su testigo interno y el pase no llegaria nunca al servidor.
+    cabeceras["x-pase"] = token;
   }
   if (cuerpo !== undefined) cabeceras["Content-Type"] = "application/json";
 

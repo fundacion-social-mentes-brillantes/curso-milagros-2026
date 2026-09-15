@@ -88,8 +88,25 @@ async function verificarToken(token) {
   }
 }
 
-/** Saca el token de la cabecera `Authorization: Bearer ...`. */
+/**
+ * Saca el pase de la peticion.
+ *
+ * OJO, esto es importante: Azure Static Web Apps SUSTITUYE la cabecera
+ * `Authorization` por su propio testigo interno antes de entregarnos la
+ * peticion. Si el navegador manda ahi el pase de Google, nunca llega y la API
+ * rechaza a todo el mundo con un 401 que parece correcto desde fuera.
+ *
+ * Por eso el pase viaja en una cabecera PROPIA (`x-pase`). Se sigue mirando
+ * `Authorization` de respaldo, por si algun dia se llama a la API desde fuera
+ * de Static Web Apps.
+ */
 async function quienLlama(request) {
+  const propia = (request.headers.get("x-pase") || "").trim();
+  if (propia) {
+    const persona = await verificarToken(propia);
+    if (persona) return persona;
+  }
+
   const cabecera = request.headers.get("authorization") || "";
   if (!cabecera.startsWith("Bearer ")) return null;
   return verificarToken(cabecera.slice(7).trim());

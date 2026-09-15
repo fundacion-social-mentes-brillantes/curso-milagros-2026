@@ -117,12 +117,20 @@ app.http("lumi", {
       const mensajes = limpiarMensajes(body?.messages);
       if (mensajes.length === 0) return json({ error: "bad-request" }, 400);
 
-      // El pase puede venir en la cabecera (lo nuevo) o en el cuerpo (como lo
-      // manda hoy la pantalla del chat). Se aceptan los dos.
+      /*
+       * El pase se busca en tres sitios, por este orden:
+       *   1. la cabecera propia `x-pase` (lo normal en la app),
+       *   2. el cuerpo (asi lo manda hoy la pantalla del chat),
+       *   3. `Authorization` (respaldo).
+       *
+       * La numero 3 va la ultima a proposito: Azure Static Web Apps pisa esa
+       * cabecera con su testigo interno, asi que casi nunca trae lo nuestro.
+       */
       const cabecera = request.headers.get("authorization") || "";
-      const token = cabecera.startsWith("Bearer ")
-        ? cabecera.slice(7).trim()
-        : body?.idToken;
+      const token =
+        (request.headers.get("x-pase") || "").trim() ||
+        body?.idToken ||
+        (cabecera.startsWith("Bearer ") ? cabecera.slice(7).trim() : "");
 
       const persona = await verificarToken(token);
       if (!persona) return json({ error: "unauthorized" }, 401);
