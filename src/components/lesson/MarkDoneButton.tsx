@@ -6,10 +6,12 @@ import { setLessonDone } from "@/lib/progress";
 import { getLessonRank } from "@/lib/ranking";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDateTime } from "@/lib/utils";
+import { CompartirWhatsApp } from "@/components/lesson/CompartirWhatsApp";
 
 export function MarkDoneButton({
   uid,
   lessonNumber,
+  lessonTitle,
   completed,
   completedAt,
   currentLesson,
@@ -17,6 +19,8 @@ export function MarkDoneButton({
 }: {
   uid: string;
   lessonNumber: number;
+  /** Titulo de la leccion: es la idea que se comparte con el grupo. */
+  lessonTitle: string;
   completed: boolean;
   completedAt: number | null;
   /** Lección en la que va la persona (no puede marcar más adelante que esta). */
@@ -91,6 +95,9 @@ export function MarkDoneButton({
             </p>
           )}
           {at && <p className="text-xs text-muted">Marcada el {formatDateTime(at)}</p>}
+          {/* Compartir con el grupo: solo tiene sentido una vez hecha. */}
+          <CompartirWhatsApp lessonNumber={lessonNumber} title={lessonTitle} />
+
           <button
             onClick={() => void toggle(false)}
             disabled={busy}

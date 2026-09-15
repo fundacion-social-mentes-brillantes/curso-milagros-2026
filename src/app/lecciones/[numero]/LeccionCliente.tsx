@@ -191,6 +191,7 @@ function LessonInner({ n }: { n: number }) {
             <MarkDoneButton
               uid={appUser.uid}
               lessonNumber={lesson.number}
+              lessonTitle={lesson.title}
               completed={Boolean(progress?.completed)}
               completedAt={progress?.completedAt ?? null}
               currentLesson={appUser.currentLesson || 1}
