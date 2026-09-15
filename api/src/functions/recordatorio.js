@@ -33,11 +33,42 @@ const RECORDATORIOS = 3;
 const SEPARACION_MINIMA = 150; // 2 h 30 min entre uno y otro
 
 /**
- * No todas las lecciones tienen una frase repetible: las de repaso (52 a 60,
- * 85, 87) se titulan "El repaso de hoy abarca las siguientes ideas:", y un par
- * (213, 359) se quedaron sin título. Esos días va un texto que sí dice algo,
- * con el enlace correcto igual.
+ * LOS DÍAS DE REPASO (69 de los 365).
+ *
+ * Esos días el Curso no trae idea nueva: manda repasar ideas anteriores, y la
+ * lección se titula "El repaso de hoy abarca las siguientes ideas:". Mandar eso
+ * en un aviso no le dice nada a nadie.
+ *
+ * La estructura de repasos es fija, así que se calcula y el aviso dice QUÉ se
+ * repasa. Es la misma tabla que `src/lib/repasos.ts` en la app: si se cambia
+ * una, cambiar la otra.
  */
+const BLOQUES_DE_REPASO = [
+  { desde: 51, hasta: 60, repasaDesde: 1, porDia: 5 },
+  { desde: 81, hasta: 90, repasaDesde: 61, porDia: 2 },
+  { desde: 111, hasta: 120, repasaDesde: 91, porDia: 2 },
+  { desde: 141, hasta: 150, repasaDesde: 121, porDia: 2 },
+  { desde: 171, hasta: 180, repasaDesde: 151, porDia: 2 },
+  { desde: 201, hasta: 220, repasaDesde: 181, porDia: 1 },
+];
+
+function repasoDe(n) {
+  for (const b of BLOQUES_DE_REPASO) {
+    if (n >= b.desde && n <= b.hasta) {
+      const primera = b.repasaDesde + (n - b.desde) * b.porDia;
+      return Array.from({ length: b.porDia }, (_, i) => primera + i);
+    }
+  }
+  return null;
+}
+
+/** "11, 12, 13, 14 y 15" */
+function enumerar(nums) {
+  if (nums.length === 1) return String(nums[0]);
+  return `${nums.slice(0, -1).join(", ")} y ${nums[nums.length - 1]}`;
+}
+
+/** Respaldo por si alguna lección se quedara sin título. */
 const FRASE_DE_REPASO = /^(el\s+)?repaso\b|abarca las siguientes ideas/i;
 const RESPALDO = "Tu lección de hoy te espera. Entra y hazla con calma. 🌿";
 
@@ -53,6 +84,18 @@ async function cargarIdeas() {
 }
 
 function ideaDe(mapa, leccion) {
+  // El repaso se decide por la ESTRUCTURA del Curso, no por cómo esté escrito
+  // el título: así sigue funcionando aunque cambie la traducción.
+  const repasa = repasoDe(leccion);
+  if (repasa) {
+    const cuales = enumerar(repasa);
+    const idea =
+      repasa.length === 1
+        ? `Hoy vuelves sobre la idea de la lección ${cuales}.`
+        : `Hoy vuelves sobre las ideas de las lecciones ${cuales}.`;
+    return { idea, esRepaso: true };
+  }
+
   const t = (mapa.get(leccion) ?? "").trim();
   if (!t || FRASE_DE_REPASO.test(t)) return { idea: RESPALDO, esRepaso: true };
   return { idea: t, esRepaso: false };

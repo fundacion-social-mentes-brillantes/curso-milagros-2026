@@ -23,19 +23,22 @@ import { SITE } from "@/config/site";
 /**
  * El mensaje que se propone por defecto.
  *
- * Dos cuidados: solo dice "repaso" cuando la lección lo es de verdad, y si no
- * tiene título (pasa con la 213 y la 359) se manda sin la frase entrecomillada
- * en vez de rellenarla con algo inventado.
+ * Tres cuidados:
+ *  - Solo dice "repaso" cuando la lección lo es de verdad.
+ *  - Los días de repaso dice QUÉ lecciones se repasan, no una frase vaga.
+ *  - Las comillas angulares se reservan para la idea del Curso. La frase de un
+ *    repaso es nuestra, no una cita, así que va sin comillas: entrecomillarla
+ *    haría parecer que el Curso dice algo que no dice.
  */
 function mensajePorDefecto(numero: number, titulo: string): string {
-  const { idea, motivo } = ideaDeLeccion(titulo);
+  const { idea, motivo } = ideaDeLeccion(titulo, numero);
 
   const cabecera =
     motivo === "repaso"
       ? `🌅 Terminé el repaso de la lección ${numero} de ${SITE.totalLessons}.`
       : `🌅 Terminé la lección ${numero} de ${SITE.totalLessons}.`;
 
-  const frase = idea ? `\n\n«${idea}»` : "";
+  const frase = !idea ? "" : motivo === "repaso" ? `\n\n${idea}` : `\n\n«${idea}»`;
 
   return `${cabecera}${frase}\n\n${SITE.tagline} 🕊️`;
 }

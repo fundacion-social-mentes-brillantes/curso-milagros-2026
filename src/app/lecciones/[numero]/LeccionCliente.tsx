@@ -27,6 +27,7 @@ import { LessonImage } from "@/components/lesson/LessonImage";
 import { VideoPlayer } from "@/components/lesson/VideoPlayer";
 import { PracticeToggle } from "@/components/lesson/PracticeToggle";
 import { OriginalText } from "@/components/lesson/OriginalText";
+import { Repaso } from "@/components/lesson/Repaso";
 import { LessonReader } from "@/components/lesson/LessonReader";
 import { CommentarySections } from "@/components/lesson/CommentarySections";
 import { MarkDoneButton } from "@/components/lesson/MarkDoneButton";
@@ -159,6 +160,11 @@ function LessonInner({ n }: { n: number }) {
 
         <div className="mt-6 space-y-6">
           <LessonImage number={lesson.number} title={lesson.title} />
+
+          {/* Los días de repaso, lo primero es saber QUÉ se repasa. Sin esto,
+              el título ("El repaso de hoy abarca las siguientes ideas") deja a
+              la persona sin saber por dónde empezar. */}
+          <Repaso lessonNumber={lesson.number} />
 
           {/* Lección narrada: es del plan Pro, pero se respeta la activación
               manual de accesibilidad (voiceReader) para quien la necesite. */}
