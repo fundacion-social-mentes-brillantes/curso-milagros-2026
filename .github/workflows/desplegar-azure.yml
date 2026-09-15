@@ -1,0 +1,62 @@
+# Despliegue automático a Azure.
+#
+# POR QUÉ EXISTE: Vercel desplegaba solo con cada cambio en `main`, y de eso
+# dependía el escenario de Make que cada noche sube los videos del canal. Al
+# pasar a Azure eso se perdió: Make seguía subiendo a GitHub, pero el sitio en
+# vivo no se enteraba. Los videos nuevos se quedaban en el repositorio.
+#
+# Con esto vuelve a funcionar igual que antes: quien haga un cambio en `main`
+# —una persona o Make— lo ve publicado en unos minutos, sin tocar nada.
+
+name: Desplegar a Azure
+
+on:
+  push:
+    branches: [main]
+  # Permite lanzarlo a mano desde la pestaña Actions de GitHub.
+  workflow_dispatch:
+
+# Si llegan dos cambios seguidos, se despliega el último y se cancela el
+# anterior: no tiene sentido publicar una versión que ya quedó vieja.
+concurrency:
+  group: despliegue-azure
+  cancel-in-progress: true
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    name: Construir y publicar
+    steps:
+      - name: Traer el código
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Construir el sitio
+        env:
+          # De aquí salen los audios y las imágenes de cada lección: viven en
+          # Azure Blob, no dentro del sitio. Sin esta variable el sitio se
+          # construye buscándolos dentro y no aparecerían.
+          NEXT_PUBLIC_ASSETS_URL: https://stgembcurso.blob.core.windows.net
+        run: npm run build
+
+      - name: Publicar en Azure
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          # `out` ya viene construido por el paso anterior (y sin los 644 MB de
+          # audios, que los quita `scripts/limpiar-out.mjs`).
+          app_location: out
+          api_location: api
+          output_location: ""
+          skip_app_build: true
