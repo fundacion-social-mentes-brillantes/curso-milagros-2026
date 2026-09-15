@@ -22,9 +22,16 @@ const STATUS_CLASS: Record<UserStatus, string> = {
 export function UsersTable({
   users,
   editable = false,
+  onCambio,
 }: {
   users: AppUser[];
   editable?: boolean;
+  /**
+   * Se llama después de guardar un cambio, para que quien manda la lista la
+   * vuelva a pedir. Sin esto el cambio se guarda pero la pantalla se queda
+   * igual, y parece que el botón no hace nada.
+   */
+  onCambio?: () => void;
 }) {
   const { firebaseUser } = useAuth();
   const myUid = firebaseUser?.uid;
@@ -58,6 +65,33 @@ export function UsersTable({
       .sort((a, b) => b.lastActivityAt - a.lastActivityAt);
   }, [users, q, filter]);
 
+  const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Hace un cambio sobre una persona.
+   *
+   * Tres cosas que antes no pasaban y hacían que pareciera roto:
+   *  - si falla, ahora se ve el aviso (antes el error se tragaba en silencio);
+   *  - si sale bien, se vuelve a pedir la lista para que el cambio se vea;
+   *  - mientras tanto el botón queda ocupado, para no darle dos veces.
+   */
+  async function guardarCambio(
+    uid: string,
+    ocupar: (v: string | null) => void,
+    accion: () => Promise<void>,
+  ) {
+    setError(null);
+    ocupar(uid);
+    try {
+      await accion();
+      onCambio?.();
+    } catch {
+      setError("No se pudo guardar el cambio. Revisa tu conexión e inténtalo otra vez.");
+    } finally {
+      ocupar(null);
+    }
+  }
+
   async function toggleRole(u: AppUser) {
     const makingAdmin = u.role !== "admin";
     const ok = window.confirm(
@@ -66,39 +100,25 @@ export function UsersTable({
         : `¿Quitar el acceso de administrador a ${u.displayName}?`,
     );
     if (!ok) return;
-    setPendingUid(u.uid);
-    try {
-      await setUserRole(u.uid, makingAdmin ? "admin" : "user");
-    } finally {
-      setPendingUid(null);
-    }
+    await guardarCambio(u.uid, setPendingUid, () =>
+      setUserRole(u.uid, makingAdmin ? "admin" : "user"),
+    );
   }
 
   async function toggleEnrolled(u: AppUser) {
-    setEnrollBusy(u.uid);
-    try {
-      await setUserEnrolled(u.uid, !u.enrolled);
-    } finally {
-      setEnrollBusy(null);
-    }
+    await guardarCambio(u.uid, setEnrollBusy, () => setUserEnrolled(u.uid, !u.enrolled));
   }
 
   async function togglePlan(u: AppUser) {
-    setPlanBusy(u.uid);
-    try {
-      await setUserPlan(u.uid, u.plan === "ordinario" ? "pro" : "ordinario");
-    } finally {
-      setPlanBusy(null);
-    }
+    await guardarCambio(u.uid, setPlanBusy, () =>
+      setUserPlan(u.uid, u.plan === "ordinario" ? "pro" : "ordinario"),
+    );
   }
 
   async function toggleVoice(u: AppUser) {
-    setVoiceBusy(u.uid);
-    try {
-      await setUserVoiceReader(u.uid, !u.voiceReader);
-    } finally {
-      setVoiceBusy(null);
-    }
+    await guardarCambio(u.uid, setVoiceBusy, () =>
+      setUserVoiceReader(u.uid, !u.voiceReader),
+    );
   }
 
   // Control de "inscrito" (pastilla clara, fácil de tocar en celular).
@@ -216,6 +236,11 @@ export function UsersTable({
 
   return (
     <div className="card overflow-hidden">
+      {error && (
+        <p className="border-b border-warning/30 bg-warning/10 px-4 py-2.5 text-sm text-warning">
+          {error}
+        </p>
+      )}
       <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-display text-lg font-semibold">Personas ({users.length})</h3>

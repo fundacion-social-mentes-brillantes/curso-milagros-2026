@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import {
   addPost,
+  listLessonPosts,
   moderatePost,
   softDeletePost,
-  subscribeLessonPosts,
 } from "@/lib/forum";
 import { Avatar } from "@/components/ui/Avatar";
 import { Spinner } from "@/components/ui/Spinner";
@@ -28,7 +28,20 @@ export function Forum({ lessonNumber }: { lessonNumber: number }) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
 
-  useEffect(() => subscribeLessonPosts(lessonNumber, setPosts), [lessonNumber]);
+  /**
+   * Pide los mensajes. Se llama al abrir y DESPUÉS DE CADA acción propia
+   * (publicar, responder, moderar, borrar): si no, lo que acabas de hacer no
+   * aparece y parece que no funcionó.
+   */
+  const recargar = useCallback(() => {
+    listLessonPosts(lessonNumber)
+      .then(setPosts)
+      .catch(() => setPosts([]));
+  }, [lessonNumber]);
+
+  useEffect(() => {
+    recargar();
+  }, [recargar]);
 
   const visible = useMemo(
     () =>
@@ -57,6 +70,7 @@ export function Forum({ lessonNumber }: { lessonNumber: number }) {
     try {
       await addPost({ lessonNumber, user: appUser, message: text });
       setText("");
+      recargar();
     } finally {
       setSending(false);
     }
@@ -67,6 +81,7 @@ export function Forum({ lessonNumber }: { lessonNumber: number }) {
     await addPost({ lessonNumber, user: appUser, message: replyText, parentId });
     setReplyText("");
     setReplyTo(null);
+    recargar();
   }
 
   function PostCard({ post, isReply = false }: { post: ForumPost; isReply?: boolean }) {
@@ -101,7 +116,7 @@ export function Forum({ lessonNumber }: { lessonNumber: number }) {
               )}
               {(mine || canModerate) && !isDeleted && (
                 <button
-                  onClick={() => void softDeletePost(post)}
+                  onClick={() => void softDeletePost(post).then(recargar)}
                   className="text-muted hover:text-warning"
                 >
                   Borrar
@@ -110,16 +125,16 @@ export function Forum({ lessonNumber }: { lessonNumber: number }) {
               {canModerate && (
                 <>
                   {post.status !== "hidden" ? (
-                    <button onClick={() => void moderatePost(post, "hidden")} className="text-muted hover:text-fg">
+                    <button onClick={() => void moderatePost(post, "hidden").then(recargar)} className="text-muted hover:text-fg">
                       Ocultar
                     </button>
                   ) : (
-                    <button onClick={() => void moderatePost(post, "visible")} className="text-aqua hover:underline">
+                    <button onClick={() => void moderatePost(post, "visible").then(recargar)} className="text-aqua hover:underline">
                       Mostrar
                     </button>
                   )}
                   {post.status !== "reviewed" && post.status !== "deleted" && (
-                    <button onClick={() => void moderatePost(post, "reviewed")} className="text-muted hover:text-fg">
+                    <button onClick={() => void moderatePost(post, "reviewed").then(recargar)} className="text-muted hover:text-fg">
                       Marcar revisado
                     </button>
                   )}

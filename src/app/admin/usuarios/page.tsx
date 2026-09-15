@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
-import { subscribeUsers } from "@/lib/users";
+import { listUsers } from "@/lib/users";
 import { UsersTable } from "@/components/admin/UsersTable";
 import { PageLoader } from "@/components/ui/Spinner";
 import type { AppUser } from "@/types";
@@ -11,10 +11,22 @@ import type { AppUser } from "@/types";
 function UsuariosInner() {
   const [users, setUsers] = useState<AppUser[] | null>(null);
 
-  useEffect(() => {
-    // En tiempo real: cualquier cambio (inscrito, rol) se ve al instante.
-    return subscribeUsers(setUsers);
+  /**
+   * Pide la lista al servidor.
+   *
+   * Se llama al entrar y DESPUÉS DE CADA CAMBIO. Sin esa segunda parte, al
+   * tocar "inscrito" o el plan el cambio se guardaba pero la pantalla se
+   * quedaba igual, y daba toda la impresión de que el botón no servía.
+   */
+  const recargar = useCallback(() => {
+    listUsers()
+      .then(setUsers)
+      .catch(() => setUsers([]));
   }, []);
+
+  useEffect(() => {
+    recargar();
+  }, [recargar]);
 
   if (users === null) return <PageLoader label="Cargando personas..." />;
 
@@ -36,7 +48,7 @@ function UsuariosInner() {
       </header>
 
       <div className="mt-6">
-        <UsersTable users={users} editable />
+        <UsersTable users={users} editable onCambio={recargar} />
       </div>
     </div>
   );

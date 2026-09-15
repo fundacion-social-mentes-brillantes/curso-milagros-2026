@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
 import { moderatePost, softDeletePost, subscribeRecentPosts } from "@/lib/forum";
+import { useCallback } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { PageLoader } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -29,7 +30,9 @@ function ForoInner() {
   const [posts, setPosts] = useState<ForumPost[] | null>(null);
   const [filter, setFilter] = useState<ForumStatus | "all">("all");
 
-  useEffect(() => subscribeRecentPosts(setPosts), []);
+  // Se recarga al entrar y después de moderar, para ver el efecto del cambio.
+  const recargar = useCallback(() => subscribeRecentPosts(setPosts), []);
+  useEffect(() => recargar(), [recargar]);
 
   const rows = useMemo(
     () => (posts ?? []).filter((p) => filter === "all" || p.status === filter),
@@ -87,21 +90,21 @@ function ForoInner() {
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 {p.status !== "hidden" ? (
-                  <button onClick={() => void moderatePost(p, "hidden")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
+                  <button onClick={() => void moderatePost(p, "hidden").then(recargar)} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
                     Ocultar
                   </button>
                 ) : (
-                  <button onClick={() => void moderatePost(p, "visible")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
+                  <button onClick={() => void moderatePost(p, "visible").then(recargar)} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
                     Mostrar
                   </button>
                 )}
                 {p.status !== "reviewed" && (
-                  <button onClick={() => void moderatePost(p, "reviewed")} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
+                  <button onClick={() => void moderatePost(p, "reviewed").then(recargar)} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs sm:flex-none sm:py-1.5">
                     Revisado
                   </button>
                 )}
                 {p.status !== "deleted" && (
-                  <button onClick={() => void softDeletePost(p)} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs text-warning sm:flex-none sm:py-1.5">
+                  <button onClick={() => void softDeletePost(p).then(recargar)} className="btn-ghost flex-1 justify-center px-4 py-2.5 text-xs text-warning sm:flex-none sm:py-1.5">
                     Borrar
                   </button>
                 )}
