@@ -4,12 +4,27 @@ import { useEffect } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { relativeTime } from "@/lib/utils";
 import { exportPeoplePdf } from "@/lib/pdf-export";
+import {
+  MensajeParaEscribir,
+  personalizar,
+  useMensajeGuardado,
+} from "@/components/admin/MensajeParaEscribir";
 import type { AppUser } from "@/types";
 
-/** Convierte un teléfono en enlace de WhatsApp (solo dígitos). */
-function waLink(phone: string): string | null {
+/**
+ * Convierte un teléfono en enlace de WhatsApp, con el mensaje ya escrito.
+ *
+ * El número se deja en solo dígitos porque WhatsApp no admite espacios ni "+".
+ * Si no hay al menos 7 dígitos no es un número usable y no se ofrece el enlace:
+ * mejor enseñar el teléfono tal cual que un botón que lleva a ningún sitio.
+ */
+function waLink(phone: string, mensaje: string): string | null {
   const digits = phone.replace(/\D/g, "");
-  return digits.length >= 7 ? `https://wa.me/${digits}` : null;
+  if (digits.length < 7) return null;
+  const texto = mensaje.trim();
+  return texto
+    ? `https://wa.me/${digits}?text=${encodeURIComponent(texto)}`
+    : `https://wa.me/${digits}`;
 }
 
 /**
@@ -27,6 +42,8 @@ export function PeopleListModal({
   people: AppUser[];
   onClose: () => void;
 }) {
+  const { mensaje, guardar } = useMensajeGuardado();
+
   // Cerrar con la tecla Escape.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -79,6 +96,11 @@ export function PeopleListModal({
           </div>
         </div>
 
+        {/* El mensaje que se le escribirá a cada persona */}
+        {people.length > 0 && (
+          <MensajeParaEscribir mensaje={mensaje} onCambiar={guardar} />
+        )}
+
         {/* Lista */}
         <div className="scrollbar-soft flex-1 overflow-y-auto p-3">
           {people.length === 0 ? (
@@ -88,8 +110,11 @@ export function PeopleListModal({
           ) : (
             <ul className="space-y-1">
               {people.map((u) => {
-                const wa = waLink(u.phone);
                 const name = u.fullName || u.displayName;
+                const wa = waLink(
+                  u.phone,
+                  personalizar(mensaje, { nombre: name, leccion: u.currentLesson || 1 }),
+                );
                 return (
                   <li
                     key={u.uid}
@@ -110,7 +135,7 @@ export function PeopleListModal({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="shrink-0 rounded-full bg-success/15 px-3.5 py-2.5 text-xs font-semibold text-success transition hover:bg-success/25"
-                        title={`Escribir a ${u.phone} por WhatsApp`}
+                        title={`Escribir a ${name} (${u.phone}) por WhatsApp, con el mensaje ya puesto`}
                       >
                         WhatsApp
                       </a>

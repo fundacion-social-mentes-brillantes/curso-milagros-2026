@@ -215,7 +215,7 @@ function AdminInner() {
       {/* Solo sale si hay mas de un grupo: con uno solo, las cifras de arriba
           ya son exactamente esas. */}
       <div className="mt-6">
-        <ResumenPorGrupo users={users} />
+        <ResumenPorGrupo users={users} onVerLista={openList} />
       </div>
 
       <DailyRanking />
