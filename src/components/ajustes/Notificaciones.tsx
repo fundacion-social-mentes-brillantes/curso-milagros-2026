@@ -76,7 +76,7 @@ const LETREROS: Record<
     texto: "text-muted",
     titulo: "No se pudo comprobar",
     detalle:
-      "No hubo respuesta del servicio de notificaciones. Suele ser un bloqueador de anuncios o una conexión que se cayó. Recarga la página para volver a intentarlo.",
+      "No hubo respuesta del servicio de notificaciones. Casi siempre es un bloqueador de anuncios o una conexión que se cayó.",
   },
 };
 
@@ -144,7 +144,16 @@ export function Notificaciones() {
     setAviso(null);
     try {
       await tarea();
-      await refrescar();
+      // OneSignal registra el aparato un instante DESPUÉS de que la persona
+      // acepta. Si se mirara solo una vez, lo normal sería ver "permitidas
+      // pero apagadas" justo después de activarlas, que es lo contrario de lo
+      // que acaba de pasar. Por eso se mira un par de veces más.
+      let estadoNuevo = await consultarEstado();
+      for (let intento = 0; intento < 3 && estadoNuevo.clase === "permitido-apagado"; intento++) {
+        await new Promise((r) => setTimeout(r, 1200));
+        estadoNuevo = await consultarEstado();
+      }
+      setEstado(estadoNuevo);
     } finally {
       setOcupado(false);
     }
@@ -217,9 +226,22 @@ export function Notificaciones() {
 
       {/* Qué se puede hacer desde aquí */}
       <div className="mt-4 flex flex-wrap gap-2">
-        {(estado.clase === "sin-decidir" || estado.clase === "desconocido") && (
+        {estado.clase === "sin-decidir" && (
           <button onClick={() => void conEspera(activar)} disabled={ocupado} className="btn-primary">
             {ocupado ? "Un momento…" : "Activar notificaciones"}
+          </button>
+        )}
+
+        {/* Sin respuesta de OneSignal, un botón de "activar" se quedaría
+            pensando hasta agotar el plazo sin hacer nada. Lo honesto es
+            ofrecer volver a mirar. */}
+        {estado.clase === "desconocido" && (
+          <button
+            onClick={() => void conEspera(async () => {})}
+            disabled={ocupado}
+            className="btn-ghost"
+          >
+            {ocupado ? "Comprobando…" : "Volver a comprobar"}
           </button>
         )}
 
