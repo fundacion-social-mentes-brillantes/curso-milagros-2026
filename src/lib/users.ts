@@ -49,6 +49,20 @@ export async function completeUserProfile(
   });
 }
 
+/**
+ * Cambia en qué lección va la persona.
+ *
+ * Para quien entra tarde al proceso y ya venía haciéndolo por su cuenta, o para
+ * corregir un número mal puesto. Adelantar da por hechas las anteriores;
+ * retroceder solo mueve el número y no borra nada de lo ya marcado.
+ */
+export async function cambiarLeccionActual(leccion: number): Promise<AppUser> {
+  return llamar<AppUser>("/yo/leccion-actual", {
+    metodo: "PUT",
+    cuerpo: { leccion },
+  });
+}
+
 /** "Sigo por aquí". Si falla no pasa nada: es solo una estadística. */
 export async function touchActivity(_uid: string): Promise<void> {
   await llamarSeguro("/yo/actividad", null, { metodo: "POST" });

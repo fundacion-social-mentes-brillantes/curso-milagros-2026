@@ -44,6 +44,24 @@ const {
 } = require("../shared/tablas");
 
 const TOTAL_LECCIONES = 365;
+
+/**
+ * CUÁNTAS LECCIONES SE PUEDEN HACER EN UN DÍA.
+ *
+ * El Curso pide una al día y repetir esa idea durante toda la jornada; hacer
+ * diez seguidas es leerlas, no practicarlas. Pero tampoco se puede ser rígido:
+ * quien se atrasa unos días necesita poder alcanzar al grupo sin sentir que ya
+ * lo perdió todo. Tres es el término medio: deja ponerse al día sin convertir
+ * el proceso en una carrera.
+ *
+ * Esto se comprueba AQUÍ, en el servidor, no en la pantalla. Un tope que solo
+ * vive en el navegador no es un tope: cualquiera lo salta recargando.
+ *
+ * El mismo número está en `src/config/site.ts` para que la pantalla pueda
+ * avisar antes de que la persona toque el botón. Si se cambia uno, cambiar el
+ * otro.
+ */
+const MAXIMO_POR_DIA = 3;
 const MAXIMO_NOTA = 1000;
 const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -140,8 +158,28 @@ app.http("avanceMarcar", {
     const completed = body.completed;
     const ahora = Date.now();
     const particion = P.progress(ciclo, persona.uid);
+    const hoy = relojBogota(ahora).fecha;
 
-    // 1. La fila de la lección. Se mezcla, así que una nota escrita antes sigue ahí.
+    // 1. Se lee el avance ANTES de tocar nada: hace falta para saber cuántas
+    //    lleva hoy, y hay que saberlo antes de escribir o el tope llegaría tarde.
+    const filasAntes = await leerParticion("progress", particion);
+    const hechasHoyAntes = filasAntes.filter(
+      (f) => f.completed === true && f.completedAt && relojBogota(Number(f.completedAt)).fecha === hoy,
+    ).length;
+    const filaVieja = filasAntes.find((f) => Number(f.lessonNumber ?? f._fila ?? 0) === n);
+    const yaEstabaHecha = filaVieja?.completed === true;
+
+    // 2. El tope del día. Solo cuenta al marcar una lección que NO estaba ya
+    //    hecha: volver a marcar la misma no gasta un cupo, y desmarcar lo
+    //    devuelve (la cuenta sale de las fechas, así que se corrige sola).
+    if (completed && !yaEstabaHecha && hechasHoyAntes >= MAXIMO_POR_DIA) {
+      return json(
+        { error: "limite-diario", hechasHoy: hechasHoyAntes, maximo: MAXIMO_POR_DIA },
+        429,
+      );
+    }
+
+    // 3. La fila de la lección. Se mezcla, así que una nota escrita antes sigue ahí.
     await guardar("progress", particion, nLeccion(n), {
       userId: persona.uid,
       ciclo,
@@ -150,28 +188,37 @@ app.http("avanceMarcar", {
       completedAt: completed ? ahora : null,
     });
 
-    // 2. El contador de hechas se recuenta, no se suma uno: si alguien marca dos
+    // 4. El contador de hechas se recuenta, no se suma uno: si alguien marca dos
     //    veces la misma lección, el número sigue siendo el verdadero.
     const filas = await leerParticion("progress", particion);
     const completadas = filas.filter((f) => f.completed === true).length;
+    const hechasHoy = filas.filter(
+      (f) => f.completed === true && f.completedAt && relojBogota(Number(f.completedAt)).fecha === hoy,
+    ).length;
 
-    // 3. La lección actual SOLO sube (ver regla 2 de arriba).
+    // 5. La lección actual SOLO sube (ver regla 2 de arriba).
     const actual = acotarLeccion(perfil?.currentLesson ?? 1);
     const cambios = {
       completedLessonsCount: completadas,
       currentLesson: completed ? Math.max(actual, acotarLeccion(n + 1)) : actual,
       lastActivityAt: ahora,
+      // Copia de la cuenta del día en el perfil. El tope de arriba NO depende de
+      // esto —se calcula de las fechas reales, que nunca mienten—; esto existe
+      // solo para que la pantalla pueda avisar "te queda 1 hoy" sin tener que
+      // leer el avance entero cada vez que se abre una lección.
+      hechasHoy,
+      hechasHoyFecha: hoy,
     };
-    // 4. La fecha de "última lección hecha" solo se toca al completar; al
+    // 6. La fecha de "última lección hecha" solo se toca al completar; al
     //    desmarcar no se borra, porque sirve para saber quién sigue caminando.
     if (completed) cambios.lastCompletedAt = ahora;
     await guardar("users", P.users(), persona.uid, cambios);
 
-    // 5. El puesto en esta lección. Todo lo que sigue es un extra: si falla, la
+    // 7. El puesto en esta lección. Todo lo que sigue es un extra: si falla, la
     //    lección ya quedó marcada arriba y la persona no pierde nada.
     let position = null;
 
-    // 6. La cuenta de gestión de la fundación no compite: no es participante.
+    // 8. La cuenta de gestión de la fundación no compite: no es participante.
     //    Se mira tanto el correo del token como el del perfil guardado.
     const esLaFundacion =
       esAdminPermanente(persona.email) || esAdminPermanente(perfil?.email);
@@ -219,7 +266,7 @@ app.http("avanceMarcar", {
       }
     }
 
-    return json({ position });
+    return json({ position, hechasHoy, maximo: MAXIMO_POR_DIA });
   }),
 });
 

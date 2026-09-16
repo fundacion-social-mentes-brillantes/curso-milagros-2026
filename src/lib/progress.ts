@@ -64,17 +64,24 @@ export async function setLessonDone(
   _uid: string,
   n: number,
   completed: boolean,
-): Promise<{ position: number | null }> {
-  try {
-    const r = await llamar<{ position: number | null }>(`/avance/${n}`, {
-      metodo: "POST",
-      cuerpo: { completed },
-    });
-    return { position: r.position ?? null };
-  } catch {
-    // Que no se pueda calcular el puesto no debe impedir seguir con el proceso.
-    return { position: null };
-  }
+): Promise<{ position: number | null; hechasHoy: number }> {
+  /*
+   * OJO: esto NO lleva try/catch, y es a propósito.
+   *
+   * Antes lo tenía, con la idea de que no poder calcular el puesto del ranking
+   * no impidiera seguir. Pero el catch se tragaba TODA la llamada, no solo el
+   * puesto: si el servidor rechazaba la petición, la pantalla decía "hecha"
+   * igual y la lección no se había guardado en ninguna parte.
+   *
+   * Ahora el error sube, y quien llama decide qué decir. El puesto ya viene
+   * protegido en el servidor: si el ranking falla, la lección se marca igual y
+   * `position` llega en null.
+   */
+  const r = await llamar<{ position: number | null; hechasHoy?: number }>(
+    `/avance/${n}`,
+    { metodo: "POST", cuerpo: { completed } },
+  );
+  return { position: r.position ?? null, hechasHoy: Number(r.hechasHoy ?? 0) };
 }
 
 /** "Mi cuaderno": nota corta y PRIVADA para una lección. */

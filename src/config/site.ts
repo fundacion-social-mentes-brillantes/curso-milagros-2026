@@ -17,6 +17,20 @@ export const SITE = {
  */
 export const ASK_STARTING_LESSON = true;
 
+/**
+ * Cuántas lecciones se pueden marcar en un mismo día.
+ *
+ * El Curso pide una al día y repetirla durante toda la jornada; diez seguidas
+ * es leerlas, no practicarlas. Pero quien se atrasa necesita poder alcanzar al
+ * grupo, así que tres es el término medio.
+ *
+ * Esto es solo para AVISAR en pantalla. Quien de verdad lo impide es el
+ * servidor (`MAXIMO_POR_DIA` en `api/src/functions/avance.js`): un tope que
+ * vive en el navegador lo salta cualquiera recargando. Si se cambia uno,
+ * cambiar el otro.
+ */
+export const MAX_LECCIONES_DIA = 3;
+
 export const NAV_USER = [
   { href: "/dashboard", label: "Mi camino" },
   { href: "/lecciones", label: "Lecciones" },

@@ -26,6 +26,7 @@ const {
   P,
   nLeccion,
   leerUno,
+  leerParticion,
   leerTodo,
   guardar,
   guardarLote,
@@ -64,7 +65,30 @@ function aPerfil(uid, d) {
     currentLesson: acotarLeccion(d.currentLesson ?? 1),
     completedLessonsCount: Number(d.completedLessonsCount ?? 0),
     lastCompletedAt: Number(d.lastCompletedAt ?? 0),
+    /*
+     * Cuántas lleva hoy, para que la pantalla pueda avisar del tope ANTES de
+     * que toque el botón. Solo vale si es de hoy: si la copia guardada es de
+     * ayer, hoy lleva cero. Sin esta comprobación, alguien que hizo tres ayer
+     * se encontraría hoy con el aviso de "ya no te quedan".
+     *
+     * Quien manda de verdad es el servidor al marcar (ver MAXIMO_POR_DIA en
+     * avance.js), que lo recalcula de las fechas reales. Esto es solo el aviso.
+     */
+    hechasHoy: String(d.hechasHoyFecha ?? "") === fechaBogota()
+      ? Number(d.hechasHoy ?? 0)
+      : 0,
   };
+}
+
+/**
+ * El día de hoy en Colombia, en formato "2026-09-16".
+ *
+ * Colombia no mueve la hora en ningún mes, así que basta con restar cinco horas
+ * y no dependemos de que la máquina de Azure tenga la tabla de husos horarios.
+ * (La misma cuenta vive en `avance.js`, que es quien escribe la fecha.)
+ */
+function fechaBogota() {
+  return new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 /** Mantiene el nombre visible en el directorio que ven los compañeros. */
@@ -170,7 +194,12 @@ app.http("yoEditar", {
               ciclo,
               lessonNumber: n,
               completed: true,
-              completedAt: ahora,
+              // SIN fecha, y no por descuido: no sabemos qué día hizo cada una
+              // de estas, porque las hizo antes de llegar aquí. Ponerles la de
+              // hoy sería inventarlo, y además las contaría todas como hechas
+              // HOY: el tope diario saltaría al instante y no podría marcar la
+              // suya el mismo día que se registra.
+              completedAt: null,
             },
           });
         }
@@ -184,6 +213,76 @@ app.http("yoEditar", {
 
     await guardar("users", P.users(), persona.uid, cambios);
     await guardarNombreEnDirectorio(persona.uid, fullName);
+
+    const actualizado = await leerUno("users", P.users(), persona.uid);
+    return json(aPerfil(persona.uid, actualizado || {}));
+  }),
+});
+
+// ------------------------------------------------ PUT /yo/leccion-actual
+app.http("yoLeccionActual", {
+  route: "yo/leccion-actual",
+  methods: ["PUT"],
+  authLevel: "anonymous",
+  handler: manejar("sesion", async (req, _ctx, { persona, perfil, ciclo }) => {
+    const body = await cuerpoJson(req);
+    const destino = acotarLeccion(body.leccion);
+    const ahora = Date.now();
+    const actual = acotarLeccion(perfil?.currentLesson ?? 1);
+
+    if (destino === actual) return json(aPerfil(persona.uid, perfil || {}));
+
+    const particion = P.progress(ciclo, persona.uid);
+    const filas = await leerParticion("progress", particion);
+    const yaHechas = new Set(
+      filas
+        .filter((f) => f.completed === true)
+        .map((f) => Number(f.lessonNumber ?? f._fila ?? 0)),
+    );
+
+    /*
+     * ADELANTAR: "voy en la 60" significa que las 59 anteriores ya están. Se
+     * marcan las que falten, SIN tocar las que ya tenían fecha: reescribirlas
+     * les cambiaría el día en que de verdad las hizo.
+     *
+     * Y no se crea puesto en el ranking para ninguna. El ranking premia haber
+     * madrugado a hacer la lección; regalarlo a quien solo ajustó un número
+     * dejaría la tabla sin significado para todos los demás.
+     */
+    if (destino > actual) {
+      const nuevas = [];
+      for (let n = 1; n < destino; n++) {
+        if (yaHechas.has(n)) continue;
+        nuevas.push({
+          fila: nLeccion(n),
+          datos: {
+            userId: persona.uid,
+            ciclo,
+            lessonNumber: n,
+            completed: true,
+            // Sin fecha, por lo mismo que en el registro: no sabemos cuándo las
+            // hizo, y fecharlas hoy le gastaría el cupo del día.
+            completedAt: null,
+          },
+        });
+        yaHechas.add(n);
+      }
+      if (nuevas.length) await guardarLote("progress", particion, nuevas);
+    }
+
+    /*
+     * RETROCEDER: solo se mueve el número. Las lecciones que ya marcó se quedan
+     * marcadas, con su fecha y su puesto.
+     *
+     * Podría parecer más limpio desmarcarlas, pero eso sería borrarle a alguien
+     * un trabajo que sí hizo por haber tecleado mal un número. Que sobre
+     * información es recuperable; que falte, no.
+     */
+    await guardar("users", P.users(), persona.uid, {
+      currentLesson: destino,
+      completedLessonsCount: yaHechas.size,
+      lastActivityAt: ahora,
+    });
 
     const actualizado = await leerUno("users", P.users(), persona.uid);
     return json(aPerfil(persona.uid, actualizado || {}));

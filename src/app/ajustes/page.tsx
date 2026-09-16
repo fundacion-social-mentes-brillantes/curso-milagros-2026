@@ -2,6 +2,7 @@
 
 import { RouteGuard } from "@/components/common/RouteGuard";
 import { Notificaciones } from "@/components/ajustes/Notificaciones";
+import { MiLeccion } from "@/components/ajustes/MiLeccion";
 import { Apariencia } from "@/components/ajustes/Apariencia";
 import { MisDatos } from "@/components/ajustes/MisDatos";
 import { Cuenta } from "@/components/ajustes/Cuenta";
@@ -24,12 +25,13 @@ function AjustesInner() {
         <p className="section-eyebrow">Tu espacio</p>
         <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Ajustes</h1>
         <p className="mt-1.5 text-muted">
-          Cómo te llegan los recordatorios y cómo se te ve la app.
+          Tus recordatorios, en qué lección vas y cómo se te ve la app.
         </p>
       </header>
 
       <div className="mx-auto grid max-w-3xl gap-5">
         <Notificaciones />
+        <MiLeccion />
         <Apariencia ajustes={ajustes} cambiar={cambiar} />
         <MisDatos />
         <Cuenta />

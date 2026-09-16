@@ -72,6 +72,12 @@ export interface AppUser {
   completedLessonsCount: number;
   /** Última vez (ms) que marcó una lección como hecha; 0 si nunca. */
   lastCompletedAt: number;
+  /**
+   * Cuántas lecciones lleva marcadas HOY (hora de Colombia). Sirve para avisar
+   * del tope antes de que toque el botón; el servidor ya lo da en cero cuando
+   * la cuenta guardada es de otro día.
+   */
+  hechasHoy: number;
 }
 
 /** Estado del video asociado a una lección. */

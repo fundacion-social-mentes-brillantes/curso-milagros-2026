@@ -201,6 +201,7 @@ function LessonInner({ n }: { n: number }) {
               completed={Boolean(progress?.completed)}
               completedAt={progress?.completedAt ?? null}
               currentLesson={appUser.currentLesson || 1}
+              hechasHoy={appUser.hechasHoy ?? 0}
               mostrarPuesto={esPro}
             />
           )}
