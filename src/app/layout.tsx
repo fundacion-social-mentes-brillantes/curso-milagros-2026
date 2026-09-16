@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { SenseiChat } from "@/components/sensei/SenseiChat";
 import { OneSignalInit } from "@/components/notifications/OneSignalInit";
 import { SITE } from "@/config/site";
+import { GUION_ANTI_PARPADEO } from "@/lib/ajustes";
 
 const serif = Fraunces({
   subsets: ["latin"],
@@ -55,6 +56,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // El de "Esmeralda", que es el tema por defecto. Si la persona elige otro,
+  // `aplicar()` reescribe esta etiqueta al vuelo (ver src/lib/ajustes.ts).
   themeColor: "#0F3630",
   width: "device-width",
   initialScale: 1,
@@ -66,7 +69,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`dark ${serif.variable} ${sans.variable}`} suppressHydrationWarning>
+    <html
+      lang="es"
+      // El tema de siempre viene puesto ya desde aquí. Así, si el guioncito de
+      // abajo no llega a correr, la página se ve como toda la vida en vez de
+      // quedarse sin colores.
+      className={`dark ${serif.variable} ${sans.variable}`}
+      data-tema="esmeralda"
+      suppressHydrationWarning
+    >
+      <head>
+        {/*
+          Corre ANTES de que se pinte nada y deja puesto el tema elegido. Sin
+          esto se vería un parpadeo: primero el tema de siempre y de golpe el
+          otro. Tiene que ir en crudo porque React todavía no existe aquí.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: GUION_ANTI_PARPADEO }} />
+      </head>
       <body className="font-sans antialiased scrollbar-soft">
         <AuthProvider>
           <div className="flex min-h-screen flex-col">

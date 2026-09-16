@@ -14,7 +14,7 @@ import {
   type User,
 } from "firebase/auth";
 import { getClientAuth, firebaseConfigured, getGoogleProvider } from "@/lib/firebase";
-import { ensureUserProfile, subscribeAppUser } from "@/lib/users";
+import { ensureUserProfile, getAppUser, subscribeAppUser } from "@/lib/users";
 import { ADMIN_EMAILS_PUBLIC } from "@/config/firebase-public";
 import type { AppUser } from "@/types";
 
@@ -26,6 +26,12 @@ interface AuthState {
   isAdmin: boolean;
   signIn: () => Promise<void>;
   signOutUser: () => Promise<void>;
+  /**
+   * Vuelve a leer el perfil del servidor. Lo necesita quien cambia sus propios
+   * datos (Ajustes): sin esto el nombre nuevo se guardaría bien, pero la
+   * pantalla seguiría mostrando el viejo hasta recargar.
+   */
+  refrescarPerfil: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -98,6 +104,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(getClientAuth());
   }, []);
 
+  const refrescarPerfil = useCallback(async () => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return;
+    const actualizado = await getAppUser(uid);
+    if (actualizado) setAppUser(actualizado);
+  }, [firebaseUser?.uid]);
+
   const value: AuthState = {
     firebaseUser,
     appUser,
@@ -106,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAdmin: appUser?.role === "admin" || emailIsAdmin(firebaseUser?.email),
     signIn,
     signOutUser,
+    refrescarPerfil,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -3,34 +3,26 @@
 @tailwind utilities;
 
 /* ============================================================
-   Identidad "Esmeralda y oro" — inspirada en el video de GEMB.
-   Verde esmeralda/teal profundo + dorado + crema. Sin rojo.
-   Colores como tripletes RGB para usar con alpha en Tailwind.
+   LOS TEMAS.
+
+   Cada tema es solo una lista de colores; todo lo demás (tarjetas,
+   botones, sombras) los usa por nombre y se adapta solo. Para añadir
+   otro, se copia un bloque y se cambian los números.
+
+   Los colores van como tripletes RGB sueltos ("22 110 96") y no como
+   #166E60 a propósito: así Tailwind puede ponerles transparencia
+   (bg-primary/12) sin que haya que declarar una variante por cada nivel.
+
+   OJO con el orden: `:root` es el de respaldo y vale lo mismo que
+   "Esmeralda". Si el navegador no ejecuta el guioncito que elige tema
+   —JavaScript bloqueado, un fallo al cargar— la página se ve igual que
+   siempre en vez de quedarse en blanco. Por eso el oscuro es la base y
+   los claros son los que sobrescriben, y no al revés.
    ============================================================ */
-:root {
-  --bg: 240 244 237;
-  --surface: 255 255 255;
-  --surface-2: 230 240 233;
-  --fg: 18 46 42;
-  --muted: 88 112 104;
-  --border: 211 228 217;
 
-  --primary: 22 110 96;
-  --primary-soft: 38 140 122;
-  --primary-deep: 12 64 58;
-  --primary-fg: 255 255 255;
-
-  --gold: 192 150 60;
-  --gold-soft: 234 206 138;
-
-  --aqua: 47 170 152;
-  --aqua-soft: 178 224 214;
-
-  --success: 39 150 110;
-  --warning: 201 154 64;
-}
-
-.dark {
+/* --- Esmeralda: verde profundo y dorado. El de toda la vida. --- */
+:root,
+[data-tema="esmeralda"] {
   --bg: 9 38 34;
   --surface: 15 54 48;
   --surface-2: 22 68 60;
@@ -51,6 +43,109 @@
 
   --success: 104 200 156;
   --warning: 226 190 110;
+
+  --textura: 0.22;
+  --barra: #0f3630;
+}
+
+/* --- Claro: crema y esmeralda, como un amanecer. --- */
+[data-tema="claro"] {
+  --bg: 240 244 237;
+  --surface: 255 255 255;
+  --surface-2: 230 240 233;
+  --fg: 18 46 42;
+  --muted: 82 105 97;
+  --border: 211 228 217;
+
+  --primary: 22 110 96;
+  --primary-soft: 38 140 122;
+  --primary-deep: 12 64 58;
+  --primary-fg: 255 255 255;
+
+  --gold: 161 122 40;
+  --gold-soft: 234 206 138;
+
+  --aqua: 33 138 122;
+  --aqua-soft: 178 224 214;
+
+  --success: 30 126 92;
+  --warning: 150 108 30;
+
+  --textura: 0.14;
+  --barra: #f0f4ed;
+}
+
+/* --- Rosa pastel: rosado suave que se abre a blanco. --- */
+[data-tema="rosa"] {
+  --bg: 253 246 249;
+  --surface: 255 255 255;
+  --surface-2: 250 236 242;
+  --fg: 58 30 44;
+  --muted: 118 86 102;
+  --border: 240 216 228;
+
+  --primary: 176 74 122;
+  --primary-soft: 200 106 150;
+  --primary-deep: 108 40 74;
+  --primary-fg: 255 255 255;
+
+  --gold: 168 118 76;
+  --gold-soft: 240 214 190;
+
+  --aqua: 126 100 168;
+  --aqua-soft: 222 212 240;
+
+  --success: 44 132 98;
+  --warning: 158 112 44;
+
+  --textura: 0.12;
+  --barra: #fdf6f9;
+}
+
+/* ============================================================
+   TAMAÑO DE LA LECTURA.
+
+   Solo cambia el texto largo de la lección, no los botones ni los
+   menús: agrandar la interfaz entera descoloca todo, y lo que de
+   verdad cansa la vista es el rato leyendo.
+   ============================================================ */
+:root {
+  --lectura: 1.075rem;
+  --lectura-alto: 1.9;
+}
+[data-texto="grande"] {
+  --lectura: 1.24rem;
+  --lectura-alto: 1.95;
+}
+[data-texto="enorme"] {
+  --lectura: 1.45rem;
+  --lectura-alto: 2;
+}
+
+/* ============================================================
+   MENOS MOVIMIENTO.
+
+   Para quien se marea con las animaciones, y también lo respeta
+   cuando el propio teléfono ya lo pide en sus ajustes.
+   ============================================================ */
+[data-movimiento="poco"] *,
+[data-movimiento="poco"] *::before,
+[data-movimiento="poco"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer base {
@@ -100,10 +195,7 @@
     background-position: center top;
     background-repeat: repeat;
     background-size: 720px 720px;
-    opacity: 0.32;
-  }
-  .dark body::after {
-    opacity: 0.22;
+    opacity: var(--textura);
   }
 }
 
@@ -138,7 +230,9 @@
   /* Modo lectura para el texto original (intocable) */
   .reading {
     font-family: var(--font-serif), Georgia, serif;
-    @apply whitespace-pre-line text-[1.075rem] leading-[1.9] text-fg/90;
+    font-size: var(--lectura);
+    line-height: var(--lectura-alto);
+    @apply whitespace-pre-line text-fg/90;
   }
 }
 

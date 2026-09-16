@@ -4,32 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { completeUserProfile } from "@/lib/users";
 import { Spinner } from "@/components/ui/Spinner";
-import { ASK_STARTING_LESSON, SITE } from "@/config/site";
-
-const COUNTRIES = [
-  "Colombia",
-  "México",
-  "Argentina",
-  "Chile",
-  "Perú",
-  "Ecuador",
-  "Venezuela",
-  "Bolivia",
-  "Paraguay",
-  "Uruguay",
-  "Guatemala",
-  "Honduras",
-  "El Salvador",
-  "Nicaragua",
-  "Costa Rica",
-  "Panamá",
-  "Cuba",
-  "República Dominicana",
-  "Puerto Rico",
-  "España",
-  "Estados Unidos",
-  "Otro",
-];
+import { ASK_STARTING_LESSON, PAISES, SITE } from "@/config/site";
 
 export function Onboarding() {
   const { firebaseUser, appUser } = useAuth();
@@ -99,7 +74,7 @@ export function Onboarding() {
               <span className="text-sm font-semibold">País</span>
               <select className="input mt-1.5" value={country} onChange={(e) => setCountry(e.target.value)}>
                 <option value="">Selecciona tu país…</option>
-                {COUNTRIES.map((c) => (
+                {PAISES.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>

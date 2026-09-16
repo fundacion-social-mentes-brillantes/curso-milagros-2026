@@ -28,3 +28,33 @@ export const NAV_ADMIN = [
   { href: "/admin/lecciones", label: "Lecciones" },
   { href: "/admin/foro", label: "Foro" },
 ] as const;
+
+/**
+ * Países del desplegable. La usan el registro y la pantalla de Ajustes: si
+ * estuviera copiada en las dos, acabarían diferentes y alguien no encontraría
+ * el suyo al editar el que ya había elegido.
+ */
+export const PAISES = [
+  "Colombia",
+  "México",
+  "Argentina",
+  "Chile",
+  "Perú",
+  "Ecuador",
+  "Venezuela",
+  "Bolivia",
+  "Paraguay",
+  "Uruguay",
+  "Guatemala",
+  "Honduras",
+  "El Salvador",
+  "Nicaragua",
+  "Costa Rica",
+  "Panamá",
+  "Cuba",
+  "República Dominicana",
+  "Puerto Rico",
+  "España",
+  "Estados Unidos",
+  "Otro",
+] as const;

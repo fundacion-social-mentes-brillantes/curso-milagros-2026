@@ -57,6 +57,19 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           {firebaseUser ? (
             <div className="hidden items-center gap-2 md:flex">
+              <Link
+                href="/ajustes"
+                aria-label="Ajustes"
+                title="Ajustes"
+                className={cn(
+                  "grid h-9 w-9 place-items-center rounded-full text-base transition",
+                  pathname.startsWith("/ajustes")
+                    ? "bg-primary/12 text-primary"
+                    : "text-muted hover:bg-surface-2 hover:text-fg",
+                )}
+              >
+                ⚙️
+              </Link>
               <Avatar src={appUser?.photoURL} name={appUser?.displayName ?? "Tú"} size={34} />
               <button
                 onClick={() => void signOutUser()}
@@ -96,6 +109,15 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
+            {firebaseUser && (
+              <Link
+                href="/ajustes"
+                onClick={() => setOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-fg hover:bg-surface-2"
+              >
+                ⚙️ Ajustes
+              </Link>
+            )}
             {isAdmin && (
               <Link
                 href="/admin"
