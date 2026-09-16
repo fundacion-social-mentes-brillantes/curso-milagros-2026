@@ -76,7 +76,7 @@ const LETREROS: Record<
     texto: "text-muted",
     titulo: "No se pudo comprobar",
     detalle:
-      "No hubo respuesta del servicio de notificaciones. Casi siempre es un bloqueador de anuncios o una conexión que se cayó.",
+      "No hubo respuesta del servicio de notificaciones, así que no se puede saber si están activadas. Casi siempre es una extensión del navegador que bloquea el script.",
   },
 };
 
@@ -286,6 +286,30 @@ export function Notificaciones() {
               <li key={p}>{p}</li>
             ))}
           </ol>
+        </div>
+      )}
+
+      {/* Sin respuesta de OneSignal. La causa casi siempre es la misma —una
+          extensión que bloquea el script— y tiene arreglo, así que se dice
+          cómo en vez de dejar a la persona con un "no se pudo" a secas. */}
+      {estado.clase === "desconocido" && (
+        <div className="mt-4 rounded-xl border border-border p-3.5">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted">Qué suele ser</p>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-fg/90">
+            <li>
+              Un bloqueador de anuncios o de rastreadores (uBlock, AdBlock, Brave Shields, el
+              antivirus). Desactívalo <strong>solo para esta página</strong> y recarga.
+            </li>
+            <li>
+              Para salir de dudas rápido: abre esta misma página en una ventana de incógnito, donde
+              las extensiones no corren. Si ahí sí funciona, era una extensión.
+            </li>
+            <li>Si no, puede ser la conexión. Vuelve a comprobar en un momento.</li>
+          </ol>
+          <p className="mt-2.5 text-xs leading-relaxed text-muted">
+            Esto no afecta a tu avance ni a nada más de la página: solo impide saber —y
+            cambiar— el estado de las notificaciones desde este navegador.
+          </p>
         </div>
       )}
 
