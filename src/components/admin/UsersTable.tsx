@@ -3,7 +3,15 @@
 import { useMemo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { setUserEnrolled, setUserGrupo, setUserPlan, setUserRole, setUserVoiceReader } from "@/lib/users";
+import {
+  setUserEnrolled,
+  setUserGrupo,
+  setUserLeccion,
+  setUserPlan,
+  setUserPuedeAjustarLeccion,
+  setUserRole,
+  setUserVoiceReader,
+} from "@/lib/users";
 import { planInfo } from "@/config/planes";
 import { STATUS_LABEL, userStatus } from "@/lib/admin-analytics";
 import { isPermanentAdmin } from "@/lib/admins";
@@ -43,6 +51,8 @@ export function UsersTable({
   const [voiceBusy, setVoiceBusy] = useState<string | null>(null);
   const [planBusy, setPlanBusy] = useState<string | null>(null);
   const [grupoBusy, setGrupoBusy] = useState<string | null>(null);
+  const [leccionBusy, setLeccionBusy] = useState<string | null>(null);
+  const [permisoBusy, setPermisoBusy] = useState<string | null>(null);
 
   /** Los grupos que ya existen, para poder elegirlos sin volver a escribirlos. */
   const gruposExistentes = useMemo(
@@ -124,6 +134,41 @@ export function UsersTable({
 
   async function cambiarGrupo(u: AppUser, grupo: string) {
     await guardarCambio(u.uid, setGrupoBusy, () => setUserGrupo(u.uid, grupo));
+  }
+
+  /*
+   * Mover a alguien de lección. El admin no tiene techo: es quien sabe si esa
+   * persona entró tarde o si el número quedó mal puesto.
+   *
+   * Se avisa de lo que va a pasar porque adelantar NO es solo cambiar un
+   * número: da por hechas todas las lecciones anteriores, y eso mueve las
+   * cifras del grupo. Retroceder, en cambio, no desmarca nada.
+   */
+  async function cambiarLeccion(u: AppUser) {
+    const escrito = window.prompt(
+      [
+        `¿En qué lección va ${u.displayName}? (1 a ${SITE.totalLessons})`,
+        "",
+        "Si la subes, las anteriores quedarán como hechas.",
+        "Si la bajas, solo se mueve el número: no se desmarca nada.",
+      ].join("\n"),
+      String(u.currentLesson || 1),
+    );
+    if (escrito === null) return;
+
+    const n = Math.trunc(Number(escrito.trim()));
+    if (!Number.isFinite(n) || n < 1 || n > SITE.totalLessons) {
+      setError(`Escribe un número entre 1 y ${SITE.totalLessons}.`);
+      return;
+    }
+    if (n === u.currentLesson) return;
+    await guardarCambio(u.uid, setLeccionBusy, () => setUserLeccion(u.uid, n));
+  }
+
+  async function togglePermiso(u: AppUser) {
+    await guardarCambio(u.uid, setPermisoBusy, () =>
+      setUserPuedeAjustarLeccion(u.uid, !u.puedeAjustarLeccion),
+    );
   }
 
   async function toggleVoice(u: AppUser) {
@@ -248,6 +293,47 @@ export function UsersTable({
     );
   }
 
+  // La lección en la que va, tocable para cambiarla.
+  function LeccionControl({ u }: { u: AppUser }) {
+    if (!editable) return <span className="tabular-nums">{u.currentLesson}</span>;
+    return (
+      <button
+        onClick={() => void cambiarLeccion(u)}
+        disabled={leccionBusy === u.uid}
+        title="Cambiar en qué lección va"
+        className="rounded-lg px-2 py-1 font-semibold tabular-nums transition hover:bg-surface-2 disabled:opacity-50"
+      >
+        {leccionBusy === u.uid ? "…" : `${u.currentLesson} ✎`}
+      </button>
+    );
+  }
+
+  /*
+   * El permiso para que esa persona se ajuste ELLA MISMA la lección, sin pasar
+   * de donde va su grupo. Apagado, solo se la puedes cambiar tú.
+   */
+  function PermisoControl({ u }: { u: AppUser }) {
+    return (
+      <button
+        onClick={() => void togglePermiso(u)}
+        disabled={permisoBusy === u.uid}
+        title="Dejar que esta persona ajuste su propia lección (sin pasar de donde va su grupo)"
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50",
+          u.puedeAjustarLeccion
+            ? "bg-primary/20 text-primary hover:bg-primary/30"
+            : "border border-border bg-surface text-muted hover:text-fg",
+        )}
+      >
+        {permisoBusy === u.uid
+          ? "…"
+          : u.puedeAjustarLeccion
+            ? "🔓 Puede ajustarla"
+            : "🔒 Solo tú"}
+      </button>
+    );
+  }
+
   // Control de rol/admin.
   function RoleControl({ u }: { u: AppUser }) {
     if (isPermanentAdmin(u.email)) {
@@ -354,7 +440,9 @@ export function UsersTable({
               <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-muted">
                 <span className="truncate">📍 {u.country || "—"}</span>
                 <span className="truncate">📱 {u.phone || "—"}</span>
-                <span>🧭 Lección {u.currentLesson}</span>
+                <span className="flex items-center gap-1">
+                  🧭 Lección <LeccionControl u={u} />
+                </span>
                 <span>
                   ✅ {u.completedLessonsCount}{" "}
                   <span className="opacity-70">({pct(u.completedLessonsCount, SITE.totalLessons)}%)</span>
@@ -373,6 +461,7 @@ export function UsersTable({
                   <span className="flex items-center gap-2 text-xs text-muted">
                     Grupo: <GrupoControl u={u} />
                   </span>
+                  <PermisoControl u={u} />
                 </div>
               )}
             </div>
@@ -395,6 +484,7 @@ export function UsersTable({
               <th className="p-4 font-semibold">Inscrito</th>
               <th className="p-4 font-semibold">Plan</th>
               <th className="p-4 font-semibold">Grupo</th>
+              {editable && <th className="p-4 font-semibold">Ajusta su lección</th>}
               {editable && <th className="p-4 font-semibold">Voz</th>}
               {editable && <th className="p-4 font-semibold">Rol</th>}
             </tr>
@@ -415,7 +505,9 @@ export function UsersTable({
                   </td>
                   <td className="p-4 text-muted">{u.country || "—"}</td>
                   <td className="p-4 text-muted">{u.phone || "—"}</td>
-                  <td className="p-4 tabular-nums">{u.currentLesson}</td>
+                  <td className="p-4">
+                    <LeccionControl u={u} />
+                  </td>
                   <td className="p-4">
                     <span className="tabular-nums">{u.completedLessonsCount}</span>
                     <span className="ml-1 text-xs text-muted">
@@ -435,6 +527,11 @@ export function UsersTable({
                   <td className="p-4">
                     <GrupoControl u={u} />
                   </td>
+                  {editable && (
+                    <td className="p-4">
+                      <PermisoControl u={u} />
+                    </td>
+                  )}
                   {editable && (
                     <td className="p-4">
                       <VoiceControl u={u} />

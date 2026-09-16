@@ -14,6 +14,7 @@ import { CohortHistory } from "@/components/admin/CohortHistory";
 import { DailyRanking } from "@/components/admin/DailyRanking";
 import { CourseRanking } from "@/components/admin/CourseRanking";
 import { ResumenPorGrupo } from "@/components/admin/ResumenPorGrupo";
+import { FechasDeGrupos } from "@/components/admin/FechasDeGrupos";
 import { Histogram, bucketLessons, BarRow } from "@/components/ui/Charts";
 import { PageLoader } from "@/components/ui/Spinner";
 import { SITE } from "@/config/site";
@@ -215,6 +216,8 @@ function AdminInner() {
       {/* Solo sale si hay mas de un grupo: con uno solo, las cifras de arriba
           ya son exactamente esas. */}
       <div className="mt-6">
+        <FechasDeGrupos users={users} />
+
         <ResumenPorGrupo users={users} onVerLista={openList} />
       </div>
 

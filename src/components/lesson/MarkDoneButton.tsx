@@ -42,6 +42,28 @@ export function MarkDoneButton({
   const [error, setError] = useState<string | null>(null);
   const [hoy, setHoy] = useState(hechasHoy);
 
+  /*
+   * Ponerse al día con lo que llega del servidor.
+   *
+   * ESTO ARREGLA UN FALLO FEO. La pantalla de la lección se dibuja en cuanto
+   * tiene el texto (que es un archivo local, instantáneo), pero el avance viene
+   * de la API y llega después. En ese primer dibujo `completed` vale false, y
+   * `useState` se queda con ese valor PARA SIEMPRE: cuando el avance llegaba
+   * diciendo "sí, ya la hiciste", la pantalla ya no se enteraba.
+   *
+   * Resultado: abrías una lección que habías hecho y te salía el botón de
+   * "Marcar lección como hecha", como si tu avance se hubiera perdido.
+   */
+  useEffect(() => {
+    setDone(completed);
+    setAt(completedAt);
+  }, [completed, completedAt]);
+
+  // Lo mismo con la cuenta del día, que también llega con el perfil.
+  useEffect(() => {
+    setHoy(hechasHoy);
+  }, [hechasHoy]);
+
   // Si ya estaba hecha, recupera su puesto EN ESTA lección.
   useEffect(() => {
     if (completed) {

@@ -98,6 +98,22 @@ async function cambiarPersona(uid: string, cambios: Record<string, unknown>): Pr
   });
 }
 
+/**
+ * (Admin) Deja —o deja de dejar— que esa persona ajuste su propia lección.
+ * Mientras esté encendido puede cambiarla ella, sin pasar de donde va su grupo.
+ */
+export async function setUserPuedeAjustarLeccion(
+  uid: string,
+  puede: boolean,
+): Promise<void> {
+  await cambiarPersona(uid, { puedeAjustarLeccion: puede });
+}
+
+/** (Admin) Mueve a alguien a otra lección. Sin techo: el admin sabe por qué. */
+export async function setUserLeccion(uid: string, leccion: number): Promise<void> {
+  await cambiarPersona(uid, { currentLesson: leccion });
+}
+
 /** (Admin) Cambia el rol. Solo lo permite la cuenta principal de la fundación. */
 export async function setUserRole(uid: string, role: Role): Promise<void> {
   await cambiarPersona(uid, { role });

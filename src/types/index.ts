@@ -78,6 +78,12 @@ export interface AppUser {
    * la cuenta guardada es de otro día.
    */
   hechasHoy: number;
+  /**
+   * ¿Un admin le dio permiso para ajustar en qué lección va? Por defecto no:
+   * adelantarse da por hechas las anteriores y eso mueve las cifras del grupo.
+   * Los admin no lo necesitan, mandan siempre.
+   */
+  puedeAjustarLeccion: boolean;
 }
 
 /** Estado del video asociado a una lección. */

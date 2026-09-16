@@ -77,7 +77,71 @@ function aPerfil(uid, d) {
     hechasHoy: String(d.hechasHoyFecha ?? "") === fechaBogota()
       ? Number(d.hechasHoy ?? 0)
       : 0,
+    /**
+     * ¿Le dio un admin permiso para ajustar en qué lección va?
+     *
+     * Por defecto NO. Mover la lección propia da por hechas de golpe las
+     * anteriores, y eso cambia las cifras del grupo: conviene que pase por
+     * alguien que sepa por qué se hace. Los admin no lo necesitan.
+     */
+    puedeAjustarLeccion: d.puedeAjustarLeccion === true,
   };
+}
+
+/**
+ * Deja a alguien en la lección `destino`.
+ *
+ * ADELANTAR da por hechas las anteriores que le falten (sin fecha: no sabemos
+ * cuándo las hizo, y fecharlas hoy le gastaría el cupo del día).
+ * RETROCEDER solo mueve el número y NO desmarca nada: un número mal tecleado no
+ * debería poder llevarse por delante meses de trabajo.
+ *
+ * Vive fuera de las rutas porque la usan dos: la persona desde Ajustes (con
+ * permiso y con techo) y el admin desde el panel (sin límites). Si estuviera
+ * copiada en las dos, acabarían comportándose distinto.
+ */
+async function ponerLeccion(uid, ciclo, destino, perfilActual) {
+  const ahora = Date.now();
+  const actual = acotarLeccion(perfilActual?.currentLesson ?? 1);
+  if (destino === actual) return aPerfil(uid, perfilActual || {});
+
+  const particion = P.progress(ciclo, uid);
+  const filas = await leerParticion("progress", particion);
+  const yaHechas = new Set(
+    filas
+      .filter((f) => f.completed === true)
+      .map((f) => Number(f.lessonNumber ?? f._fila ?? 0)),
+  );
+
+  if (destino > actual) {
+    const nuevas = [];
+    for (let n = 1; n < destino; n++) {
+      if (yaHechas.has(n)) continue;
+      nuevas.push({
+        fila: nLeccion(n),
+        datos: {
+          userId: uid,
+          ciclo,
+          lessonNumber: n,
+          completed: true,
+          // Sin fecha, por lo mismo que en el registro: no sabemos cuándo las
+          // hizo, y fecharlas hoy le gastaría el cupo del día.
+          completedAt: null,
+        },
+      });
+      yaHechas.add(n);
+    }
+    if (nuevas.length) await guardarLote("progress", particion, nuevas);
+  }
+
+  await guardar("users", P.users(), uid, {
+    currentLesson: destino,
+    completedLessonsCount: yaHechas.size,
+    lastActivityAt: ahora,
+  });
+
+  const actualizado = await leerUno("users", P.users(), uid);
+  return aPerfil(uid, actualizado || {});
 }
 
 /**
@@ -224,68 +288,44 @@ app.http("yoLeccionActual", {
   route: "yo/leccion-actual",
   methods: ["PUT"],
   authLevel: "anonymous",
-  handler: manejar("sesion", async (req, _ctx, { persona, perfil, ciclo }) => {
+  /*
+   * QUIÉN PUEDE MOVER SU PROPIA LECCIÓN, Y HASTA DÓNDE.
+   *
+   *   Admin           → libremente, sin techo.
+   *   Los demás       → solo si un admin les dio permiso, y sin pasar de la
+   *                     lección en la que va su grupo hoy.
+   *
+   * El techo importa porque adelantar da por hechas las anteriores. Sin él,
+   * cualquiera podría ponerse en la 365 y aparecer en el panel como si hubiera
+   * terminado el proceso; las cifras del grupo dejarían de significar nada.
+   *
+   * Las dos comprobaciones van AQUÍ y no en la pantalla. Una pantalla se puede
+   * saltar; esto no.
+   */
+  handler: manejar("sesion", async (req, _ctx, { persona, perfil, esAdmin, ciclo }) => {
     const body = await cuerpoJson(req);
     const destino = acotarLeccion(body.leccion);
-    const ahora = Date.now();
-    const actual = acotarLeccion(perfil?.currentLesson ?? 1);
 
-    if (destino === actual) return json(aPerfil(persona.uid, perfil || {}));
-
-    const particion = P.progress(ciclo, persona.uid);
-    const filas = await leerParticion("progress", particion);
-    const yaHechas = new Set(
-      filas
-        .filter((f) => f.completed === true)
-        .map((f) => Number(f.lessonNumber ?? f._fila ?? 0)),
-    );
-
-    /*
-     * ADELANTAR: "voy en la 60" significa que las 59 anteriores ya están. Se
-     * marcan las que falten, SIN tocar las que ya tenían fecha: reescribirlas
-     * les cambiaría el día en que de verdad las hizo.
-     *
-     * Y no se crea puesto en el ranking para ninguna. El ranking premia haber
-     * madrugado a hacer la lección; regalarlo a quien solo ajustó un número
-     * dejaría la tabla sin significado para todos los demás.
-     */
-    if (destino > actual) {
-      const nuevas = [];
-      for (let n = 1; n < destino; n++) {
-        if (yaHechas.has(n)) continue;
-        nuevas.push({
-          fila: nLeccion(n),
-          datos: {
-            userId: persona.uid,
-            ciclo,
-            lessonNumber: n,
-            completed: true,
-            // Sin fecha, por lo mismo que en el registro: no sabemos cuándo las
-            // hizo, y fecharlas hoy le gastaría el cupo del día.
-            completedAt: null,
-          },
-        });
-        yaHechas.add(n);
+    if (!esAdmin) {
+      if (perfil?.puedeAjustarLeccion !== true) {
+        return json({ error: "sin-autorizacion" }, 403);
       }
-      if (nuevas.length) await guardarLote("progress", particion, nuevas);
+
+      const { grupoDe, techoDelGrupo } = require("../shared/grupos");
+      const grupo = grupoDe(perfil);
+      const techo = await techoDelGrupo(grupo);
+
+      // Sin fecha de arranque no hay techo que calcular, y adivinarlo sería
+      // peor que no dejar: se avisa para que un admin la ponga.
+      if (techo === null) {
+        return json({ error: "grupo-sin-fecha", grupo }, 409);
+      }
+      if (destino > techo) {
+        return json({ error: "pasa-del-grupo", grupo, techo }, 409);
+      }
     }
 
-    /*
-     * RETROCEDER: solo se mueve el número. Las lecciones que ya marcó se quedan
-     * marcadas, con su fecha y su puesto.
-     *
-     * Podría parecer más limpio desmarcarlas, pero eso sería borrarle a alguien
-     * un trabajo que sí hizo por haber tecleado mal un número. Que sobre
-     * información es recuperable; que falte, no.
-     */
-    await guardar("users", P.users(), persona.uid, {
-      currentLesson: destino,
-      completedLessonsCount: yaHechas.size,
-      lastActivityAt: ahora,
-    });
-
-    const actualizado = await leerUno("users", P.users(), persona.uid);
-    return json(aPerfil(persona.uid, actualizado || {}));
+    return json(await ponerLeccion(persona.uid, ciclo, destino, perfil));
   }),
 });
 
@@ -329,6 +369,11 @@ app.http("usuariosEditar", {
     const cambios = {};
 
     if (typeof body.enrolled === "boolean") cambios.enrolled = body.enrolled;
+    // El permiso para que esa persona se ajuste su propia lección. Lo enciende
+    // y lo apaga el admin; nadie se lo puede dar a sí mismo.
+    if (typeof body.puedeAjustarLeccion === "boolean") {
+      cambios.puedeAjustarLeccion = body.puedeAjustarLeccion;
+    }
     if (typeof body.voiceReader === "boolean") cambios.voiceReader = body.voiceReader;
     if (body.plan === "pro" || body.plan === "ordinario") cambios.plan = body.plan;
 
@@ -352,9 +397,26 @@ app.http("usuariosEditar", {
       cambios.role = body.role;
     }
 
-    if (Object.keys(cambios).length === 0) return malaPeticion("nada que cambiar");
+    // Mover la lección de otra persona. El admin no tiene techo: es quien sabe
+    // si alguien entró tarde o si hay que corregir un número mal puesto.
+    const pedida = body.currentLesson;
+    const mueveLeccion = pedida !== undefined && pedida !== null && pedida !== "";
 
-    await guardar("users", P.users(), uid, cambios);
+    if (Object.keys(cambios).length === 0 && !mueveLeccion) {
+      return malaPeticion("nada que cambiar");
+    }
+
+    if (Object.keys(cambios).length > 0) {
+      await guardar("users", P.users(), uid, cambios);
+    }
+
+    if (mueveLeccion) {
+      // Se relee el perfil: si arriba se acaba de guardar algo, el que teníamos
+      // en memoria ya está viejo.
+      const previo = await leerUno("users", P.users(), uid);
+      return json(await ponerLeccion(uid, ciclo, acotarLeccion(pedida), previo));
+    }
+
     const actualizado = await leerUno("users", P.users(), uid);
     return json(aPerfil(uid, actualizado || {}));
   }),

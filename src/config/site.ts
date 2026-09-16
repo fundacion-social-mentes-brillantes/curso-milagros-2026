@@ -31,6 +31,18 @@ export const ASK_STARTING_LESSON = true;
  */
 export const MAX_LECCIONES_DIA = 3;
 
+/**
+ * Bajo qué nombre van quienes todavía no tienen grupo asignado, a efectos de
+ * la fecha de arranque.
+ *
+ * Tratarlos como un grupo más —y no como un caso aparte— evita mantener dos
+ * caminos distintos: hay UNA sola manera de ponerle fecha a la gente.
+ *
+ * TIENE QUE COINCIDIR con `SIN_GRUPO` en `api/src/shared/grupos.js`, que es
+ * quien decide de verdad. Si cambia uno, cambiar el otro.
+ */
+export const SIN_GRUPO = "General";
+
 export const NAV_USER = [
   { href: "/dashboard", label: "Mi camino" },
   { href: "/lecciones", label: "Lecciones" },
