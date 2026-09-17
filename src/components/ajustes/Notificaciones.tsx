@@ -67,6 +67,12 @@ const LETREROS: Record<
     titulo: "No disponibles",
     frase: "Este navegador no admite notificaciones.",
   },
+  "navegador-de-otra-app": {
+    punto: "bg-warning",
+    texto: "text-warning",
+    titulo: "Ábrela en Chrome",
+    frase: "Estás viendo la página dentro de otra app y ahí no funcionan.",
+  },
   desconocido: {
     punto: "bg-muted",
     texto: "text-muted",
@@ -104,6 +110,14 @@ function ayuda(clase: EstadoNotificaciones["clase"]): string[] | null {
       "En Safari, toca el botón de compartir (el cuadrito con la flecha).",
       'Baja y elige "Añadir a pantalla de inicio".',
       "Abre la app desde el ícono nuevo y vuelve aquí.",
+    ];
+  }
+  if (clase === "navegador-de-otra-app") {
+    return [
+      "Toca los tres puntitos ⋮ arriba a la derecha.",
+      'Elige "Abrir en Chrome" (o "Abrir en el navegador").',
+      "Entra con tu cuenta y vuelve a Ajustes. Desde ahí sí se activan.",
+      "Consejo: guarda esa dirección en tus favoritos para no volver a entrar por WhatsApp.",
     ];
   }
   if (clase === "desconocido") {

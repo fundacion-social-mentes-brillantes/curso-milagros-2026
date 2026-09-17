@@ -108,6 +108,8 @@ export function cargarSdk(): void {
 export type ClaseEstado =
   /** El navegador no admite notificaciones. */
   | "no-se-puede"
+  /** Está dentro de otra app (WhatsApp, Instagram…): hay que abrirlo en Chrome. */
+  | "navegador-de-otra-app"
   /** iPhone: sí se puede, pero hay que añadir la página a la pantalla de inicio. */
   | "iphone-sin-instalar"
   /** Todavía no se le ha preguntado. */
@@ -136,6 +138,31 @@ function esIphone(): boolean {
   return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
 }
 
+/**
+ * ¿Está viendo la página DENTRO de otra app?
+ *
+ * Cuando alguien toca el enlace en WhatsApp, la página no se abre en Chrome:
+ * se abre en un navegador de juguete que trae WhatsApp por dentro. Y ese no
+ * admite notificaciones —le falta el "service worker", que es la pieza que las
+ * recibe cuando la página está cerrada—, así que el permiso no sirve de nada
+ * aunque lo conceda.
+ *
+ * Importa porque es justo como llega la gente: el enlace se reparte por
+ * WhatsApp. Sin avisar de esto, la persona toca "Activar" una y otra vez sin
+ * entender por qué no pasa nada, cuando lo único que hace falta es abrir la
+ * misma dirección en Chrome.
+ *
+ * La señal que no falla es que no haya `serviceWorker`. Lo del nombre del
+ * navegador es un apaño y se usa solo como refuerzo: los navegadores internos
+ * se disfrazan, pero estos tres se identifican.
+ */
+function esNavegadorDeOtraApp(): boolean {
+  if (typeof navigator === "undefined") return false;
+  if (!("serviceWorker" in navigator)) return true;
+  const ua = navigator.userAgent;
+  return /FBAN|FBAV|Instagram|; wv\)|Line\//i.test(ua);
+}
+
 function estaInstalada(): boolean {
   if (typeof window === "undefined") return false;
   const comoApp = window.matchMedia?.("(display-mode: standalone)").matches;
@@ -154,6 +181,14 @@ export async function consultarEstado(): Promise<EstadoNotificaciones> {
 
   // Lo que se puede saber sin OneSignal se responde ya: si el aparato no puede,
   // no tiene sentido esperar ocho segundos a un script para decir lo mismo.
+
+  // Esto va lo PRIMERO: dentro de otra app el permiso puede existir y hasta
+  // concederse, pero no hay dónde recibir el aviso. Decir "sin activar" ahí
+  // manda a la persona a pelear con un botón que no puede funcionar.
+  if (esNavegadorDeOtraApp()) {
+    return { clase: "navegador-de-otra-app", idSuscripcion: null, permisoNavegador };
+  }
+
   if (permisoNavegador === "sin-soporte") {
     const clase = esIphone() && !estaInstalada() ? "iphone-sin-instalar" : "no-se-puede";
     return { clase, idSuscripcion: null, permisoNavegador };
