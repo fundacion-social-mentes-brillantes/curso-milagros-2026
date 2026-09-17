@@ -190,18 +190,49 @@ export async function consultarEstado(): Promise<EstadoNotificaciones> {
   };
 }
 
-/** Pide el permiso. Solo sirve la primera vez; si ya dijo que no, no hace nada. */
-export async function activar(): Promise<void> {
-  // El plazo es largo a propósito: aquí la persona tiene que decidir en un
-  // aviso del navegador, y puede tardar.
-  await conOneSignal(async (os) => {
-    if (os.Notifications.requestPermission) {
-      await os.Notifications.requestPermission();
-    } else {
-      await os.Slidedown.promptPush();
-    }
-    await os.User?.PushSubscription?.optIn?.();
-  }, 60000);
+/**
+ * Pide el permiso y deja este aparato suscrito.
+ *
+ * OJO CON EL ORDEN, QUE AQUÍ ESTUVO EL FALLO.
+ *
+ * `Notification.requestPermission()` tiene que salir del clic de la persona.
+ * Los navegadores —y los de celular sin piedad— solo abren el aviso si la
+ * llamada cuelga directamente del toque; en cuanto se mete de por medio
+ * cualquier espera, se pierde el "permiso de gesto" y el aviso NO aparece.
+ *
+ * Antes esta función pasaba la petición por la cola de OneSignal
+ * (`OneSignalDeferred`), que la ejecuta más tarde. Para el navegador eso ya no
+ * era el clic, así que se negaba en silencio: la persona tocaba "Activar", no
+ * salía nada, y el estado seguía diciendo "Sin activar". Parecía que el botón
+ * estaba roto.
+ *
+ * Ahora la petición es lo PRIMERO que se hace, sin ningún await delante, y a
+ * la API del navegador directamente. Solo después —cuando el permiso ya está
+ * dado y ya no hace falta el gesto— se le pide a OneSignal que registre el
+ * aparato.
+ *
+ * Devuelve lo que respondió el navegador, para poder decir la verdad: no es lo
+ * mismo que diga que no, a que cierre el aviso sin contestar.
+ */
+export async function activar(): Promise<NotificationPermission | "sin-soporte"> {
+  if (typeof window === "undefined" || !("Notification" in window)) return "sin-soporte";
+
+  let permiso: NotificationPermission;
+  try {
+    // Primera línea con await de toda la cadena del clic. No mover de aquí.
+    permiso = await Notification.requestPermission();
+  } catch {
+    // Algunos navegadores lanzan en vez de responder cuando no hay gesto
+    // válido; nos quedamos con lo que digan que hay.
+    permiso = Notification.permission;
+  }
+
+  if (permiso === "granted") {
+    // Ya no hace falta el gesto: esto puede esperar a la cola tranquilamente.
+    await conOneSignal((os) => os.User?.PushSubscription?.optIn?.(), 15000);
+  }
+
+  return permiso;
 }
 
 /** Vuelve a encender la suscripción cuando el permiso ya estaba dado. */

@@ -143,7 +143,7 @@ export function Notificaciones() {
     return () => document.removeEventListener("visibilitychange", alVolver);
   }, [refrescar]);
 
-  async function conEspera(tarea: () => Promise<void>) {
+  async function conEspera(tarea: () => Promise<unknown>) {
     setOcupado(true);
     setAviso(null);
     try {
@@ -157,6 +157,48 @@ export function Notificaciones() {
         nuevo = await consultarEstado();
       }
       setEstado(nuevo);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  /*
+   * Activar merece su propio camino porque el navegador puede responder tres
+   * cosas distintas y cada una pide un mensaje distinto:
+   *
+   *   granted  → listo, se comprueba y ya aparece "Activadas".
+   *   denied   → dijo que no. A partir de aquí no se puede desde la página.
+   *   default  → ni sí ni no: cerró el aviso, o el navegador ni lo mostró
+   *              (Chrome en Android esconde el aviso a quien lo ha ignorado
+   *              varias veces). Sin este caso, tocar "Activar" y que no pase
+   *              nada parecía un botón roto.
+   */
+  async function activarAhora() {
+    setOcupado(true);
+    setAviso(null);
+    try {
+      const respuesta = await activar();
+
+      if (respuesta === "default") {
+        setAviso({
+          tono: "mal",
+          texto:
+            "El navegador no llegó a mostrar el aviso, o se cerró sin responder. Vuelve a tocar Activar; si aun así no sale nada, toca el candado 🔒 junto a la dirección y permite las notificaciones desde ahí.",
+        });
+      } else if (respuesta === "sin-soporte") {
+        setAviso({ tono: "mal", texto: "Este navegador no admite notificaciones." });
+      }
+
+      // OneSignal registra el aparato un instante DESPUÉS de conceder el
+      // permiso. Mirando una sola vez, lo normal sería ver "apagadas" justo
+      // después de activarlas: lo contrario de lo que acaba de pasar.
+      let nuevo = await consultarEstado();
+      for (let i = 0; i < 4 && nuevo.clase === "permitido-apagado"; i++) {
+        await new Promise((r) => setTimeout(r, 1200));
+        nuevo = await consultarEstado();
+      }
+      setEstado(nuevo);
+      if (nuevo.clase === "activo") setAviso(null);
     } finally {
       setOcupado(false);
     }
@@ -214,11 +256,7 @@ export function Notificaciones() {
 
         <span className="flex shrink-0 gap-2">
           {estado.clase === "sin-decidir" && (
-            <button
-              onClick={() => void conEspera(activar)}
-              disabled={ocupado}
-              className="btn-primary"
-            >
+            <button onClick={() => void activarAhora()} disabled={ocupado} className="btn-primary">
               {ocupado ? "…" : "Activar"}
             </button>
           )}
