@@ -203,16 +203,33 @@ export function Notificaciones() {
         setAviso({ tono: "mal", texto: "Este navegador no admite notificaciones." });
       }
 
-      // OneSignal registra el aparato un instante DESPUÉS de conceder el
-      // permiso. Mirando una sola vez, lo normal sería ver "apagadas" justo
-      // después de activarlas: lo contrario de lo que acaba de pasar.
+      /*
+       * Dar de alta el aparato ocurre DESPUÉS de conceder el permiso, y no es
+       * instantáneo: en iPhone (app instalada en la pantalla de inicio) suele
+       * tardar varios segundos.
+       *
+       * Mirando una sola vez, lo normal sería enseñar "Apagadas, no te llega
+       * nada" justo después de que la persona aceptara: lo contrario de lo que
+       * acaba de pasar, y da por perdido algo que solo estaba en camino.
+       */
       let nuevo = await consultarEstado();
-      for (let i = 0; i < 4 && nuevo.clase === "permitido-apagado"; i++) {
+      for (let i = 0; i < 8 && nuevo.clase === "permitido-apagado"; i++) {
         await new Promise((r) => setTimeout(r, 1200));
         nuevo = await consultarEstado();
       }
       setEstado(nuevo);
-      if (nuevo.clase === "activo") setAviso(null);
+
+      if (nuevo.clase === "activo") {
+        setAviso({ tono: "ok", texto: "Listas. Toca Probar para confirmarlo." });
+      } else if (respuesta === "granted" && nuevo.clase === "permitido-apagado") {
+        // Permiso dado pero el alta todavía no aparece. No es un fallo (aún):
+        // decirlo así evita que cierre la app creyendo que no sirvió.
+        setAviso({
+          tono: "mal",
+          texto:
+            "Diste el permiso, pero este aparato todavía no acaba de darse de alta. Espera unos segundos y toca Encender.",
+        });
+      }
     } finally {
       setOcupado(false);
     }
