@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ideaDeLeccion } from "@/lib/idea-leccion";
-import { SITE } from "@/config/site";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { armarMensaje, useMensajeGrupo } from "@/lib/mensaje-grupo";
 
 /**
  * "Cuéntaselo al grupo": al terminar la lección, ofrece un mensaje ya escrito
@@ -20,29 +20,6 @@ import { SITE } from "@/config/site";
  * el botón dice "elige tu grupo".
  */
 
-/**
- * El mensaje que se propone por defecto.
- *
- * Tres cuidados:
- *  - Solo dice "repaso" cuando la lección lo es de verdad.
- *  - Los días de repaso dice QUÉ lecciones se repasan, no una frase vaga.
- *  - Las comillas angulares se reservan para la idea del Curso. La frase de un
- *    repaso es nuestra, no una cita, así que va sin comillas: entrecomillarla
- *    haría parecer que el Curso dice algo que no dice.
- */
-function mensajePorDefecto(numero: number, titulo: string): string {
-  const { idea, motivo } = ideaDeLeccion(titulo, numero);
-
-  const cabecera =
-    motivo === "repaso"
-      ? `🌅 Terminé el repaso de la lección ${numero} de ${SITE.totalLessons}.`
-      : `🌅 Terminé la lección ${numero} de ${SITE.totalLessons}.`;
-
-  const frase = !idea ? "" : motivo === "repaso" ? `\n\n${idea}` : `\n\n«${idea}»`;
-
-  return `${cabecera}${frase}\n\n${SITE.tagline} 🕊️`;
-}
-
 export function CompartirWhatsApp({
   lessonNumber,
   title,
@@ -50,8 +27,23 @@ export function CompartirWhatsApp({
   lessonNumber: number;
   title: string;
 }) {
-  const [texto, setTexto] = useState(() => mensajePorDefecto(lessonNumber, title));
+  const { plantilla } = useMensajeGrupo();
+  const [texto, setTexto] = useState("");
+  const [tocado, setTocado] = useState(false);
   const [abierto, setAbierto] = useState(false);
+
+  /*
+   * El mensaje se arma con la plantilla que la persona tenga puesta en Ajustes.
+   * Esa plantilla llega del almacenamiento del navegador, o sea DESPUÉS del
+   * primer dibujo: por eso se rehace aquí en vez de fijarlo con useState.
+   *
+   * `tocado` existe para no pisar lo que esté escribiendo: en cuanto cambia el
+   * texto a mano, la plantilla deja de mandar.
+   */
+  useEffect(() => {
+    if (tocado) return;
+    setTexto(armarMensaje(plantilla, { numero: lessonNumber, titulo: title }));
+  }, [plantilla, lessonNumber, title, tocado]);
 
   const limpio = texto.trim();
   const enlace = `https://wa.me/?text=${encodeURIComponent(limpio)}`;
@@ -79,8 +71,11 @@ export function CompartirWhatsApp({
           <textarea
             id="mensaje-grupo"
             value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            rows={6}
+            onChange={(e) => {
+              setTocado(true);
+              setTexto(e.target.value);
+            }}
+            rows={4}
             maxLength={900}
             className="mt-2 w-full resize-y rounded-xl border border-border bg-bg/60 p-3 text-sm leading-relaxed text-fg outline-none transition focus:border-aqua/60"
           />
@@ -99,7 +94,10 @@ export function CompartirWhatsApp({
               Abrir WhatsApp
             </a>
             <button
-              onClick={() => setTexto(mensajePorDefecto(lessonNumber, title))}
+              onClick={() => {
+                setTocado(false);
+                setTexto(armarMensaje(plantilla, { numero: lessonNumber, titulo: title }));
+              }}
               className="btn-ghost px-4 py-3 text-sm"
             >
               Restaurar
@@ -107,7 +105,10 @@ export function CompartirWhatsApp({
           </div>
 
           <p className="mt-2 text-center text-xs text-muted">
-            Se abre WhatsApp con el mensaje listo y ahí eliges tu grupo.
+            Se abre WhatsApp con el mensaje listo y ahí eliges tu grupo.{" "}
+            <Link href="/ajustes" className="text-aqua underline-offset-2 hover:underline">
+              Cambiar el mensaje de siempre
+            </Link>
           </p>
         </div>
       )}
