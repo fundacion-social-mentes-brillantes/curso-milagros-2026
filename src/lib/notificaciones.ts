@@ -263,8 +263,26 @@ export async function activar(): Promise<NotificationPermission | "sin-soporte">
   }
 
   if (permiso === "granted") {
-    // Ya no hace falta el gesto: esto puede esperar a la cola tranquilamente.
-    await conOneSignal((os) => os.User?.PushSubscription?.optIn?.(), 15000);
+    /*
+     * Ya no hace falta el gesto, así que esto puede esperar a la cola.
+     *
+     * Se hacen las DOS cosas a propósito. Al pedir el permiso por la vía del
+     * navegador, OneSignal no se entera de que ya lo tiene: se quedó con la
+     * foto de cuando arrancó. `requestPermission()` suyo no vuelve a preguntar
+     * nada (el permiso ya está dado), pero le hace mirar de nuevo y arrancar
+     * el alta del aparato. `optIn()` remata por si venía apagado.
+     *
+     * Si cualquiera de las dos falla, `conOneSignal` lo recoge y seguimos: lo
+     * que manda es lo que diga `consultarEstado()` después.
+     */
+    await conOneSignal(async (os) => {
+      try {
+        await os.Notifications.requestPermission?.();
+      } catch {
+        /* ya estaba; lo que importa es el optIn de abajo */
+      }
+      await os.User?.PushSubscription?.optIn?.();
+    }, 20000);
   }
 
   return permiso;
