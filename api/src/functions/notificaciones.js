@@ -13,10 +13,10 @@
  * de lo que venga en la petición. Así esta ruta no sirve para molestar a nadie
  * más, ni siquiera equivocándose.
  *
- * Y devuelve `destinatarios`, que es el dato de oro: si OneSignal dice 0, el
- * problema no es la red ni el permiso, es que esta persona no tiene NINGÚN
- * aparato suscrito a su nombre. Eso explica en un segundo lo que de otro modo
- * son horas de "a mí no me llega nada".
+ * OJO al leer la respuesta: enviando por cuenta, OneSignal NO devuelve cuántos
+ * la recibieron. Eso hay que preguntarlo aparte, y tarda un momento en estar
+ * listo. Dar por hecho que "sin número" significa "cero" fue justo el fallo que
+ * hacía cantar fracaso en envíos que salían perfectamente.
  */
 
 const { app } = require("@azure/functions");
@@ -83,20 +83,54 @@ app.http("probarNotificacion", {
     // repetir la llamada, no contra que salga bien.
     await guardar("users", P.users(), persona.uid, { ultimaPrueba: ahora });
 
-    const destinatarios = Number(respuesta?.recipients ?? 0);
-
-    // OneSignal responde 200 con "recipients: 0" cuando la persona no tiene
-    // ningún aparato suscrito. Eso NO es un éxito, y decirlo así evita que se
-    // quede esperando una notificación que nunca se envió.
-    if (destinatarios === 0) {
-      return json({
-        ok: false,
-        motivo: "sin-aparatos",
-        destinatarios: 0,
-        detalle: respuesta?.errors ?? null,
-      });
+    /*
+     * CÓMO SE SABE SI SALIÓ, QUE AQUÍ ESTUVO EL FALLO.
+     *
+     * Enviando por cuenta (`include_aliases`), OneSignal responde solo
+     * `{id, external_id}`: NO trae el campo `recipients`. Antes se leía ese
+     * campo ausente como un cero y se cantaba "no hay ningún aparato
+     * registrado a tu nombre" en envíos que habían salido perfectamente. Ese
+     * mensaje mandaba a la persona a apagar y encender unas notificaciones que
+     * ya estaban bien.
+     *
+     * Lo que SÍ distingue los dos casos:
+     *   - Sin aparatos → OneSignal contesta con `errors`.
+     *   - Con aparatos → contesta con un `id` y sin errores.
+     */
+    const errores = respuesta?.errors;
+    if (errores) {
+      context.warn("la prueba no llegó a nadie:", errores);
+      return json({ ok: false, motivo: "sin-aparatos", detalle: errores });
+    }
+    if (!respuesta?.id) {
+      return json({ ok: false, motivo: "sin-respuesta" });
     }
 
-    return json({ ok: true, destinatarios, id: respuesta?.id ?? null });
+    /*
+     * Cuántos la recibieron de verdad hay que ir a preguntarlo aparte, y tarda
+     * un momento en estar listo. Se espera un poco; si aún no está, se informa
+     * igual de que salió, que es cierto. Mejor un dato de menos que uno falso.
+     */
+    let entregadas = null;
+    try {
+      await new Promise((r) => setTimeout(r, 2500));
+      const res = await fetch(
+        `https://onesignal.com/api/v1/notifications/${respuesta.id}?app_id=${ONESIGNAL_APP_ID}`,
+        { headers: { Authorization: `Basic ${apiKey}` } },
+      );
+      if (res.ok) {
+        const info = await res.json();
+        const n = Number(info?.successful);
+        if (Number.isFinite(n)) entregadas = n;
+      }
+    } catch {
+      /* el recuento es un extra: el envío ya se hizo */
+    }
+
+    if (entregadas === 0) {
+      return json({ ok: false, motivo: "sin-aparatos", destinatarios: 0 });
+    }
+
+    return json({ ok: true, destinatarios: entregadas, id: respuesta.id });
   }),
 });

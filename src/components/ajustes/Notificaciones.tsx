@@ -239,11 +239,19 @@ export function Notificaciones() {
     setProbando(true);
     setAviso(null);
     try {
-      const r = await llamar<{ ok: boolean; motivo?: string }>("/probar-notificacion", {
-        metodo: "POST",
-      });
+      const r = await llamar<{ ok: boolean; motivo?: string; destinatarios?: number | null }>(
+        "/probar-notificacion",
+        { metodo: "POST" },
+      );
       if (r.ok) {
-        setAviso({ tono: "ok", texto: "Enviada. Te llega en unos segundos." });
+        const n = r.destinatarios;
+        setAviso({
+          tono: "ok",
+          texto:
+            n && n > 1
+              ? `Enviada a tus ${n} aparatos. Te llega en unos segundos.`
+              : "Enviada. Te llega en unos segundos.",
+        });
       } else if (r.motivo === "sin-aparatos") {
         setAviso({
           tono: "mal",
@@ -279,51 +287,55 @@ export function Notificaciones() {
 
   return (
     <Seccion icono="🔔" titulo="Notificaciones" descripcion="Se configuran por aparato.">
-      {/* Estado y acción en una sola línea: es lo único que casi todos miran. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
-        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${l.punto}`} aria-hidden />
-        <span className={`text-sm font-bold ${l.texto}`}>{l.titulo}</span>
-        <span className="min-w-0 flex-1 text-sm text-muted">{l.frase}</span>
+      {/*
+        El estado arriba y los botones debajo.
+        Antes iba todo en una fila. En el computador se veía bien, pero en un
+        celular los botones se llevaban su ancho y la frase quedaba espachurrada
+        en una columna de tres letras, partida en seis renglones. Apilado se lee
+        igual de bien en los dos sitios y no hay nada que se estruje.
+      */}
+      <div className="flex items-start gap-2.5">
+        <span className={`mt-[7px] h-2.5 w-2.5 shrink-0 rounded-full ${l.punto}`} aria-hidden />
+        <p className="min-w-0 text-sm leading-relaxed">
+          <span className={`font-bold ${l.texto}`}>{l.titulo}</span>
+          <span className="text-muted"> · {l.frase}</span>
+        </p>
+      </div>
 
-        <span className="flex shrink-0 gap-2">
-          {estado.clase === "sin-decidir" && (
-            <button onClick={() => void activarAhora()} disabled={ocupado} className="btn-primary">
-              {ocupado ? "…" : "Activar"}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {estado.clase === "sin-decidir" && (
+          <button onClick={() => void activarAhora()} disabled={ocupado} className="btn-primary">
+            {ocupado ? "Un momento…" : "Activar"}
+          </button>
+        )}
+        {estado.clase === "permitido-apagado" && (
+          <button
+            onClick={() => void conEspera(encender)}
+            disabled={ocupado}
+            className="btn-primary"
+          >
+            {ocupado ? "Un momento…" : "Encender"}
+          </button>
+        )}
+        {estado.clase === "desconocido" && (
+          <button
+            onClick={() => void conEspera(async () => {})}
+            disabled={ocupado}
+            className="btn-ghost"
+          >
+            {ocupado ? "Comprobando…" : "Comprobar"}
+          </button>
+        )}
+        {estado.clase === "activo" && (
+          <>
+            <button onClick={() => void probar()} disabled={probando} className="btn-ghost">
+              {probando ? "Enviando…" : "Probar"}
             </button>
-          )}
-          {estado.clase === "permitido-apagado" && (
-            <button
-              onClick={() => void conEspera(encender)}
-              disabled={ocupado}
-              className="btn-primary"
-            >
-              {ocupado ? "…" : "Encender"}
+            <button onClick={() => void conEspera(apagar)} disabled={ocupado} className="btn-ghost">
+              {ocupado ? "…" : "Apagar"}
             </button>
-          )}
-          {estado.clase === "desconocido" && (
-            <button
-              onClick={() => void conEspera(async () => {})}
-              disabled={ocupado}
-              className="btn-ghost"
-            >
-              {ocupado ? "…" : "Comprobar"}
-            </button>
-          )}
-          {estado.clase === "activo" && (
-            <>
-              <button onClick={() => void probar()} disabled={probando} className="btn-ghost">
-                {probando ? "Enviando…" : "Probar"}
-              </button>
-              <button
-                onClick={() => void conEspera(apagar)}
-                disabled={ocupado}
-                className="btn-ghost"
-              >
-                {ocupado ? "…" : "Apagar"}
-              </button>
-            </>
-          )}
-        </span>
+          </>
+        )}
       </div>
 
       {aviso && (
