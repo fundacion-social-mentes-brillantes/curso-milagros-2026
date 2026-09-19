@@ -21,6 +21,7 @@
  */
 
 import { readFileSync, readdirSync } from "node:fs";
+import { leerLibro } from "./lib-libro.mjs";
 import { join } from "node:path";
 
 const rutaTexto = process.argv[2];
@@ -52,6 +53,38 @@ function palabras(t) {
   return aplanar(t).split(" ").filter((p) => p.length > 3);
 }
 
+/**
+ * CUÁNTO SE PARECEN DE VERDAD, palabra por palabra y EN ORDEN.
+ *
+ * Esta es la que vale, y la que faltaba. Antes solo se medía `cobertura`, que
+ * cuenta cuántas palabras del libro aparecen en algún sitio del otro texto, sin
+ * mirar el orden. Dos traducciones distintas del mismo párrafo comparten casi
+ * todo el vocabulario, así que aquello daba 90% largo y se leía como "es el
+ * mismo texto" cuando no lo era. Con esa vara se dio por buena una auditoría
+ * entera: 348 lecciones "coincidían" y en realidad solo 50 eran el mismo texto.
+ *
+ * La cobertura se conserva porque sí sirve para una cosa: detectar que a una
+ * lección le falta un trozo. Pero quien manda es esta.
+ */
+function parecido(a, b) {
+  const x = palabras(a);
+  const y = palabras(b);
+  if (x.length === 0 || y.length === 0) return 0;
+  // Subsecuencia común más larga, normalizada. Respeta el orden.
+  const previa = new Array(y.length + 1).fill(0);
+  let mejor = 0;
+  for (let i = 1; i <= x.length; i++) {
+    let anterior = 0;
+    for (let j = 1; j <= y.length; j++) {
+      const guardar = previa[j];
+      previa[j] = x[i - 1] === y[j - 1] ? anterior + 1 : Math.max(previa[j], previa[j - 1]);
+      anterior = guardar;
+    }
+  }
+  mejor = previa[y.length];
+  return (2 * mejor) / (x.length + y.length);
+}
+
 /** Cuánto del original aparece en la copia (0 a 1). */
 function cobertura(original, copia) {
   const a = palabras(original);
@@ -62,54 +95,8 @@ function cobertura(original, copia) {
   return dentro / a.length;
 }
 
-// ──────────────────────────────────────────────── partir el PDF en lecciones
-function leerDelLibro(texto) {
-  const lineas = texto.split("\n");
-  const marcas = [];
-  for (let i = 0; i < lineas.length; i++) {
-    const m = lineas[i].match(/^\s*LECCI[OÓ]N\s+(\d+)\s*$/);
-    if (m) marcas.push({ numero: Number(m[1]), linea: i });
-  }
-
-  const salida = new Map();
-  for (let i = 0; i < marcas.length; i++) {
-    const desde = marcas[i].linea + 1;
-    const hasta = i + 1 < marcas.length ? marcas[i + 1].linea : lineas.length;
-    let trozo = lineas.slice(desde, hasta);
-
-    // Entre lección y lección, el libro intercala secciones suyas que NO son
-    // parte de la lección anterior: las trece "¿Qué es…?", las introducciones,
-    // "SEGUNDA PARTE", "LECCIONES FINALES" y el epílogo.
-    //
-    // Esto importa mucho para la auditoría: dejarlas dentro hacía parecer que a
-    // la app le faltaba media lección (la 180 salía con un 12% cuando en
-    // realidad está completa). Cortar aquí es lo que separa un problema de
-    // verdad de un susto.
-    const corte = trozo.findIndex((l) =>
-      /^\s*(\d+\.\s*¿Qu[eé] (es|soy)|Introducci[oó]n\b|PRIMERA PARTE|SEGUNDA PARTE|LECCIONES FINALES|EP[IÍ]LOGO)/i.test(l),
-    );
-    if (corte > 0) trozo = trozo.slice(0, corte);
-
-    // El título es lo primero que no está en blanco, hasta el primer párrafo
-    // numerado ("1. ") o la primera línea vacía tras haber empezado.
-    const tituloPartes = [];
-    let j = 0;
-    while (j < trozo.length && trozo[j].trim() === "") j++;
-    while (j < trozo.length && trozo[j].trim() !== "" && !/^\s*\d+\.\s/.test(trozo[j])) {
-      tituloPartes.push(trozo[j].trim());
-      j++;
-    }
-
-    salida.set(marcas[i].numero, {
-      titulo: tituloPartes.join(" ").replace(/\s+/g, " ").trim(),
-      cuerpo: trozo.join("\n").trim(),
-    });
-  }
-  return salida;
-}
-
 // ───────────────────────────────────────────────────────────────── auditoría
-const libro = leerDelLibro(readFileSync(rutaTexto, "utf8"));
+const libro = leerLibro(rutaTexto);
 
 const archivos = readdirSync(CARPETA)
   .filter((f) => /^\d{3}\.json$/.test(f))
@@ -134,16 +121,19 @@ for (const f of archivos) {
   }
 
   const cob = cobertura(orig.cuerpo, textoApp);
+  const par = parecido(orig.cuerpo, `${tituloApp} ${textoApp}`);
   const cobTitulo = tituloApp ? cobertura(orig.titulo, tituloApp) : 0;
 
+  // El veredicto lo da el parecido real, no la cobertura.
   let estado = "ok";
   if (cob < 0.55) estado = "DIFERENTE";
-  else if (cob < 0.85) estado = "traduccion";
+  else if (par < 0.90) estado = "traduccion";
 
   resultados.push({
     n,
     estado,
     cobertura: cob,
+    parecido: par,
     coberturaTitulo: cobTitulo,
     tituloApp,
     tituloLibro: orig.titulo,
@@ -162,8 +152,13 @@ console.log(linea);
 console.log(`  lecciones en la app          : ${archivos.length}`);
 console.log(`  lecciones halladas en el PDF : ${libro.size}`);
 console.log("");
-console.log(`  ✔ coinciden bien             : ${por("ok").length}`);
-console.log(`  ~ otra traducción            : ${por("traduccion").length}`);
+const medio = resultados.filter((r) => r.parecido !== undefined);
+const promedio = medio.length
+  ? medio.reduce((a, r) => a + r.parecido, 0) / medio.length
+  : 0;
+console.log(`  parecido REAL promedio       : ${(promedio * 100).toFixed(1)}%`);
+console.log(`  ✔ es el mismo texto (≥90%)   : ${por("ok").length}`);
+console.log(`  ~ otra traducción (<90%)     : ${por("traduccion").length}`);
 console.log(`  ✗ contenido DIFERENTE        : ${por("DIFERENTE").length}`);
 console.log(`  ✗ SIN TEXTO en la app        : ${por("FALTA").length}`);
 console.log(`  ? no están en el PDF         : ${por("no-en-pdf").length}`);
