@@ -114,9 +114,26 @@ for (let n = 1; n <= TOTAL; n++) {
     continue;
   }
 
-  // Título: el del libro, salvo que sea relleno (acaba en ":").
+  /*
+   * Título: el del libro, salvo que la app tenga una etiqueta MEJOR.
+   *
+   * El libro titula las tandas de repaso con una frase de relleno que acaba en
+   * ":" ("El repaso de hoy abarca las siguientes ideas:"). La app puso encima
+   * "Primer Repaso", "Segundo Repaso", que sí dicen algo, y eso se respeta.
+   *
+   * Pero en otras (112-120) la app tenía SU PROPIA frase de relleno, recortada
+   * del libro: "Para los repasos de mañana y noche:" contra "Para los repasos
+   * de por la mañana y por la noche:". Conservar esa no protegía nada, solo
+   * dejaba el texto a medio camino entre las dos ediciones. Ahí manda el libro.
+   *
+   * La regla: se conserva la de la app solo si es una etiqueta de verdad, es
+   * decir, si NO acaba en dos puntos.
+   */
   const tituloLibro = delLibro.titulo.trim();
-  const titulo = !tituloLibro || tituloLibro.endsWith(":") ? String(app.title ?? "") : tituloLibro;
+  const tituloApp = String(app.title ?? "").trim();
+  const appTieneEtiqueta = tituloApp.length > 0 && !tituloApp.endsWith(":");
+  const titulo =
+    !tituloLibro || (tituloLibro.endsWith(":") && appTieneEtiqueta) ? tituloApp : tituloLibro;
 
   cambios.push({ n, archivo, app, titulo, texto, antes });
 }
@@ -146,12 +163,23 @@ if (!existsSync(COPIAS)) mkdirSync(COPIAS, { recursive: true });
 
 const ahora = Date.now();
 for (const c of cambios) {
-  // Copia de lo que había, por si hay que volver atrás sin depender de git.
-  writeFileSync(
-    join(COPIAS, `${String(c.n).padStart(3, "0")}.json`),
-    JSON.stringify({ title: c.app.title, originalText: c.antes }, null, 2) + "\n",
-    "utf8",
-  );
+  /*
+   * Copia de lo que había, por si hay que volver atrás sin depender de git.
+   *
+   * NO se pisa una copia que ya exista, y esto no es una precaución teórica:
+   * al correr el importador una segunda vez para afinar los títulos, lo que
+   * había en las lecciones ya era el texto del libro, así que guardarlo encima
+   * borró la única copia del texto original del blog. Hubo que sacarlo de git.
+   * La PRIMERA copia es la que vale.
+   */
+  const copia = join(COPIAS, `${String(c.n).padStart(3, "0")}.json`);
+  if (!existsSync(copia)) {
+    writeFileSync(
+      copia,
+      JSON.stringify({ title: c.app.title, originalText: c.antes }, null, 2) + "\n",
+      "utf8",
+    );
+  }
 
   const nuevo = {
     ...c.app,
