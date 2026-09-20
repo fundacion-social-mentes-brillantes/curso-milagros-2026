@@ -194,5 +194,26 @@ for (const c of cambios) {
   writeFileSync(c.archivo, JSON.stringify(nuevo, null, 2) + "\n", "utf8");
 }
 
+/*
+ * EL ÍNDICE, que casi se queda atrás.
+ *
+ * `public/lessons/index.json` guarda una copia del título de cada lección, y de
+ * ahí salen la lista de lecciones y los enlaces de los días de repaso. Como es
+ * un archivo aparte, al cambiar los títulos se quedó con los viejos: la lista
+ * decía "Nada de lo que veo significa nada." y la lección, abierta, decía otra
+ * cosa. Se regenera aquí mismo para que no puedan volver a separarse.
+ */
+const indice = [];
+for (let n = 1; n <= TOTAL; n++) {
+  const l = JSON.parse(readFileSync(join(CARPETA, `${String(n).padStart(3, "0")}.json`), "utf8"));
+  indice.push({
+    number: n,
+    title: String(l.title ?? ""),
+    videoStatus: l.video?.status ?? "soon",
+  });
+}
+writeFileSync(join(CARPETA, "index.json"), JSON.stringify(indice, null, 2), "utf8");
+
 console.log(`  Guardadas ${cambios.length} lecciones.`);
+console.log(`  Índice regenerado con los ${indice.length} títulos.`);
 console.log(`  Copias de lo anterior en ${COPIAS}/`);
