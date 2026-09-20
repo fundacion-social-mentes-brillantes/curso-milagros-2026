@@ -18,25 +18,34 @@ const RATES = [
 export function LessonReader({ lesson }: { lesson: Lesson }) {
   const num = String(lesson.number).padStart(3, "0");
   const audioUrl = audioLeccion(num);
-  const [hasFile, setHasFile] = useState<boolean | null>(null);
+  const [falloElAudio, setFalloElAudio] = useState(false);
 
+  /*
+   * SE INTENTA EL MP3 PRIMERO, Y SOLO SE CAE A LA VOZ DEL APARATO SI FALLA DE
+   * VERDAD AL REPRODUCIR.
+   *
+   * Antes esto preguntaba por el archivo con `fetch(..., {method:"HEAD"})` y, si
+   * la petición no salía bien, enseñaba el lector sintético. El problema: los
+   * audios viven en otro dominio (Azure Blob) y ese `fetch` es una petición
+   * entre dominios, así que el navegador la bloqueaba por CORS. La consecuencia
+   * es que TODAS las lecciones caían al respaldo: durante semanas nadie oyó las
+   * narraciones, solo la voz robótica del navegador.
+   *
+   * La etiqueta <audio> no necesita CORS para reproducir. Por eso ya no se
+   * pregunta: se pone el reproductor y solo se cambia al respaldo si el propio
+   * <audio> avisa de que no pudo cargar. Así, si mañana falla la configuración,
+   * el fallo se ve —no suena— en vez de disfrazarse de voz de robot.
+   */
   useEffect(() => {
-    let active = true;
-    fetch(audioUrl, { method: "HEAD" })
-      .then((r) => active && setHasFile(r.ok))
-      .catch(() => active && setHasFile(false));
-    return () => {
-      active = false;
-    };
+    setFalloElAudio(false);
   }, [audioUrl]);
 
-  if (hasFile === null) return null;
-  if (hasFile) return <FilePlayer url={audioUrl} />;
-  return <SpeechPlayer lesson={lesson} />;
+  if (falloElAudio) return <SpeechPlayer lesson={lesson} />;
+  return <FilePlayer url={audioUrl} onFallo={() => setFalloElAudio(true)} />;
 }
 
 /** Reproductor del audio narrado (MP3 de alta calidad). */
-function FilePlayer({ url }: { url: string }) {
+function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
   const ref = useRef<HTMLAudioElement>(null);
   const [rate, setRate] = useState(1);
 
@@ -61,6 +70,7 @@ function FilePlayer({ url }: { url: string }) {
           onLoadedMetadata={() => {
             if (ref.current) ref.current.playbackRate = rate;
           }}
+          onError={onFallo}
         >
           Tu navegador no puede reproducir este audio.
         </audio>
