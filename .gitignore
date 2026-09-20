@@ -51,3 +51,10 @@ gemini-keys.txt
 /despertador.zip
 /funcion-avisos/node_modules
 /api/node_modules
+
+# Audios narrados: viven en Azure Blob, no en el repositorio.
+# Son ~5 MB cada uno; las 365 lecciones serían más de un giga en git, y git
+# guarda cada versión para siempre. Los .txt del guion sí se quedan: pesan nada
+# y dejan constancia de QUÉ se narró exactamente.
+audio-nuevo/*.mp3
+audio-viejo-blog/
