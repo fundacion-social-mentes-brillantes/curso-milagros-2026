@@ -48,12 +48,14 @@ function paraVoz(l) {
 }
 
 let total = 0;
-for (let n = 1; n <= 5; n++) {
+const DESDE = Number(process.argv[2] || 1);
+const HASTA = Number(process.argv[3] || 5);
+for (let n = DESDE; n <= HASTA; n++) {
   const l = JSON.parse(readFileSync(`public/lessons/${String(n).padStart(3,"0")}.json`, "utf8"));
   const t = paraVoz(l);
   writeFileSync(`audio-nuevo/${String(n).padStart(3,"0")}.txt`, t, "utf8");
   total += t.length;
-  console.log(`  ${n}: ${String(t.length).padStart(5)} caracteres`);
+  if (process.env.SILENCIO !== "1") console.log(`  ${n}: ${String(t.length).padStart(5)} caracteres`);
 }
 console.log(`  ─────────────────────`);
 console.log(`  total: ${total} caracteres  ≈ ${Math.round(total*0.605)} créditos  ≈ ${(total/753).toFixed(1)} min de audio`);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { audioLeccion } from "@/config/assets";
+import { audioLeccion, musicaDeFondo } from "@/config/assets";
 import type { Lesson } from "@/types";
 
 const RATES = [
@@ -47,11 +47,42 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
 /** Reproductor del audio narrado (MP3 de alta calidad). */
 function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
   const ref = useRef<HTMLAudioElement>(null);
+  const fondo = useRef<HTMLAudioElement>(null);
   const [rate, setRate] = useState(1);
+  const [conMusica, setConMusica] = useState(false);
+  const urlMusica = musicaDeFondo();
 
   function setSpeed(v: number) {
     setRate(v);
     if (ref.current) ref.current.playbackRate = v;
+  }
+
+  /*
+   * LA MÚSICA SIGUE A LA VOZ, no va por libre.
+   *
+   * Arranca cuando arranca la lección, se detiene cuando se pausa y se rebobina
+   * al terminar. Si fuera un reproductor aparte, quedaría sonando sola cuando
+   * la persona para la lección para pensar —justo el momento en que estorba—.
+   *
+   * El volumen va bajo (0,14) y no se toca: es un fondo, y si compite con la
+   * voz hay que subir el volumen general y entonces la música molesta más.
+   */
+  useEffect(() => {
+    const m = fondo.current;
+    if (!m) return;
+    m.volume = 0.14;
+    m.loop = true;
+  }, [conMusica]);
+
+  function conLaVoz(accion: "sonar" | "parar" | "volver") {
+    const m = fondo.current;
+    if (!m || !conMusica) return;
+    if (accion === "sonar") void m.play().catch(() => {});
+    if (accion === "parar") m.pause();
+    if (accion === "volver") {
+      m.pause();
+      m.currentTime = 0;
+    }
   }
 
   return (
@@ -71,6 +102,9 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
             if (ref.current) ref.current.playbackRate = rate;
           }}
           onError={onFallo}
+          onPlay={() => conLaVoz("sonar")}
+          onPause={() => conLaVoz("parar")}
+          onEnded={() => conLaVoz("volver")}
         >
           Tu navegador no puede reproducir este audio.
         </audio>
@@ -90,6 +124,31 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
             </button>
           ))}
         </div>
+
+        {/* La música solo se ofrece si de verdad hay un archivo detrás. */}
+        {urlMusica && (
+          <div className="flex items-center gap-2 border-t border-border pt-3">
+            <button
+              onClick={() => {
+                const nueva = !conMusica;
+                setConMusica(nueva);
+                const m = fondo.current;
+                if (!m) return;
+                if (nueva && ref.current && !ref.current.paused) void m.play().catch(() => {});
+                if (!nueva) m.pause();
+              }}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                conMusica
+                  ? "bg-aqua/20 text-aqua"
+                  : "border border-border bg-surface text-muted hover:text-fg"
+              }`}
+            >
+              {conMusica ? "🎵 Con música" : "🎵 Sin música"}
+            </button>
+            <span className="text-xs text-muted">Suena muy bajito, por debajo de la voz.</span>
+            <audio ref={fondo} src={urlMusica} preload="none" loop className="hidden" />
+          </div>
+        )}
       </div>
     </div>
   );
