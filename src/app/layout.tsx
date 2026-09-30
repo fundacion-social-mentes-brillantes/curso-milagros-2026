@@ -35,8 +35,12 @@ export const metadata: Metadata = {
   },
   description: SITE.description,
   icons: {
-    icon: [{ url: "/images/icon.png", type: "image/png", sizes: "512x512" }],
-    apple: [{ url: "/images/icon.png", sizes: "512x512" }],
+    icon: [
+      { url: "/icons/favicon-64.png", type: "image/png", sizes: "64x64" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    // El iPhone redondea solo; por eso este va lleno, sin transparencia.
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
   appleWebApp: {
     capable: true,

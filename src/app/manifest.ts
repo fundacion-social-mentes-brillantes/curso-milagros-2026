@@ -21,21 +21,23 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#092622",
     theme_color: "#0F3630",
     categories: ["lifestyle", "education"],
+    // Ícono UCDM de la Familia GEMB. "any" lleva las esquinas redondeadas;
+    // "maskable" es el cuadrado lleno, para que Android le ponga su propia forma.
     icons: [
       {
-        src: "/images/icon.png",
+        src: "/icons/icon-192.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/images/icon.png",
+        src: "/icons/icon-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/images/icon.png",
+        src: "/icons/maskable-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
