@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Italiana, Playfair_Display, Poppins } from "next/font/google";
+import { Newsreader } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
@@ -13,35 +13,22 @@ import { SITE } from "@/config/site";
 import { GUION_ANTI_PARPADEO } from "@/lib/ajustes";
 
 /*
- * LAS LETRAS (referencia de Valeria, 2 oct 2026). El nombre «UN CURSO DE
- * MILAGROS» NO es una letra: es una imagen fija recortada de la referencia
- * oficial (public/images/marca). Todo lo demás:
- *   · Le Jour Serif → títulos de sección y números. Es comercial: mientras no
- *     esté comprada la licencia web va Italiana (libre y muy parecida). Para
- *     cambiarla basta con poner el archivo en src/app/fuentes y usarlo abajo.
- *   · Playfair Display («Elegant») → el título de la lección y pocas frases.
- *   · Poppins → interfaz, botones, navegación y el módulo de Facebook.
- *   · Glacial Indifference → el texto de la lección (licencia libre, OFL).
+ * LAS LETRAS (Sebastián, 3 oct 2026). El nombre «UN CURSO DE MILAGROS» NO es una
+ * letra: es una imagen fija recortada de la referencia oficial
+ * (public/images/marca). Todo lo demás:
+ *   · Newsreader → TODA la interfaz: títulos, números, botones, menús y textos.
+ *     Es la serif editorial de su referencia; con su tamaño óptico se ve fina
+ *     en los títulos grandes y clara en lo pequeño.
+ *   · Glacial Indifference → solo el texto de la lección, para leer descansado.
  */
-const titulos = Italiana({
+const serif = Newsreader({
   subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-titulos",
-  display: "swap",
-});
-
-const serif = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  axes: ["opsz"],
+  style: ["normal", "italic"],
   variable: "--font-serif",
   display: "swap",
-});
-
-const sans = Poppins({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-sans",
-  display: "swap",
+  // Next no trae las medidas de respaldo de Newsreader y avisaba al construir.
+  adjustFontFallback: false,
 });
 
 const lectura = localFont({
@@ -108,7 +95,7 @@ export default function RootLayout({
       // El tema de siempre viene puesto ya desde aquí. Así, si el guioncito de
       // abajo no llega a correr, la página se ve como toda la vida en vez de
       // quedarse sin colores.
-      className={`dark ${titulos.variable} ${serif.variable} ${sans.variable} ${lectura.variable}`}
+      className={`dark ${serif.variable} ${lectura.variable}`}
       data-tema="esmeralda"
       suppressHydrationWarning
     >

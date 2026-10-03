@@ -41,9 +41,10 @@ export function Arranque() {
   return (
     <div className="arranque" aria-hidden>
       <div className="flex flex-col items-center">
-        <Libro dibujar className="w-[8.6rem] [transform:perspective(900px)_rotateX(9deg)] md:w-[11rem]" />
+        <Libro dibujar className="w-[7.5rem] [transform:perspective(900px)_rotateX(9deg)] md:w-[8.5rem]" />
         <span className="pulso" />
-        <NombreCurso className="mt-9 w-[min(78vw,19rem)] md:w-[27rem]" />
+        {/* El nombre del mismo ancho que el libro: pequeño y elegante, no un cartel. */}
+        <NombreCurso className="mt-7 w-[7.5rem] md:w-[8.5rem]" />
       </div>
     </div>
   );

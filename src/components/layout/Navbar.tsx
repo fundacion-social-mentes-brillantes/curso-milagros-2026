@@ -22,11 +22,17 @@ export function Navbar() {
 
   const links = firebaseUser ? [...NAV_USER] : [];
   const activo = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  // En la portada el nombre ya está grande en el centro: arriba no se repite.
+  const enPortada = !firebaseUser && (pathname === "/" || pathname.startsWith("/login"));
 
   return (
     <header className="relative z-40">
       <nav className="container-page flex h-16 items-center justify-between gap-3 md:h-20">
-        <Link href={firebaseUser ? "/hoy" : "/"} className="flex items-center gap-2.5" aria-label={`${SITE.name} · ${SITE.org}`}>
+        <Link
+          href={firebaseUser ? "/hoy" : "/"}
+          className={cn("flex items-center gap-2.5", enPortada && "invisible")}
+          aria-label={`${SITE.name} · ${SITE.org}`}
+        >
           <Libro className="w-8" />
           <NombreCurso linea className="h-[0.82rem] w-auto md:h-[0.95rem]" />
         </Link>
@@ -77,7 +83,7 @@ export function Navbar() {
                 Salir
               </button>
             </div>
-          ) : (
+          ) : enPortada ? null : (
             <Link href="/login" className="btn-primary hidden md:inline-flex">
               Entrar
             </Link>

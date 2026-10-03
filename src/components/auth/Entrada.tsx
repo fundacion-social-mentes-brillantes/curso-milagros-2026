@@ -42,22 +42,25 @@ export function Entrada() {
 
   return (
     <div className="container-page flex min-h-[calc(100dvh-9rem)] flex-col items-center justify-center py-10 text-center">
-      <Libro className="aparece w-[4.2rem] [transform:perspective(900px)_rotateX(9deg)] md:w-20" />
-      <NombreCurso className="aparece mt-6 w-[min(80vw,20rem)] [animation-delay:.1s] md:w-[28rem]" />
-      <p className="aparece mt-4 text-[1.05rem] font-light text-muted [animation-delay:.25s]">{SITE.tagline}</p>
+      <Libro className="aparece w-[3.6rem] [transform:perspective(900px)_rotateX(9deg)] md:w-16" />
+      <NombreCurso className="aparece mt-5 w-[11.5rem] [animation-delay:.1s] md:w-[13.5rem]" />
+      <p className="aparece mt-4 text-[1.1rem] italic text-muted [animation-delay:.25s]">{SITE.tagline}</p>
 
-      <section className="vidrio aparece mt-9 w-full max-w-[22rem] rounded-[1.6rem] p-5 [animation-delay:.35s] md:max-w-[24rem]">
+      <section className="vidrio-fino aparece mt-10 w-full max-w-[21rem] px-6 pb-6 pt-7 [animation-delay:.35s] md:max-w-[23rem]">
+        <p className="text-[1.35rem] leading-tight text-fg">Tu camino te espera</p>
+        <p className="mt-1.5 text-sm text-muted">Entra para seguir con tu lección de hoy.</p>
+        <div className="mx-auto my-5 h-px w-16 bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
         {!configured ? (
           <p className="rounded-xl bg-warning/10 p-4 text-sm text-warning">
             La app aún no está conectada. Revisa <code>INSTALACION.md</code>.
           </p>
         ) : (
-          <button onClick={() => void entrar()} disabled={busy || loading} className="boton-cristal w-full">
+          <button onClick={() => void entrar()} disabled={busy || loading} className="boton-fino">
             {busy ? (
               <Spinner />
             ) : (
               <>
-                <span className="grid h-[1.55rem] w-[1.55rem] place-items-center rounded-full bg-white">
+                <span className="grid h-[1.45rem] w-[1.45rem] place-items-center rounded-full bg-white">
                   <GoogleIcon />
                 </span>
                 Continuar con Google
@@ -65,7 +68,7 @@ export function Entrada() {
             )}
           </button>
         )}
-        <Link href="/lecciones" className="mt-4 inline-block text-[0.95rem] font-medium text-muted hover:text-fg">
+        <Link href="/lecciones" className="mt-4 inline-block text-[0.98rem] italic text-muted underline-offset-4 hover:text-fg hover:underline">
           Ver las lecciones
         </Link>
         {error && <p className="mt-3 text-sm text-warning">{error}</p>}

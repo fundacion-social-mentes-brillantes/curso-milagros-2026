@@ -153,7 +153,7 @@ export function Constelacion({ hechas, hoy, className = "" }: { hechas: Set<numb
         ctx.arc(o.x, o.y, 4 + k * 26, 0, Math.PI * 2);
         ctx.stroke();
         ctx.fillStyle = `rgba(255,248,230,${1 - k})`;
-        ctx.font = "500 11px Poppins, sans-serif";
+        ctx.font = "500 12px Newsreader, Georgia, serif";
         ctx.textAlign = "center";
         ctx.fillText(`Lección ${o.n}`, o.x, o.y - 16 - k * 6);
       }
