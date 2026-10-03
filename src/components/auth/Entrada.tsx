@@ -6,12 +6,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Libro, NombreCurso } from "@/components/marca/Libro";
 import { Spinner } from "@/components/ui/Spinner";
-import { SITE } from "@/config/site";
 
 /**
- * La portada y el acceso son la misma pantalla: el libro, el nombre del curso
- * (la imagen fija de la referencia), «Un paso de paz cada día» y una sola
- * tarjeta de vidrio con lo necesario. Quien ya entró pasa directo a «Hoy».
+ * La portada y el acceso son la misma pantalla: el libro y el nombre del curso
+ * como siempre (pequeños, sin hacer cartel) y debajo solo el ingreso, en vidrio
+ * líquido. Nada más (Sebastián, 2 oct 2026). Quien ya entró pasa directo a «Hoy».
  */
 export function Entrada() {
   const { firebaseUser, loading, configured, signIn } = useAuth();
@@ -41,26 +40,26 @@ export function Entrada() {
   }
 
   return (
-    <div className="container-page flex min-h-[calc(100dvh-9rem)] flex-col items-center justify-center py-10 text-center">
-      <Libro className="aparece w-[3.6rem] [transform:perspective(900px)_rotateX(9deg)] md:w-16" />
-      <NombreCurso className="aparece mt-5 w-[11.5rem] [animation-delay:.1s] md:w-[13.5rem]" />
-      <p className="aparece mt-4 text-[1.1rem] italic text-muted [animation-delay:.25s]">{SITE.tagline}</p>
+    <div className="container-page flex min-h-[calc(100dvh-9rem)] flex-col items-center justify-center pb-10 text-center">
+      <div className="flex w-full flex-col items-center">
+        <Libro className="aparece w-[3rem] [transform:perspective(900px)_rotateX(9deg)] md:w-[3.4rem]" />
+        <NombreCurso className="aparece mt-4 w-[8.5rem] [animation-delay:.1s] md:w-[10rem]" />
+      </div>
 
-      <section className="vidrio-fino aparece mt-10 w-full max-w-[21rem] px-6 pb-6 pt-7 [animation-delay:.35s] md:max-w-[23rem]">
-        <p className="text-[1.35rem] leading-tight text-fg">Tu camino te espera</p>
-        <p className="mt-1.5 text-sm text-muted">Entra para seguir con tu lección de hoy.</p>
-        <div className="mx-auto my-5 h-px w-16 bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+      <div className="aparece relative isolate mt-12 w-full max-w-[20rem] [animation-delay:.3s]">
+        {/* Una luz detrás: el vidrio líquido se nota porque deja ver lo que tiene atrás. */}
+        <span className="orbe -z-10 left-1/2 top-1/2 h-[15rem] w-[26rem]" aria-hidden />
         {!configured ? (
           <p className="rounded-xl bg-warning/10 p-4 text-sm text-warning">
             La app aún no está conectada. Revisa <code>INSTALACION.md</code>.
           </p>
         ) : (
-          <button onClick={() => void entrar()} disabled={busy || loading} className="boton-fino">
+          <button onClick={() => void entrar()} disabled={busy || loading} className="vidrio-liquido claro w-full">
             {busy ? (
               <Spinner />
             ) : (
               <>
-                <span className="grid h-[1.45rem] w-[1.45rem] place-items-center rounded-full bg-white">
+                <span className="grid h-[1.6rem] w-[1.6rem] place-items-center rounded-full bg-white">
                   <GoogleIcon />
                 </span>
                 Continuar con Google
@@ -68,13 +67,13 @@ export function Entrada() {
             )}
           </button>
         )}
-        <Link href="/lecciones" className="mt-4 inline-block text-[0.98rem] italic text-muted underline-offset-4 hover:text-fg hover:underline">
+        <Link href="/lecciones" className="vidrio-liquido mt-3 w-full">
           Ver las lecciones
         </Link>
         {error && <p className="mt-3 text-sm text-warning">{error}</p>}
-      </section>
+      </div>
 
-      <p className="aparece mt-6 max-w-xs text-xs leading-relaxed text-muted/80 [animation-delay:.5s]">
+      <p className="aparece mt-6 max-w-xs text-xs leading-relaxed text-muted [animation-delay:.45s]">
         Tu cuenta es privada. Solo guardamos tu nombre, correo y avance para acompañarte.
       </p>
     </div>

@@ -39,7 +39,7 @@ export function Histogram({
 }) {
   const max = Math.max(1, ...buckets.map((b) => b.value));
   return (
-    <div className="flex items-end gap-2" style={{ height: 160 }}>
+    <div className="flex items-stretch gap-2" style={{ height: 160 }}>
       {buckets.map((b) => (
         <div key={b.label} className="flex flex-1 flex-col items-center gap-2">
           <div className="flex w-full flex-1 items-end">

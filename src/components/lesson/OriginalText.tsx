@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ICONO_LEE, TituloSeccion } from "@/components/lesson/TituloSeccion";
 import type { Lesson } from "@/types";
 
 /**
@@ -105,7 +106,7 @@ function BookText({ text }: { text: string }) {
         b.level === 1 ? (
           <h3
             key={bi}
-            className="titulo-seccion mt-8 text-center text-xl first:mt-0 sm:text-2xl"
+            className="titulo-seccion mt-8 text-center text-[1.5rem] first:mt-0 sm:text-[1.8rem]"
           >
             {b.text}
           </h3>
@@ -120,14 +121,14 @@ function BookText({ text }: { text: string }) {
       );
     } else if (b.kind === "para") {
       out.push(
-        <p key={bi} className={PARA_CLASS}>
-          <span className="numero-luz mr-2 text-[1.3em]">{b.num}.</span>
+        <p key={bi} className={`${PARA_CLASS} enciende`}>
+          <span className="num-parrafo mr-2">{b.num}.</span>
           {renderInline(b.text, `p${bi}`)}
         </p>,
       );
     } else {
       out.push(
-        <p key={bi} className={PARA_CLASS}>
+        <p key={bi} className={`${PARA_CLASS} enciende`}>
           {renderInline(b.text, `t${bi}`)}
         </p>,
       );
@@ -138,25 +139,36 @@ function BookText({ text }: { text: string }) {
   return <div className="space-y-3.5">{out}</div>;
 }
 
+/** El primer párrafo del texto original, tal cual (para la entrada de «Hoy»). */
+export function PrimerParrafo({ text }: { text: string }) {
+  const primero = text
+    .split(/\n{2,}/)
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .map(classify)
+    .find((b) => b.kind === "para" || b.kind === "plain");
+  if (!primero || (primero.kind !== "para" && primero.kind !== "plain")) return null;
+  return (
+    <p className={PARA_CLASS}>
+      {primero.kind === "para" && <span className="num-parrafo mr-2">{primero.num}.</span>}
+      {renderInline(primero.text, "pp")}
+    </p>
+  );
+}
+
 export function OriginalText({ lesson }: { lesson: Lesson }) {
   const hasText = lesson.originalTextLoaded && lesson.originalText.trim().length > 0;
 
   return (
     <section>
-      <header className="mb-1 flex items-center gap-2.5">
-        <svg viewBox="0 0 24 24" className="h-5 w-5 flex-none fill-none stroke-gold" strokeWidth={1.35} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M12 7.2C10 5.7 7 5.3 3.4 5.7v12c3.6-.4 6.6.1 8.6 1.5 2-1.4 5-1.9 8.6-1.5v-12C17 5.3 14 5.7 12 7.2ZM12 7.2v12" />
-        </svg>
-        <h2 className="titulo-seccion text-[1.1rem] md:text-[1.35rem]">Texto original de la lección</h2>
-      </header>
-      <p className="mb-4 pl-[1.9rem] text-xs text-muted">Sin modificaciones</p>
+      <TituloSeccion icono={ICONO_LEE} primera="Texto" acento="original" nota="Sin modificaciones · Libro de ejercicios" />
       <div>
         {hasText ? (
-          <article className="max-w-[62ch]">
+          <article>
             <BookText text={lesson.originalText} />
           </article>
         ) : (
-          <div className="mx-auto max-w-prose rounded-xl border border-dashed border-border bg-surface-2/40 p-6 text-center">
+          <div className="mx-auto max-w-prose p-2 text-center">
             <p className="font-medium">El texto original se cargará pronto</p>
             <p className="mt-1 text-sm text-muted">
               Esta lección todavía no tiene su texto original importado.

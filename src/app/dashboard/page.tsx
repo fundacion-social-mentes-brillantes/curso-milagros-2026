@@ -62,8 +62,13 @@ function DashboardInner() {
       {/* MI CAMINO: el saludo, la espiral de 365 luces y la próxima práctica. */}
       <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-12">
         <div className="text-center lg:text-left">
+          {/* El saludo, como la imagen de Sebastián: «Hola» en la letra moderna y el
+              nombre en una serif fina de alto contraste, los dos en dorado. */}
           <p className="etiqueta aparece">Mi camino</p>
-          <h1 className="frase-luz aparece mt-2 text-[2.6rem] leading-tight [animation-delay:.1s] md:text-5xl">Hola, {firstName}</h1>
+          <h1 className="aparece mt-3 flex flex-wrap items-baseline justify-center gap-x-4 [animation-delay:.1s] lg:justify-start">
+            <span className="titular oro-brillo text-[3.3rem] md:text-[4.4rem]">Hola</span>
+            <span className="letra-display oro-brillo text-[3.7rem] md:text-[5rem]">{firstName}</span>
+          </h1>
           <p className="aparece mx-auto mt-3 max-w-sm text-muted [animation-delay:.2s] lg:mx-0">
             {completedCount === 0
               ? "Hoy es un hermoso día para comenzar tu primera lección."
@@ -82,15 +87,18 @@ function DashboardInner() {
             <Cifras hechas={completedCount} percent={percent} />
           </div>
 
-          <div className="vidrio aparece mx-auto mt-7 max-w-[26rem] rounded-[1.6rem] p-5 text-left [animation-delay:.4s] lg:mx-0">
-            <p className="etiqueta">Tu próxima práctica</p>
-            <h2 className="mt-2 text-[1.9rem] leading-tight text-fg">Lección {current}</h2>
-            <p className="mt-1 text-sm text-muted">Continúa tu proceso justo donde lo dejaste.</p>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <Link href={`/lecciones/${current}`} className="boton-cristal flex-1">
+          <div className="banner aparece mx-auto mt-8 max-w-[28rem] p-6 text-left [animation-delay:.4s] lg:mx-0">
+            <p className="text-[0.82rem] font-medium text-white/70">Tu próxima práctica</p>
+            <h2 className="mt-2 flex items-baseline gap-3">
+              <span className="titular oro-brillo text-[2.3rem]">Lección</span>
+              <span className="letra-display oro-brillo text-[3.4rem]">{current}</span>
+            </h2>
+            <p className="mt-1 text-sm text-white/75">Continúa tu proceso justo donde lo dejaste.</p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <Link href={`/lecciones/${current}`} className="boton-blanco flex-1">
                 Ir a la lección {current}
               </Link>
-              <Link href="/lecciones" className="btn-ghost justify-center py-3">
+              <Link href="/lecciones" className="boton-oscuro">
                 Ver todas
               </Link>
             </div>
@@ -114,7 +122,7 @@ function DashboardInner() {
       {/* distribución + recientes */}
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <div className="card p-6">
-          <h3 className="font-display text-lg font-semibold">Tu avance por tramos</h3>
+          <h3 className="titulo-seccion text-[1.5rem]">Tu avance <em>por tramos</em></h3>
           <p className="text-sm text-muted">Lecciones completadas en cada parte del proceso.</p>
           <div className="mt-4">
             <Histogram buckets={bucketLessons(completed.map((p) => p.lessonNumber))} />
@@ -122,7 +130,7 @@ function DashboardInner() {
         </div>
 
         <div className="card p-6">
-          <h3 className="font-display text-lg font-semibold">Tus últimas lecciones</h3>
+          <h3 className="titulo-seccion text-[1.5rem]">Tus últimas <em>lecciones</em></h3>
           {recent.length === 0 ? (
             <p className="mt-3 text-sm text-muted">Aún no has marcado lecciones como hechas.</p>
           ) : (
@@ -148,10 +156,10 @@ function Cifras({ hechas, percent }: { hechas: number; percent: number }) {
   return (
     <p className="mt-2 flex items-baseline justify-center gap-6 text-sm text-muted">
       <span>
-        <b className="numero-luz mr-1.5 text-[1.9rem]">{hechas}</b>de {SITE.totalLessons}
+        <b className="numero-luz mr-1.5 text-[2.3rem]">{hechas}</b>de {SITE.totalLessons}
       </span>
       <span>
-        <b className="numero-luz mr-1.5 text-[1.9rem]">{percent} %</b>completado
+        <b className="numero-luz mr-1.5 text-[2.3rem]">{percent}%</b>completado
       </span>
     </p>
   );

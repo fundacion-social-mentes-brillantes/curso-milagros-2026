@@ -43,13 +43,13 @@ const ENLACES = [
   { href: "/ajustes", label: "Ajustes", icono: "ajustes" },
 ];
 
-/** La barra flotante de vidrio del celular (en el computador el menú va arriba). */
+/** La barra flotante del celular, una pastilla oscura (en el computador el menú va arriba). */
 export function BarraInferior() {
   const { firebaseUser } = useAuth();
   const pathname = usePathname();
   if (!firebaseUser) return null;
   return (
-    <nav className="barra-inferior vidrio" aria-label="Menú principal">
+    <nav className="barra-inferior" aria-label="Menú principal">
       {ENLACES.map((e) => {
         const activo = pathname === e.href || pathname.startsWith(`${e.href}/`);
         return (

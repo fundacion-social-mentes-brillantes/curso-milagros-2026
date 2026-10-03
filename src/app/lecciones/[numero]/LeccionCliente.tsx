@@ -22,8 +22,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { getLessonByNumber } from "@/lib/lessons";
 import { getLessonProgress } from "@/lib/progress";
 import { touchActivity } from "@/lib/users";
-import { imagenLeccion } from "@/config/assets";
-import { lessonDocId } from "@/config/lessons.links";
 import { formatDate } from "@/lib/utils";
 import { VideoPlayer } from "@/components/lesson/VideoPlayer";
 import { PracticeToggle } from "@/components/lesson/PracticeToggle";
@@ -34,7 +32,9 @@ import { CommentarySections } from "@/components/lesson/CommentarySections";
 import { MarkDoneButton } from "@/components/lesson/MarkDoneButton";
 import { SoloPro } from "@/components/lesson/SoloPro";
 import { Cuaderno } from "@/components/lesson/Cuaderno";
+import { ICONO_COMPARTE, ICONO_ESCUCHA, ICONO_VIDEO, TituloSeccion } from "@/components/lesson/TituloSeccion";
 import { Forum } from "@/components/forum/Forum";
+import { useEncender } from "@/components/marca/Revela";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PageLoader } from "@/components/ui/Spinner";
 import { SITE } from "@/config/site";
@@ -47,19 +47,19 @@ import type { Lesson, Progress } from "@/types";
  */
 function FacebookReminder() {
   return (
-    <div className="vidrio halo-azul rounded-[1.6rem] px-5 py-6 text-center">
-      <p className="etiqueta text-[rgb(170_205_255)]">Parte de tu práctica de hoy</p>
-      <h3 className="mx-auto mt-3 max-w-[19rem] font-sans text-[1.3rem] font-medium leading-snug text-fg">
-        Comparte tu experiencia en la meditación de hoy
-      </h3>
-      <p className="mx-auto mt-3 max-w-[21rem] text-[0.96rem] font-light leading-relaxed text-fg/75">
+    <div className="vidrio halo-azul rounded-[1.8rem] px-5 py-7 text-center sm:px-8">
+      <p className="etiqueta !text-[rgb(170_205_255)]">Parte de tu práctica de hoy</p>
+      <p className="frase-luz mx-auto mt-4 max-w-[24rem] text-[1.2rem] font-semibold leading-snug">
         “Lo que hoy aprendiste puede ser una guía y una luz para otra persona.”
+      </p>
+      <p className="mx-auto mt-3 max-w-[22rem] text-[0.95rem] leading-relaxed text-fg/70">
+        Deja tus comentarios en la meditación de hoy.
       </p>
       <a
         href={SITE.facebookUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-5 inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-full bg-gradient-to-b from-[#2a86ff] to-[#1877F2] px-5 py-3.5 text-[0.98rem] font-medium text-white shadow-[inset_0_1px_0_rgb(255_255_255_/_0.35),0_16px_34px_-16px_rgb(24_119_242_/_0.9)] transition hover:brightness-110 active:scale-[0.98]"
+        className="mt-6 inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-full bg-gradient-to-b from-[#2a86ff] to-[#1877F2] px-5 py-3.5 text-[1rem] font-bold text-white shadow-[inset_0_1px_0_rgb(255_255_255_/_0.35),0_16px_34px_-16px_rgb(24_119_242_/_0.9)] transition hover:brightness-110 active:scale-[0.98]"
       >
         <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden>
           <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
@@ -69,21 +69,6 @@ function FacebookReminder() {
     </div>
   );
 }
-
-/** Título de cada parte de la lección: Le Jour Serif (o Italiana mientras tanto), con su ícono de línea. */
-function TituloSeccion({ icono, children }: { icono: string; children: React.ReactNode }) {
-  return (
-    <header className="mb-4 flex items-center gap-2.5">
-      <svg viewBox="0 0 24 24" className="h-5 w-5 flex-none fill-none stroke-gold" strokeWidth={1.35} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d={icono} />
-      </svg>
-      <h2 className="titulo-seccion text-[1.1rem] md:text-[1.35rem]">{children}</h2>
-    </header>
-  );
-}
-
-const ICONO_ESCUCHA = "M4.5 14.5v-2a7.5 7.5 0 0 1 15 0v2M3.6 13.6h3.6v5.6H3.6zM16.8 13.6h3.6v5.6h-3.6z";
-const ICONO_VIDEO = "M6.8 5.6h10.4a3.6 3.6 0 0 1 3.6 3.6v5.6a3.6 3.6 0 0 1-3.6 3.6H6.8a3.6 3.6 0 0 1-3.6-3.6V9.2a3.6 3.6 0 0 1 3.6-3.6ZM10.4 9.5v5l4.3-2.5-4.3-2.5Z";
 
 function LessonInner({ n }: { n: number }) {
   const { appUser } = useAuth();
@@ -106,6 +91,8 @@ function LessonInner({ n }: { n: number }) {
       active = false;
     };
   }, [n, appUser?.uid]);
+
+  useEncender(lesson);
 
   if (!Number.isInteger(n) || n < 1 || n > SITE.totalLessons) {
     return (
@@ -152,28 +139,45 @@ function LessonInner({ n }: { n: number }) {
 
   return (
     <div className="container-page pb-10 pt-1 sm:pt-3">
-      {/* La lección es una sola página: se lee de arriba a abajo, sin entrar a otras pantallas. */}
-      <div className="mx-auto max-w-2xl">
-        <Link href="/lecciones" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition hover:text-fg">
+      {/* La lección es una sola página: se lee de arriba a abajo, sin entrar a otras
+          pantallas. Todo va en UNA columna del mismo ancho (audio, texto, video y
+          Facebook), centrada, para que haya simetría. */}
+      <div className="mx-auto max-w-[40rem]">
+        <Link href="/lecciones" className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-fg">
           <span aria-hidden>←</span> Todas las lecciones
         </Link>
 
-        {/* 01 · Encabezado: el número y el título, con la imagen de la lección fundida detrás. */}
-        <header className="relative isolate mt-2 overflow-hidden rounded-[2rem] px-4 pb-8 pt-9 text-center">
-          <EncabezadoImagen numero={lesson.number} />
-          <p className="etiqueta aparece">Lección</p>
-          <p className="numero-luz aparece mt-1 text-[4.8rem] [animation-delay:.08s] md:text-[5.6rem]">{lesson.number}</p>
-          <h1 className="frase-luz aparece mx-auto mt-3 max-w-[30rem] text-[1.85rem] leading-[1.22] [animation-delay:.16s] md:text-[2.3rem]">
+        {/* 01 · Encabezado, como la imagen de Sebastián: «Lección» en la letra
+            moderna y el número grande en una serif fina, los dos en dorado, con una
+            luz que se mueve detrás; luego el título en blanco y el estado. */}
+        <header className="relative isolate mt-6 text-center">
+          <span className="orbe -z-10 left-1/2 top-[5.6rem] h-[18rem] w-[24rem] md:w-[30rem]" aria-hidden />
+          <p className="titular oro-brillo aparece mx-auto w-fit text-[2.3rem] md:text-[2.8rem]">Lección</p>
+          <p className="letra-display oro-brillo aparece mt-3 text-[7.2rem] [animation-delay:.06s] md:text-[9rem]">{lesson.number}</p>
+          <p className="etiqueta aparece mt-3 [animation-delay:.1s]">de {SITE.totalLessons}</p>
+          <h1
+            className={`titular aparece mx-auto mt-5 max-w-[34rem] [animation-delay:.14s] ${
+              (lesson.title || "").length > 70 ? "text-[1.6rem] md:text-[2rem]" : "text-[2rem] md:text-[2.6rem]"
+            }`}
+          >
             {lesson.title || `Lección ${lesson.number}`}
           </h1>
-          <p className="aparece mt-4 text-xs font-medium text-muted [animation-delay:.24s]">
-            {completada
-              ? `Realizada${progress?.completedAt ? ` · ${formatDate(progress.completedAt)}` : ""}`
-              : `Lección ${lesson.number} de ${SITE.totalLessons}`}
+          <p className="aparece mt-6 [animation-delay:.22s]">
+            {completada ? (
+              <span className="estado encendida">
+                <i aria-hidden />
+                Encendida{progress?.completedAt ? ` · ${formatDate(progress.completedAt)}` : ""}
+              </span>
+            ) : (
+              <span className="estado">
+                <i aria-hidden />
+                Pendiente · enciéndela al terminar
+              </span>
+            )}
           </p>
         </header>
 
-        <div className="mt-6 space-y-12">
+        <div className="mt-20 space-y-24">
           {/* Los días de repaso, lo primero es saber QUÉ se repasa. Sin esto,
               el título ("El repaso de hoy abarca las siguientes ideas") deja a
               la persona sin saber por dónde empezar. */}
@@ -183,8 +187,10 @@ function LessonInner({ n }: { n: number }) {
               plan Pro, pero se respeta la activación de accesibilidad (voiceReader). */}
           {(esPro || appUser?.voiceReader) && (
             <section id="escucha" className="scroll-mt-6">
-              <TituloSeccion icono={ICONO_ESCUCHA}>Escucha la lección</TituloSeccion>
-              <LessonReader lesson={lesson} />
+              <TituloSeccion icono={ICONO_ESCUCHA} primera="Escucha" acento="la lección" />
+              <div className="flota">
+                <LessonReader lesson={lesson} />
+              </div>
             </section>
           )}
 
@@ -195,9 +201,11 @@ function LessonInner({ n }: { n: number }) {
 
           {/* 04 · Video, embebido: solo hay que tocar Play. */}
           <section id="video" className="scroll-mt-6">
-            <TituloSeccion icono={ICONO_VIDEO}>Video de la lección</TituloSeccion>
+            <TituloSeccion icono={ICONO_VIDEO} primera="Video" acento="de la lección" />
             {esPro ? (
-              <VideoPlayer video={lesson.video} title={lesson.title} numero={lesson.number} />
+              <div className="flota lenta">
+                <VideoPlayer video={lesson.video} title={lesson.title} numero={lesson.number} />
+              </div>
             ) : (
               <SoloPro
                 icono="🎬"
@@ -209,7 +217,10 @@ function LessonInner({ n }: { n: number }) {
 
           {/* 05 · Facebook: parte de la práctica de hoy */}
           <section id="comenta" className="scroll-mt-6">
-            <FacebookReminder />
+            <TituloSeccion icono={ICONO_COMPARTE} primera="Comparte" acento="tu experiencia" />
+            <div className="flota calma">
+              <FacebookReminder />
+            </div>
           </section>
 
           {/* 06 · Marcar como lección leída */}
@@ -272,23 +283,6 @@ function LessonInner({ n }: { n: number }) {
         </div>
       </div>
     </div>
-  );
-}
-
-/** La imagen de la lección, fundida detrás del encabezado (si no existe, no pasa nada). */
-function EncabezadoImagen({ numero }: { numero: number }) {
-  const [ok, setOk] = useState(true);
-  if (!ok) return null;
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={imagenLeccion(lessonDocId(numero))}
-      alt=""
-      aria-hidden
-      decoding="async"
-      onError={() => setOk(false)}
-      className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-30 [mask-image:radial-gradient(ellipse_80%_75%_at_50%_45%,#000_30%,transparent_80%)]"
-    />
   );
 }
 

@@ -58,3 +58,8 @@ gemini-keys.txt
 # y dejan constancia de QUÉ se narró exactamente.
 audio-nuevo/*.mp3
 audio-viejo-blog/
+
+# Le Jour Serif (Din Studio): la versión gratuita es SOLO de uso personal y
+# nunca debe subirse. Hoy la app usa Noto Serif Display (libre). Si se compra la
+# licencia web, se pone el archivo comprado con otro nombre.
+public/fuentes/le-jour-serif.otf

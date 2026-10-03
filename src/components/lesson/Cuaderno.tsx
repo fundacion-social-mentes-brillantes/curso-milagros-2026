@@ -53,7 +53,7 @@ export function Cuaderno({ uid, lessonNumber }: { uid: string; lessonNumber: num
     <div className="card p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h3 className="font-display text-sm font-semibold">Mi cuaderno</h3>
+          <h3 className="titulo-seccion text-[1.35rem]">Mi <em>cuaderno</em></h3>
         </div>
         <span className="text-[11px] text-muted">
           {estado === "guardando"
@@ -75,7 +75,7 @@ export function Cuaderno({ uid, lessonNumber }: { uid: string; lessonNumber: num
         className="mt-2 w-full resize-none rounded-xl border border-border bg-bg/50 px-3 py-2 text-sm leading-relaxed text-fg placeholder:text-muted/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
       />
       <p className="mt-1 text-[11px] text-muted">
-        Al terminar el año, todo lo que escribas aquí será tu libro. 🌱
+        Al terminar el año, todo lo que escribas aquí será tu libro.
       </p>
     </div>
   );

@@ -60,8 +60,10 @@ function LeccionesInner() {
   return (
     <div className="container-page py-8 sm:py-10">
       <header className="animate-fade-up">
-        <p className="section-eyebrow">El proceso</p>
-        <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Las 365 lecciones</h1>
+        <p className="etiqueta">El proceso</p>
+        <h1 className="titular mt-2 text-[2.8rem] sm:text-[3.6rem]">
+          Las <em>365</em> lecciones
+        </h1>
         <p className="mt-2 text-muted">
           {doneSet.size > 0
             ? `Llevas ${doneSet.size} lecciones completadas. Sigue a tu ritmo.`

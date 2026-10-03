@@ -171,7 +171,7 @@ export function Forum({ lessonNumber }: { lessonNumber: number }) {
   return (
     <section className="card p-6 sm:p-7">
       <div className="mb-4 flex items-center gap-2">
-        <h2 className="font-display text-xl font-bold">Foro de la lección</h2>
+        <h2 className="titulo-seccion text-[1.6rem]">Foro <em>de la lección</em></h2>
       </div>
 
       {/* composer */}

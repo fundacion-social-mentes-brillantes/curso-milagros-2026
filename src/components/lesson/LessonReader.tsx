@@ -127,7 +127,7 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
   const pct = duracion ? Math.min(100, (actual / duracion) * 100) : 0;
 
   return (
-    <div className="vidrio rounded-[1.6rem] p-4 sm:p-5">
+    <div className="tarjeta !rounded-[1.6rem] p-4 sm:p-5">
       <audio
         ref={ref}
         src={url}
@@ -163,7 +163,7 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
         <button
           onClick={alternar}
           aria-label={sonando ? "Pausar" : "Escuchar la lección"}
-          className="grid h-14 w-14 flex-none place-items-center rounded-full bg-[radial-gradient(circle_at_50%_30%,#fff6dc,#e2c98d_70%)] shadow-[0_10px_26px_-10px_rgb(226_190_110_/_0.9),inset_0_1px_0_rgb(255_255_255_/_0.7)] transition active:scale-95"
+          className="grid h-14 w-14 flex-none place-items-center rounded-full bg-[#f3eee2] shadow-[0_12px_30px_-12px_rgb(243_238_226_/_0.5)] transition hover:bg-white active:scale-95"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5 fill-[#102a24]" aria-hidden>
             {sonando ? <path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /> : <path d="M8 5.5v13l10.5-6.5L8 5.5Z" />}
@@ -183,11 +183,11 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
           >
             <span className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-fg/10" />
             <span
-              className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-gradient-to-r from-[#b8975a] to-[#f3e3b4] shadow-[0_0_10px_rgb(236_205_140_/_0.55)]"
+              className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-gradient-to-r from-[#c49a52] to-[#fbefcd]"
               style={{ width: `${pct}%` }}
             />
             <span
-              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#fff8e6] shadow-[0_0_12px_rgb(255_236_190_/_0.9)]"
+              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_10px_rgb(255_255_255_/_0.6)]"
               style={{ left: `${pct}%` }}
             />
           </div>
@@ -199,7 +199,7 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
       </div>
 
       <div
-        className="mt-4 grid grid-cols-3 gap-1 rounded-full bg-black/20 p-1 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.05)]"
+        className="mt-4 grid grid-cols-3 gap-1 rounded-full border border-fg/10 bg-fg/[0.03] p-1"
         role="group"
         aria-label="Velocidad de lectura"
       >
@@ -208,9 +208,9 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
             key={r.value}
             onClick={() => setSpeed(r.value)}
             aria-pressed={rate === r.value}
-            className={`rounded-full py-2 text-sm font-medium transition ${
+            className={`rounded-full py-2 text-sm font-semibold transition ${
               rate === r.value
-                ? "bg-gradient-to-b from-white/[0.12] to-white/[0.05] text-fg shadow-[inset_0_1px_0_rgb(255_255_255_/_0.18),0_0_18px_-6px_rgb(236_205_140_/_0.5)]"
+                ? "bg-fg/10 text-fg"
                 : "text-muted hover:text-fg"
             }`}
           >

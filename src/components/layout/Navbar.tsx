@@ -27,42 +27,26 @@ export function Navbar() {
 
   return (
     <header className="relative z-40">
-      <nav className="container-page flex h-16 items-center justify-between gap-3 md:h-20">
+      <nav className="container-page relative flex h-16 items-center justify-between gap-3 md:h-20">
         <Link
           href={firebaseUser ? "/hoy" : "/"}
           className={cn("flex items-center gap-2.5", enPortada && "invisible")}
           aria-label={`${SITE.name} · ${SITE.org}`}
         >
           <Libro className="w-8" />
-          <NombreCurso linea className="h-[0.82rem] w-auto md:h-[0.95rem]" />
+          <NombreCurso linea className="w-[9.6rem] md:w-[11rem]" />
         </Link>
 
-        {/* menú del computador: una píldora de vidrio; lo activo se nota por la luz, no por una caja */}
+        {/* menú del computador: una pastilla pequeña y centrada, como en el video */}
         {links.length > 0 && (
-          <div className="vidrio hidden items-center gap-0.5 rounded-full p-1 md:flex">
+          <div className="nav-pastilla absolute left-1/2 hidden -translate-x-1/2 md:flex">
             {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                aria-current={activo(l.href) ? "page" : undefined}
-                className={cn(
-                  "relative rounded-full px-4 py-2 text-sm font-medium transition",
-                  activo(l.href)
-                    ? "text-fg [text-shadow:0_0_14px_rgb(236_205_140_/_0.5)] before:absolute before:inset-x-2 before:-bottom-1 before:-z-10 before:h-6 before:rounded-full before:bg-[radial-gradient(closest-side,rgb(236_205_140_/_0.28),transparent)]"
-                    : "text-muted hover:text-fg",
-                )}
-              >
+              <Link key={l.href} href={l.href} aria-current={activo(l.href) ? "page" : undefined}>
                 {l.label}
               </Link>
             ))}
             {isAdmin && (
-              <Link
-                href="/admin"
-                className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium transition",
-                  pathname.startsWith("/admin") ? "text-gold" : "text-gold/80 hover:text-gold",
-                )}
-              >
+              <Link href="/admin" aria-current={pathname.startsWith("/admin") ? "page" : undefined} className="!text-gold/90">
                 Admin
               </Link>
             )}
@@ -74,17 +58,17 @@ export function Navbar() {
             <div className="hidden items-center gap-3 md:flex">
               <Link
                 href="/ajustes"
-                className={cn("text-sm font-medium transition", activo("/ajustes") ? "text-fg" : "text-muted hover:text-fg")}
+                className={cn("text-sm font-semibold transition", activo("/ajustes") ? "text-fg" : "text-muted hover:text-fg")}
               >
                 Ajustes
               </Link>
               <Avatar src={appUser?.photoURL} name={appUser?.displayName ?? "Tú"} size={34} />
-              <button onClick={() => void signOutUser()} className="text-sm font-medium text-muted hover:text-fg">
+              <button onClick={() => void signOutUser()} className="text-sm font-semibold text-muted hover:text-fg">
                 Salir
               </button>
             </div>
           ) : enPortada ? null : (
-            <Link href="/login" className="btn-primary hidden md:inline-flex">
+            <Link href="/login" className="boton-blanco hidden !min-h-0 !py-2 !text-sm md:inline-flex">
               Entrar
             </Link>
           )}
@@ -99,7 +83,7 @@ export function Navbar() {
             {firebaseUser ? (
               <Avatar src={appUser?.photoURL} name={appUser?.displayName ?? "Tú"} size={34} />
             ) : (
-              <span className="vidrio grid h-9 w-9 place-items-center rounded-full text-sm">{open ? "✕" : "☰"}</span>
+              <span className="tarjeta grid h-9 w-9 place-items-center !rounded-full text-sm">{open ? "✕" : "☰"}</span>
             )}
           </button>
         </div>
@@ -107,7 +91,7 @@ export function Navbar() {
 
       {open && (
         <div className="container-page md:hidden">
-          <div className="vidrio flex flex-col gap-1 rounded-3xl p-3">
+          <div className="tarjeta flex flex-col gap-1 !rounded-3xl p-3">
             {firebaseUser ? (
               <>
                 <p className="px-3 pb-1 pt-1 text-sm font-medium text-fg">{appUser?.displayName}</p>
@@ -130,7 +114,7 @@ export function Navbar() {
                 </button>
               </>
             ) : (
-              <Link href="/login" onClick={() => setOpen(false)} className="btn-primary w-full">
+              <Link href="/login" onClick={() => setOpen(false)} className="boton-blanco w-full">
                 Entrar con Google
               </Link>
             )}

@@ -17,7 +17,7 @@ export function PracticeToggle({ steps }: { steps: string[] }) {
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition hover:bg-surface-2/50"
       >
-        <span className="flex items-center gap-2 font-display text-lg font-semibold">
+        <span className="titulo-seccion flex items-center gap-2 text-[1.35rem]">
           ¿Cómo se practica?
         </span>
         <span className={`text-primary transition-transform ${open ? "rotate-180" : ""}`} aria-hidden>

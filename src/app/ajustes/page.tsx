@@ -23,8 +23,10 @@ function AjustesInner() {
   return (
     <div className="container-page py-8 sm:py-10">
       <header className="mb-6">
-        <p className="section-eyebrow">Tu espacio</p>
-        <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">Ajustes</h1>
+        <p className="etiqueta">Tu espacio</p>
+        <h1 className="titular mt-2 text-[2.8rem] sm:text-[3.6rem]">
+          Tus <em>ajustes</em>
+        </h1>
         <p className="mt-1.5 text-muted">
           Tus recordatorios, en qué lección vas y cómo se te ve la app.
         </p>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Newsreader } from "next/font/google";
+import { Manrope, Noto_Serif_Display } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
@@ -13,22 +13,31 @@ import { SITE } from "@/config/site";
 import { GUION_ANTI_PARPADEO } from "@/lib/ajustes";
 
 /*
- * LAS LETRAS (Sebastián, 3 oct 2026). El nombre «UN CURSO DE MILAGROS» NO es una
- * letra: es una imagen fija recortada de la referencia oficial
- * (public/images/marca). Todo lo demás:
- *   · Newsreader → TODA la interfaz: títulos, números, botones, menús y textos.
- *     Es la serif editorial de su referencia; con su tamaño óptico se ve fina
- *     en los títulos grandes y clara en lo pequeño.
- *   · Glacial Indifference → solo el texto de la lección, para leer descansado.
+ * LAS LETRAS (Sebastián, 2 oct 2026, sobre el estilo del video «superconscious»).
+ * El nombre «UN CURSO DE MILAGROS» NO es una letra: es una imagen fija recortada
+ * de la referencia oficial (public/images/marca). Todo lo demás:
+ *   · Manrope → la interfaz entera: titulares grandes y apretados, botones,
+ *     menús y textos. Moderna, limpia, como la del video. Los acentos de los
+ *     titulares («Hola, Ana», «Lección 275») van en la misma letra, delgada y
+ *     en dorado (no en cursiva: así lo pidió Sebastián).
+ *   · Noto Serif Display, delgada → el número de la lección y el nombre de la
+ *     persona («Lección 275», «Hola ANA»), como en las imágenes de Sebastián.
+ *     Él eligió esta, libre, en vez de Le Jour Serif (la de sus imágenes), que
+ *     pide licencia web. Para cambiarla, ver `.letra-display` en globals.css.
+ *   · Glacial Indifference → el texto de la lección, para leer descansado.
+ * Las tres son libres (OFL); sus licencias están en src/app/fuentes.
  */
-const serif = Newsreader({
+const manrope = Manrope({
   subsets: ["latin"],
-  axes: ["opsz"],
-  style: ["normal", "italic"],
-  variable: "--font-serif",
+  variable: "--font-manrope",
   display: "swap",
-  // Next no trae las medidas de respaldo de Newsreader y avisaba al construir.
-  adjustFontFallback: false,
+});
+
+const display = Noto_Serif_Display({
+  subsets: ["latin"],
+  weight: "300",
+  variable: "--font-display",
+  display: "swap",
 });
 
 const lectura = localFont({
@@ -95,7 +104,7 @@ export default function RootLayout({
       // El tema de siempre viene puesto ya desde aquí. Así, si el guioncito de
       // abajo no llega a correr, la página se ve como toda la vida en vez de
       // quedarse sin colores.
-      className={`dark ${serif.variable} ${lectura.variable}`}
+      className={`dark ${manrope.variable} ${display.variable} ${lectura.variable}`}
       data-tema="esmeralda"
       suppressHydrationWarning
     >
@@ -109,6 +118,13 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: GUION_ARRANQUE }} />
       </head>
       <body className="font-sans antialiased scrollbar-soft">
+        {/* Las luces que se pasean por los bordes, como en el video (globals.css). */}
+        <div className="luces" aria-hidden>
+          <i className="l1" />
+          <i className="l2" />
+          <i className="l3" />
+          <i className="l4" />
+        </div>
         <AuthProvider>
           <Arranque />
           <div className="flex min-h-screen flex-col">
