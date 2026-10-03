@@ -1,25 +1,55 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Nunito } from "next/font/google";
+import { Italiana, Playfair_Display, Poppins } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Navbar } from "@/components/layout/Navbar";
+import { BarraInferior } from "@/components/layout/BarraInferior";
 import { Footer } from "@/components/layout/Footer";
+import { Arranque, GUION_ARRANQUE } from "@/components/marca/Arranque";
 import { SenseiChat } from "@/components/sensei/SenseiChat";
 import { OneSignalInit } from "@/components/notifications/OneSignalInit";
 import { SITE } from "@/config/site";
 import { GUION_ANTI_PARPADEO } from "@/lib/ajustes";
 
-const serif = Fraunces({
+/*
+ * LAS LETRAS (referencia de Valeria, 2 oct 2026). El nombre «UN CURSO DE
+ * MILAGROS» NO es una letra: es una imagen fija recortada de la referencia
+ * oficial (public/images/marca). Todo lo demás:
+ *   · Le Jour Serif → títulos de sección y números. Es comercial: mientras no
+ *     esté comprada la licencia web va Italiana (libre y muy parecida). Para
+ *     cambiarla basta con poner el archivo en src/app/fuentes y usarlo abajo.
+ *   · Playfair Display («Elegant») → el título de la lección y pocas frases.
+ *   · Poppins → interfaz, botones, navegación y el módulo de Facebook.
+ *   · Glacial Indifference → el texto de la lección (licencia libre, OFL).
+ */
+const titulos = Italiana({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-titulos",
+  display: "swap",
+});
+
+const serif = Playfair_Display({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-serif",
   display: "swap",
 });
 
-const sans = Nunito({
+const sans = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+const lectura = localFont({
+  src: [
+    { path: "./fuentes/glacial-indifference-400.woff2", weight: "400", style: "normal" },
+    { path: "./fuentes/glacial-indifference-700.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-leer",
   display: "swap",
 });
 
@@ -45,7 +75,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Curso Milagros",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
   },
   openGraph: {
     images: [
@@ -60,9 +90,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // El de "Esmeralda", que es el tema por defecto. Si la persona elige otro,
-  // `aplicar()` reescribe esta etiqueta al vuelo (ver src/lib/ajustes.ts).
-  themeColor: "#0F3630",
+  // El noche verde azulado del ícono instalado: así la app no salta de color al
+  // abrirse. Si la persona elige otro tema, `aplicar()` reescribe esta etiqueta.
+  themeColor: "#01110E",
   width: "device-width",
   initialScale: 1,
 };
@@ -78,7 +108,7 @@ export default function RootLayout({
       // El tema de siempre viene puesto ya desde aquí. Así, si el guioncito de
       // abajo no llega a correr, la página se ve como toda la vida en vez de
       // quedarse sin colores.
-      className={`dark ${serif.variable} ${sans.variable}`}
+      className={`dark ${titulos.variable} ${serif.variable} ${sans.variable} ${lectura.variable}`}
       data-tema="esmeralda"
       suppressHydrationWarning
     >
@@ -89,14 +119,17 @@ export default function RootLayout({
           otro. Tiene que ir en crudo porque React todavía no existe aquí.
         */}
         <script dangerouslySetInnerHTML={{ __html: GUION_ANTI_PARPADEO }} />
+        <script dangerouslySetInnerHTML={{ __html: GUION_ARRANQUE }} />
       </head>
       <body className="font-sans antialiased scrollbar-soft">
         <AuthProvider>
+          <Arranque />
           <div className="flex min-h-screen flex-col">
             <Navbar />
             <main className="flex-1">{children}</main>
             <Footer />
           </div>
+          <BarraInferior />
           <SenseiChat />
           <OneSignalInit />
         </AuthProvider>

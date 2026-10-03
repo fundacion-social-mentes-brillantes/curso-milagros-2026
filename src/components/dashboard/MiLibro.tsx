@@ -39,7 +39,7 @@ export function MiLibro({ nombre, uid }: { nombre: string; uid: string }) {
   return (
     <div className="card mt-6 flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
       <div className="min-w-0">
-        <h3 className="font-display text-base font-semibold">📓 Mi libro del año</h3>
+        <h3 className="font-display text-base font-semibold">Mi libro del año</h3>
         <p className="text-sm text-muted">
           Llevas <strong>{cuantas}</strong> {cuantas === 1 ? "día escrito" : "días escritos"} en tu
           cuaderno. Puedes descargarlo cuando quieras.

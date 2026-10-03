@@ -49,7 +49,7 @@ export function MisCompaneros({ uid }: { uid: string }) {
 
   return (
     <div className="card mt-6 p-4 sm:p-6">
-      <h3 className="font-display text-lg font-semibold">Quiénes caminan contigo hoy 🌄</h3>
+      <h3 className="font-display text-lg font-semibold">Quiénes caminan contigo hoy</h3>
       <p className="text-sm text-muted">
         El orden en que el grupo hizo su lección hoy. No es una competencia: es
         saber que no vas solo.

@@ -22,8 +22,9 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { getLessonByNumber } from "@/lib/lessons";
 import { getLessonProgress } from "@/lib/progress";
 import { touchActivity } from "@/lib/users";
-import { LessonHeader } from "@/components/lesson/LessonHeader";
-import { LessonImage } from "@/components/lesson/LessonImage";
+import { imagenLeccion } from "@/config/assets";
+import { lessonDocId } from "@/config/lessons.links";
+import { formatDate } from "@/lib/utils";
 import { VideoPlayer } from "@/components/lesson/VideoPlayer";
 import { PracticeToggle } from "@/components/lesson/PracticeToggle";
 import { OriginalText } from "@/components/lesson/OriginalText";
@@ -39,48 +40,50 @@ import { PageLoader } from "@/components/ui/Spinner";
 import { SITE } from "@/config/site";
 import type { Lesson, Progress } from "@/types";
 
-/** Paso del día: dar like y comentar las dos meditaciones en Facebook. */
+/**
+ * Parte de la práctica del día: comentar las meditaciones en Facebook. Es el
+ * único lugar con azul en toda la app, y su tarjeta va rodeada de luz azul (el
+ * video, en cambio, de luz dorada).
+ */
 function FacebookReminder() {
   return (
-    <div className="relative">
-      {/* resplandor luminoso y vivo, para que se note que es importante */}
-      <span
-        aria-hidden
-        className="absolute -inset-1.5 animate-breathe rounded-[1.7rem] bg-gradient-to-r from-[#1877F2] via-aqua to-gold opacity-60 blur-xl"
-      />
-      <div className="card relative overflow-hidden ring-2 ring-[#1877F2]/45 shadow-glow">
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#1877F2] via-aqua to-gold" />
-        <div className="flex flex-col items-center gap-3 bg-gradient-to-br from-[#1877F2]/20 via-aqua/8 to-gold/12 p-6 text-center">
-          <span className="badge bg-aqua/20 text-aqua">✦ Parte de tu práctica de hoy</span>
-          <span className="grid h-16 w-16 place-items-center rounded-full bg-[#1877F2] text-white shadow-glow ring-4 ring-[#1877F2]/30">
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden>
-              <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
-            </svg>
-          </span>
-          <p className="font-display text-xl font-bold">
-            Estás a punto de terminar tu lección
-          </p>
-          <p className="max-w-sm text-sm text-fg/80">
-            Para finalizar, deja tus <strong>dos comentarios</strong> en las meditaciones de
-            hoy y <strong>comparte tu experiencia</strong>. Lo que hoy aprendiste puede ser
-            una guía y una luz para otra persona. 💛
-          </p>
-          <a
-            href={SITE.facebookUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#1877F2] px-7 py-3.5 text-base font-bold text-white shadow-glow ring-1 ring-white/25 transition hover:brightness-110 active:scale-95"
-          >
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden>
-              <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
-            </svg>
-            Dejar mis comentarios
-          </a>
-        </div>
-      </div>
+    <div className="vidrio halo-azul rounded-[1.6rem] px-5 py-6 text-center">
+      <p className="etiqueta text-[rgb(170_205_255)]">Parte de tu práctica de hoy</p>
+      <h3 className="mx-auto mt-3 max-w-[19rem] font-sans text-[1.3rem] font-medium leading-snug text-fg">
+        Comparte tu experiencia en la meditación de hoy
+      </h3>
+      <p className="mx-auto mt-3 max-w-[21rem] text-[0.96rem] font-light leading-relaxed text-fg/75">
+        “Lo que hoy aprendiste puede ser una guía y una luz para otra persona.”
+      </p>
+      <a
+        href={SITE.facebookUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-5 inline-flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-full bg-gradient-to-b from-[#2a86ff] to-[#1877F2] px-5 py-3.5 text-[0.98rem] font-medium text-white shadow-[inset_0_1px_0_rgb(255_255_255_/_0.35),0_16px_34px_-16px_rgb(24_119_242_/_0.9)] transition hover:brightness-110 active:scale-[0.98]"
+      >
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden>
+          <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z" />
+        </svg>
+        Dejar mis comentarios
+      </a>
     </div>
   );
 }
+
+/** Título de cada parte de la lección: Le Jour Serif (o Italiana mientras tanto), con su ícono de línea. */
+function TituloSeccion({ icono, children }: { icono: string; children: React.ReactNode }) {
+  return (
+    <header className="mb-4 flex items-center gap-2.5">
+      <svg viewBox="0 0 24 24" className="h-5 w-5 flex-none fill-none stroke-gold" strokeWidth={1.35} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d={icono} />
+      </svg>
+      <h2 className="titulo-seccion text-[1.1rem] md:text-[1.35rem]">{children}</h2>
+    </header>
+  );
+}
+
+const ICONO_ESCUCHA = "M4.5 14.5v-2a7.5 7.5 0 0 1 15 0v2M3.6 13.6h3.6v5.6H3.6zM16.8 13.6h3.6v5.6h-3.6z";
+const ICONO_VIDEO = "M6.8 5.6h10.4a3.6 3.6 0 0 1 3.6 3.6v5.6a3.6 3.6 0 0 1-3.6 3.6H6.8a3.6 3.6 0 0 1-3.6-3.6V9.2a3.6 3.6 0 0 1 3.6-3.6ZM10.4 9.5v5l4.3-2.5-4.3-2.5Z";
 
 function LessonInner({ n }: { n: number }) {
   const { appUser } = useAuth();
@@ -145,41 +148,56 @@ function LessonInner({ n }: { n: number }) {
   const hasGuide =
     lesson.commentaryReady && Boolean(lesson.commentary.teachingExplanation);
 
+  const completada = Boolean(progress?.completed);
+
   return (
-    <div className="container-page py-8 sm:py-10">
-      {/* Lección centrada y cómoda de leer (en PC no se ve ancha ni pesada). */}
-      <div className="mx-auto max-w-3xl">
-        <LessonHeader
-          number={lesson.number}
-          title={lesson.title}
-          completed={Boolean(progress?.completed)}
-          completedAt={progress?.completedAt}
-        />
-        {/* acento dorado sutil */}
-        <div className="mt-4 h-px w-full bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
+    <div className="container-page pb-10 pt-1 sm:pt-3">
+      {/* La lección es una sola página: se lee de arriba a abajo, sin entrar a otras pantallas. */}
+      <div className="mx-auto max-w-2xl">
+        <Link href="/lecciones" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition hover:text-fg">
+          <span aria-hidden>←</span> Todas las lecciones
+        </Link>
 
-        <div className="mt-6 space-y-6">
-          <LessonImage number={lesson.number} title={lesson.title} />
+        {/* 01 · Encabezado: el número y el título, con la imagen de la lección fundida detrás. */}
+        <header className="relative isolate mt-2 overflow-hidden rounded-[2rem] px-4 pb-8 pt-9 text-center">
+          <EncabezadoImagen numero={lesson.number} />
+          <p className="etiqueta aparece">Lección</p>
+          <p className="numero-luz aparece mt-1 text-[4.8rem] [animation-delay:.08s] md:text-[5.6rem]">{lesson.number}</p>
+          <h1 className="frase-luz aparece mx-auto mt-3 max-w-[30rem] text-[1.85rem] leading-[1.22] [animation-delay:.16s] md:text-[2.3rem]">
+            {lesson.title || `Lección ${lesson.number}`}
+          </h1>
+          <p className="aparece mt-4 text-xs font-medium text-muted [animation-delay:.24s]">
+            {completada
+              ? `Realizada${progress?.completedAt ? ` · ${formatDate(progress.completedAt)}` : ""}`
+              : `Lección ${lesson.number} de ${SITE.totalLessons}`}
+          </p>
+        </header>
 
+        <div className="mt-6 space-y-12">
           {/* Los días de repaso, lo primero es saber QUÉ se repasa. Sin esto,
               el título ("El repaso de hoy abarca las siguientes ideas") deja a
               la persona sin saber por dónde empezar. */}
           <Repaso lessonNumber={lesson.number} />
 
-          {/* Lección narrada: es del plan Pro, pero se respeta la activación
-              manual de accesibilidad (voiceReader) para quien la necesite. */}
-          {(esPro || appUser?.voiceReader) && <LessonReader lesson={lesson} />}
+          {/* 02 · Escucha la lección: a la vista, no detrás de otro botón. Es del
+              plan Pro, pero se respeta la activación de accesibilidad (voiceReader). */}
+          {(esPro || appUser?.voiceReader) && (
+            <section id="escucha" className="scroll-mt-6">
+              <TituloSeccion icono={ICONO_ESCUCHA}>Escucha la lección</TituloSeccion>
+              <LessonReader lesson={lesson} />
+            </section>
+          )}
 
-          <OriginalText lesson={lesson} />
+          {/* 03 · Texto original (intocable) */}
+          <div id="lee" className="scroll-mt-6">
+            <OriginalText lesson={lesson} />
+          </div>
 
-          {/* Video de la lección */}
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <span aria-hidden>🎬</span>
-              <h2 className="font-display text-xl font-bold">Video de la lección</h2>
-            </div>
+          {/* 04 · Video, embebido: solo hay que tocar Play. */}
+          <section id="video" className="scroll-mt-6">
+            <TituloSeccion icono={ICONO_VIDEO}>Video de la lección</TituloSeccion>
             {esPro ? (
-              <VideoPlayer video={lesson.video} title={lesson.title} />
+              <VideoPlayer video={lesson.video} title={lesson.title} numero={lesson.number} />
             ) : (
               <SoloPro
                 icono="🎬"
@@ -187,18 +205,20 @@ function LessonInner({ n }: { n: number }) {
                 descripcion="Cada lección tiene su video explicado. Tu texto y tu guía completa siguen aquí, siempre."
               />
             )}
-          </div>
+          </section>
 
-          {/* Conecta con la comunidad en Facebook (debajo del video) */}
-          <FacebookReminder />
+          {/* 05 · Facebook: parte de la práctica de hoy */}
+          <section id="comenta" className="scroll-mt-6">
+            <FacebookReminder />
+          </section>
 
-          {/* Marcar como hecha (destacado) */}
+          {/* 06 · Marcar como lección leída */}
           {appUser && (
             <MarkDoneButton
               uid={appUser.uid}
               lessonNumber={lesson.number}
               lessonTitle={lesson.title}
-              completed={Boolean(progress?.completed)}
+              completed={completada}
               completedAt={progress?.completedAt ?? null}
               currentLesson={appUser.currentLesson || 1}
               hechasHoy={appUser.hechasHoy ?? 0}
@@ -218,46 +238,57 @@ function LessonInner({ n }: { n: number }) {
               <button
                 onClick={() => setShowGuide((v) => !v)}
                 aria-expanded={showGuide}
-                className="btn-ghost w-full justify-center"
+                className="btn-ghost w-full justify-center py-3"
               >
-                {showGuide ? "Ocultar la guía completa" : "📖 Ver la guía completa de la lección"}
+                {showGuide ? "Ocultar la guía completa" : "Ver la guía completa de la lección"}
               </button>
               {showGuide && (
                 <div className="mt-5 animate-fade-in">
-                  <CommentarySections
-                    commentary={lesson.commentary}
-                    ready={lesson.commentaryReady}
-                  />
+                  <CommentarySections commentary={lesson.commentary} ready={lesson.commentaryReady} />
                 </div>
               )}
             </div>
           )}
 
           {/* Navegación */}
-          <div className="card flex items-center justify-between gap-2 p-3">
+          <nav className="flex items-center justify-between gap-2" aria-label="Otras lecciones">
             {prev ? (
-              <Link href={`/lecciones/${prev}`} className="btn-ghost flex-1 text-sm">
-                ← {prev}
+              <Link href={`/lecciones/${prev}`} className="btn-ghost flex-1 py-3 text-sm">
+                ← Lección {prev}
               </Link>
             ) : (
               <span className="flex-1" />
             )}
-            <Link href="/lecciones" className="btn-ghost text-sm" title="Todas">
-              ☰
-            </Link>
             {next ? (
-              <Link href={`/lecciones/${next}`} className="btn-ghost flex-1 text-sm">
-                {next} →
+              <Link href={`/lecciones/${next}`} className="btn-ghost flex-1 py-3 text-sm">
+                Lección {next} →
               </Link>
             ) : (
               <span className="flex-1" />
             )}
-          </div>
+          </nav>
 
           <Forum lessonNumber={lesson.number} />
         </div>
       </div>
     </div>
+  );
+}
+
+/** La imagen de la lección, fundida detrás del encabezado (si no existe, no pasa nada). */
+function EncabezadoImagen({ numero }: { numero: number }) {
+  const [ok, setOk] = useState(true);
+  if (!ok) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={imagenLeccion(lessonDocId(numero))}
+      alt=""
+      aria-hidden
+      decoding="async"
+      onError={() => setOk(false)}
+      className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-30 [mask-image:radial-gradient(ellipse_80%_75%_at_50%_45%,#000_30%,transparent_80%)]"
+    />
   );
 }
 

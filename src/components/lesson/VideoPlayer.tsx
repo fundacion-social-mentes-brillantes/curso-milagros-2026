@@ -1,27 +1,39 @@
 "use client";
 
-import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { resolveVideo } from "@/lib/video";
+import { imagenLeccion } from "@/config/assets";
+import { lessonDocId } from "@/config/lessons.links";
 import type { LessonVideo } from "@/types";
 
-export function VideoPlayer({ video, title }: { video: LessonVideo; title: string }) {
+/**
+ * El video de la lección, embebido en la página y rodeado de luz dorada: solo
+ * hay que tocar Play. Si todavía no hay video, se ve la imagen de la lección
+ * con el aviso de que viene pronto.
+ */
+export function VideoPlayer({ video, title, numero }: { video: LessonVideo; title: string; numero?: number }) {
   const resolved = resolveVideo(video);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [conImagen, setConImagen] = useState(true);
 
   if (resolved.kind === "none") {
     return (
-      <div className="card flex aspect-video w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/10 to-gold/10 px-4 text-center sm:gap-3">
-        <Image
-          src="/images/empty-video.png"
-          alt="Ilustración de una pantalla de video con un amanecer"
-          width={800}
-          height={600}
-          className="h-24 w-auto max-w-[72%] sm:h-32"
-        />
-        <div>
-          <p className="font-display text-lg font-semibold">Video disponible pronto</p>
-          <p className="text-sm text-muted">Estamos preparando el video de esta lección.</p>
+      <div className="halo-oro relative aspect-video w-full overflow-hidden rounded-[1.4rem] bg-[rgb(var(--surface))]">
+        {numero && conImagen && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imagenLeccion(lessonDocId(numero))}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setConImagen(false)}
+            className="absolute inset-0 h-full w-full object-cover opacity-60"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/70" />
+        <div className="absolute inset-x-0 bottom-0 p-4 text-left">
+          <p className="text-base font-medium text-white">Video disponible pronto</p>
+          <p className="text-sm text-white/75">Estamos preparando el video de esta lección.</p>
         </div>
       </div>
     );
@@ -52,7 +64,7 @@ export function VideoPlayer({ video, title }: { video: LessonVideo; title: strin
 
   return (
     <div>
-      <div ref={wrapRef} className="card aspect-video w-full overflow-hidden bg-black">
+      <div ref={wrapRef} className="halo-oro aspect-video w-full overflow-hidden rounded-[1.4rem] bg-black">
         {resolved.kind === "iframe" ? (
           <iframe
             src={resolved.src}
@@ -68,13 +80,10 @@ export function VideoPlayer({ video, title }: { video: LessonVideo; title: strin
         )}
       </div>
 
-      {/* En celular: botón grande para verlo en pantalla completa y girado. */}
-      <button onClick={goFullscreen} className="btn-ghost mt-2 w-full justify-center text-sm sm:hidden">
-        ⛶ Ver en pantalla completa
+      {/* En celular: verlo en pantalla completa y girado. */}
+      <button onClick={goFullscreen} className="btn-ghost mt-3 w-full justify-center text-sm sm:hidden">
+        Ver en pantalla completa
       </button>
-      <p className="mt-1 text-center text-xs text-muted sm:hidden">
-        Gira tu celular para verlo más grande 🔄
-      </p>
     </div>
   );
 }

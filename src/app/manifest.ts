@@ -18,8 +18,8 @@ export default function manifest(): MetadataRoute.Manifest {
     // y verse grande en el celular.
     orientation: "any",
     lang: "es",
-    background_color: "#092622",
-    theme_color: "#0F3630",
+    background_color: "#01110E",
+    theme_color: "#01110E",
     categories: ["lifestyle", "education"],
     // Ícono UCDM de la Familia GEMB. "any" lleva las esquinas redondeadas;
     // "maskable" es el cuadrado lleno, para que Android le ponga su propia forma.

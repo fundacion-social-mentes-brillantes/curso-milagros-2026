@@ -53,7 +53,6 @@ export function Cuaderno({ uid, lessonNumber }: { uid: string; lessonNumber: num
     <div className="card p-4 sm:p-5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span aria-hidden>📓</span>
           <h3 className="font-display text-sm font-semibold">Mi cuaderno</h3>
         </div>
         <span className="text-[11px] text-muted">

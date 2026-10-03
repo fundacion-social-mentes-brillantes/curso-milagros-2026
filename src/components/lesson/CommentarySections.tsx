@@ -33,8 +33,7 @@ function Section({
       }`}
     >
       <div className="mb-3 flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/12 text-lg" aria-hidden>
-          {icon}
+        <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-gold shadow-[0_0_10px_rgb(236_205_140_/_0.8)]" aria-hidden data-icono={icon}>
         </span>
         <div>
           {eyebrow && <p className="section-eyebrow">{eyebrow}</p>}

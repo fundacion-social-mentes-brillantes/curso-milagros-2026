@@ -44,6 +44,7 @@ export const MAX_LECCIONES_DIA = 3;
 export const SIN_GRUPO = "General";
 
 export const NAV_USER = [
+  { href: "/hoy", label: "Hoy" },
   { href: "/dashboard", label: "Mi camino" },
   { href: "/lecciones", label: "Lecciones" },
 ] as const;

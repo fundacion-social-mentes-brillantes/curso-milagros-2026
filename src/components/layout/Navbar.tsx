@@ -5,76 +5,75 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Avatar } from "@/components/ui/Avatar";
-import { Logo } from "@/components/ui/Logo";
+import { Libro, NombreCurso } from "@/components/marca/Libro";
 import { NAV_USER, SITE } from "@/config/site";
 import { cn } from "@/lib/utils";
 
+/**
+ * Encabezado: el libro del ícono y el nombre del curso (la imagen fija de la
+ * referencia, en una línea). En el computador, el menú en una píldora de vidrio;
+ * en el celular el menú principal vive en la barra de abajo, y aquí queda solo
+ * lo que no cabe allá (administración y salir).
+ */
 export function Navbar() {
   const { firebaseUser, appUser, isAdmin, signOutUser } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   const links = firebaseUser ? [...NAV_USER] : [];
+  const activo = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-bg/80 backdrop-blur-md">
-      <nav className="container-page flex h-16 items-center justify-between gap-3">
-        <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold" aria-label={SITE.org}>
-          <Logo />
+    <header className="relative z-40">
+      <nav className="container-page flex h-16 items-center justify-between gap-3 md:h-20">
+        <Link href={firebaseUser ? "/hoy" : "/"} className="flex items-center gap-2.5" aria-label={`${SITE.name} · ${SITE.org}`}>
+          <Libro className="w-8" />
+          <NombreCurso linea className="h-[0.82rem] w-auto md:h-[0.95rem]" />
         </Link>
 
-        {/* enlaces escritorio */}
-        <div className="hidden items-center gap-1 md:flex">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={cn(
-                "rounded-full px-4 py-2 text-sm font-semibold transition",
-                pathname.startsWith(l.href)
-                  ? "bg-primary/12 text-primary"
-                  : "text-muted hover:bg-surface-2 hover:text-fg",
-              )}
-            >
-              {l.label}
-            </Link>
-          ))}
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className={cn(
-                "rounded-full px-4 py-2 text-sm font-semibold transition",
-                pathname.startsWith("/admin")
-                  ? "bg-gold/20 text-gold"
-                  : "text-gold/90 hover:bg-gold/10",
-              )}
-            >
-              Admin
-            </Link>
-          )}
-        </div>
+        {/* menú del computador: una píldora de vidrio; lo activo se nota por la luz, no por una caja */}
+        {links.length > 0 && (
+          <div className="vidrio hidden items-center gap-0.5 rounded-full p-1 md:flex">
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                aria-current={activo(l.href) ? "page" : undefined}
+                className={cn(
+                  "relative rounded-full px-4 py-2 text-sm font-medium transition",
+                  activo(l.href)
+                    ? "text-fg [text-shadow:0_0_14px_rgb(236_205_140_/_0.5)] before:absolute before:inset-x-2 before:-bottom-1 before:-z-10 before:h-6 before:rounded-full before:bg-[radial-gradient(closest-side,rgb(236_205_140_/_0.28),transparent)]"
+                    : "text-muted hover:text-fg",
+                )}
+              >
+                {l.label}
+              </Link>
+            ))}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  "rounded-full px-4 py-2 text-sm font-medium transition",
+                  pathname.startsWith("/admin") ? "text-gold" : "text-gold/80 hover:text-gold",
+                )}
+              >
+                Admin
+              </Link>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           {firebaseUser ? (
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="hidden items-center gap-3 md:flex">
               <Link
                 href="/ajustes"
-                aria-label="Ajustes"
-                title="Ajustes"
-                className={cn(
-                  "grid h-9 w-9 place-items-center rounded-full text-base transition",
-                  pathname.startsWith("/ajustes")
-                    ? "bg-primary/12 text-primary"
-                    : "text-muted hover:bg-surface-2 hover:text-fg",
-                )}
+                className={cn("text-sm font-medium transition", activo("/ajustes") ? "text-fg" : "text-muted hover:text-fg")}
               >
-                ⚙️
+                Ajustes
               </Link>
               <Avatar src={appUser?.photoURL} name={appUser?.displayName ?? "Tú"} size={34} />
-              <button
-                onClick={() => void signOutUser()}
-                className="text-sm font-semibold text-muted hover:text-fg"
-              >
+              <button onClick={() => void signOutUser()} className="text-sm font-medium text-muted hover:text-fg">
                 Salir
               </button>
             </div>
@@ -84,72 +83,51 @@ export function Navbar() {
             </Link>
           )}
 
-          {/* botón móvil */}
+          {/* celular: el avatar abre lo poco que no está en la barra de abajo */}
           <button
-            className="grid h-9 w-9 place-items-center rounded-full border border-border bg-surface md:hidden"
+            className="grid h-9 w-9 place-items-center overflow-hidden rounded-full md:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label="Menú"
+            aria-expanded={open}
           >
-            {open ? "✕" : "☰"}
+            {firebaseUser ? (
+              <Avatar src={appUser?.photoURL} name={appUser?.displayName ?? "Tú"} size={34} />
+            ) : (
+              <span className="vidrio grid h-9 w-9 place-items-center rounded-full text-sm">{open ? "✕" : "☰"}</span>
+            )}
           </button>
         </div>
       </nav>
 
-      {/* menú móvil */}
       {open && (
-        <div className="border-t border-border bg-surface md:hidden">
-          <div className="container-page flex flex-col gap-1 py-3">
-            {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-semibold text-fg hover:bg-surface-2"
-              >
-                {l.label}
-              </Link>
-            ))}
-            {firebaseUser && (
-              <Link
-                href="/ajustes"
-                onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-semibold text-fg hover:bg-surface-2"
-              >
-                ⚙️ Ajustes
-              </Link>
-            )}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-semibold text-gold hover:bg-gold/10"
-              >
-                Panel de administración
-              </Link>
-            )}
-            <div className="mt-2 flex items-center justify-between border-t border-border pt-3">
-              {firebaseUser ? (
-                <>
-                  <span className="flex items-center gap-2">
-                    <Avatar src={appUser?.photoURL} name={appUser?.displayName ?? "Tú"} size={32} />
-                    <span className="text-sm font-semibold">{appUser?.displayName}</span>
-                  </span>
-                  <button
-                    onClick={() => {
-                      setOpen(false);
-                      void signOutUser();
-                    }}
-                    className="text-sm font-semibold text-muted"
-                  >
-                    Salir
-                  </button>
-                </>
-              ) : (
-                <Link href="/login" onClick={() => setOpen(false)} className="btn-primary w-full">
-                  Entrar con Google
+        <div className="container-page md:hidden">
+          <div className="vidrio flex flex-col gap-1 rounded-3xl p-3">
+            {firebaseUser ? (
+              <>
+                <p className="px-3 pb-1 pt-1 text-sm font-medium text-fg">{appUser?.displayName}</p>
+                {isAdmin && (
+                  <Link href="/admin" onClick={() => setOpen(false)} className="rounded-2xl px-3 py-3 text-sm font-medium text-gold">
+                    Panel de administración
+                  </Link>
+                )}
+                <Link href="/ajustes" onClick={() => setOpen(false)} className="rounded-2xl px-3 py-3 text-sm font-medium text-fg">
+                  Ajustes
                 </Link>
-              )}
-            </div>
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    void signOutUser();
+                  }}
+                  className="rounded-2xl px-3 py-3 text-left text-sm font-medium text-muted"
+                >
+                  Salir
+                </button>
+              </>
+            ) : (
+              <Link href="/login" onClick={() => setOpen(false)} className="btn-primary w-full">
+                Entrar con Google
+              </Link>
+            )}
           </div>
         </div>
       )}

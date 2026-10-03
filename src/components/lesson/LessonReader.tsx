@@ -5,7 +5,7 @@ import { audioLeccion, musicaDeFondo } from "@/config/assets";
 import type { Lesson } from "@/types";
 
 const RATES = [
-  { label: "🐢 Lenta", value: 0.85 },
+  { label: "Lenta", value: 0.85 },
   { label: "Normal", value: 1 },
   { label: "Rápida", value: 1.15 },
 ] as const;
@@ -44,12 +44,28 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
   return <FilePlayer url={audioUrl} onFallo={() => setFalloElAudio(true)} />;
 }
 
-/** Reproductor del audio narrado (MP3 de alta calidad). */
+/** «1:23» a partir de segundos. */
+function mmss(seg: number): string {
+  if (!Number.isFinite(seg) || seg < 0) return "0:00";
+  const m = Math.floor(seg / 60);
+  const s = Math.floor(seg % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/**
+ * Reproductor del audio narrado (MP3 de alta calidad), a la vista y de vidrio:
+ * play, barra de avance que se puede tocar, tiempo, duración y velocidad.
+ * La etiqueta <audio> sigue siendo la que suena (sin CORS), solo que sin sus
+ * controles de fábrica.
+ */
 function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
   const ref = useRef<HTMLAudioElement>(null);
   const fondo = useRef<HTMLAudioElement>(null);
   const [rate, setRate] = useState(1);
   const [conMusica, setConMusica] = useState(false);
+  const [sonando, setSonando] = useState(false);
+  const [actual, setActual] = useState(0);
+  const [duracion, setDuracion] = useState(0);
   const urlMusica = musicaDeFondo();
 
   function setSpeed(v: number) {
@@ -85,71 +101,147 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
     }
   }
 
-  return (
-    <div className="card overflow-hidden">
-      <div className="flex flex-col gap-3 p-4 sm:p-5">
-        <div className="flex items-center gap-2">
-          <span aria-hidden className="text-xl">🔊</span>
-          <h2 className="font-display text-lg font-bold">Escuchar la lección</h2>
-        </div>
-        <audio
-          ref={ref}
-          src={url}
-          controls
-          preload="metadata"
-          className="w-full"
-          onLoadedMetadata={() => {
-            if (ref.current) ref.current.playbackRate = rate;
-          }}
-          onError={onFallo}
-          onPlay={() => conLaVoz("sonar")}
-          onPause={() => conLaVoz("parar")}
-          onEnded={() => conLaVoz("volver")}
-        >
-          Tu navegador no puede reproducir este audio.
-        </audio>
-        <div className="flex items-center gap-1.5" role="group" aria-label="Velocidad de lectura">
-          <span className="mr-1 text-xs text-muted">Velocidad:</span>
-          {RATES.map((r) => (
-            <button
-              key={r.value}
-              onClick={() => setSpeed(r.value)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                rate === r.value
-                  ? "bg-primary text-primary-fg"
-                  : "border border-border bg-surface text-muted hover:text-fg"
-              }`}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
+  function alternar() {
+    const a = ref.current;
+    if (!a) return;
+    if (a.paused) void a.play().catch(() => {});
+    else a.pause();
+  }
 
-        {/* La música solo se ofrece si de verdad hay un archivo detrás. */}
-        {urlMusica && (
-          <div className="flex items-center gap-2 border-t border-border pt-3">
-            <button
-              onClick={() => {
-                const nueva = !conMusica;
-                setConMusica(nueva);
-                const m = fondo.current;
-                if (!m) return;
-                if (nueva && ref.current && !ref.current.paused) void m.play().catch(() => {});
-                if (!nueva) m.pause();
-              }}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                conMusica
-                  ? "bg-aqua/20 text-aqua"
-                  : "border border-border bg-surface text-muted hover:text-fg"
-              }`}
-            >
-              {conMusica ? "🎵 Con música" : "🎵 Sin música"}
-            </button>
-            <span className="text-xs text-muted">Suena muy bajito, por debajo de la voz.</span>
-            <audio ref={fondo} src={urlMusica} preload="none" loop className="hidden" />
+  function buscar(e: React.PointerEvent<HTMLDivElement>) {
+    const a = ref.current;
+    if (!a || !duracion) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const k = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    a.currentTime = k * duracion;
+    setActual(a.currentTime);
+  }
+
+  function teclas(e: React.KeyboardEvent<HTMLDivElement>) {
+    const a = ref.current;
+    if (!a || !duracion) return;
+    if (e.key === "ArrowRight") a.currentTime = Math.min(duracion, a.currentTime + 5);
+    if (e.key === "ArrowLeft") a.currentTime = Math.max(0, a.currentTime - 5);
+  }
+
+  const pct = duracion ? Math.min(100, (actual / duracion) * 100) : 0;
+
+  return (
+    <div className="vidrio rounded-[1.6rem] p-4 sm:p-5">
+      <audio
+        ref={ref}
+        src={url}
+        preload="metadata"
+        className="hidden"
+        onLoadedMetadata={() => {
+          if (ref.current) {
+            ref.current.playbackRate = rate;
+            setDuracion(ref.current.duration);
+          }
+        }}
+        onTimeUpdate={() => {
+          if (ref.current) setActual(ref.current.currentTime);
+        }}
+        onError={onFallo}
+        onPlay={() => {
+          setSonando(true);
+          conLaVoz("sonar");
+        }}
+        onPause={() => {
+          setSonando(false);
+          conLaVoz("parar");
+        }}
+        onEnded={() => {
+          setSonando(false);
+          conLaVoz("volver");
+        }}
+      >
+        Tu navegador no puede reproducir este audio.
+      </audio>
+
+      <div className="flex items-center gap-4">
+        <button
+          onClick={alternar}
+          aria-label={sonando ? "Pausar" : "Escuchar la lección"}
+          className="grid h-14 w-14 flex-none place-items-center rounded-full bg-[radial-gradient(circle_at_50%_30%,#fff6dc,#e2c98d_70%)] shadow-[0_10px_26px_-10px_rgb(226_190_110_/_0.9),inset_0_1px_0_rgb(255_255_255_/_0.7)] transition active:scale-95"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5 fill-[#102a24]" aria-hidden>
+            {sonando ? <path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /> : <path d="M8 5.5v13l10.5-6.5L8 5.5Z" />}
+          </svg>
+        </button>
+        <div className="min-w-0 flex-1">
+          <div
+            role="slider"
+            aria-label="Avance del audio"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(duracion)}
+            aria-valuenow={Math.round(actual)}
+            tabIndex={0}
+            onPointerDown={buscar}
+            onKeyDown={teclas}
+            className="relative h-5 cursor-pointer"
+          >
+            <span className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-fg/10" />
+            <span
+              className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-gradient-to-r from-[#b8975a] to-[#f3e3b4] shadow-[0_0_10px_rgb(236_205_140_/_0.55)]"
+              style={{ width: `${pct}%` }}
+            />
+            <span
+              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#fff8e6] shadow-[0_0_12px_rgb(255_236_190_/_0.9)]"
+              style={{ left: `${pct}%` }}
+            />
           </div>
-        )}
+          <div className="mt-1 flex justify-between text-xs tabular-nums text-muted">
+            <span>{mmss(actual)}</span>
+            <span>{mmss(duracion)}</span>
+          </div>
+        </div>
       </div>
+
+      <div
+        className="mt-4 grid grid-cols-3 gap-1 rounded-full bg-black/20 p-1 shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.05)]"
+        role="group"
+        aria-label="Velocidad de lectura"
+      >
+        {RATES.map((r) => (
+          <button
+            key={r.value}
+            onClick={() => setSpeed(r.value)}
+            aria-pressed={rate === r.value}
+            className={`rounded-full py-2 text-sm font-medium transition ${
+              rate === r.value
+                ? "bg-gradient-to-b from-white/[0.12] to-white/[0.05] text-fg shadow-[inset_0_1px_0_rgb(255_255_255_/_0.18),0_0_18px_-6px_rgb(236_205_140_/_0.5)]"
+                : "text-muted hover:text-fg"
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
+      {/* La música solo se ofrece si de verdad hay un archivo detrás. */}
+      {urlMusica && (
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            onClick={() => {
+              const nueva = !conMusica;
+              setConMusica(nueva);
+              const m = fondo.current;
+              if (!m) return;
+              if (nueva && ref.current && !ref.current.paused) void m.play().catch(() => {});
+              if (!nueva) m.pause();
+            }}
+            aria-pressed={conMusica}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              conMusica ? "bg-aqua/20 text-aqua" : "text-muted shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.1)] hover:text-fg"
+            }`}
+          >
+            {conMusica ? "Con música de fondo" : "Sin música de fondo"}
+          </button>
+          <span className="text-xs text-muted">Suena muy bajito, por debajo de la voz.</span>
+          <audio ref={fondo} src={urlMusica} preload="none" loop className="hidden" />
+        </div>
+      )}
     </div>
   );
 }
@@ -275,7 +367,7 @@ function SpeechPlayer({ lesson }: { lesson: Lesson }) {
   if (!supported) {
     return (
       <div className="card p-4 text-sm text-muted">
-        🔇 Este navegador no permite la lectura en voz alta. Prueba con Chrome o Safari
+        Este navegador no permite la lectura en voz alta. Prueba con Chrome o Safari
         actualizados.
       </div>
     );
@@ -284,10 +376,6 @@ function SpeechPlayer({ lesson }: { lesson: Lesson }) {
   return (
     <div className="card overflow-hidden">
       <div className="flex flex-col gap-3 p-4 sm:p-5">
-        <div className="flex items-center gap-2">
-          <span aria-hidden className="text-xl">🔊</span>
-          <h2 className="font-display text-lg font-bold">Escuchar la lección</h2>
-        </div>
         <div className="flex flex-wrap items-center gap-2.5">
           {state !== "playing" ? (
             <button onClick={play} className="btn-primary px-6 py-3 text-base">

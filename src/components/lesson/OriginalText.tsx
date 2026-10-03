@@ -66,8 +66,9 @@ function classify(raw: string): Block {
   return { kind: "plain", text: flat };
 }
 
+// La lectura va en Glacial Indifference: clara, con aire y buen espaciado.
 const PARA_CLASS =
-  "text-justify font-serif text-[1.05rem] leading-[1.9] text-fg/90 [hyphens:auto] [text-wrap:pretty]";
+  "font-[family-name:var(--font-leer)] text-[length:var(--lectura)] leading-[var(--lectura-alto)] tracking-[0.01em] text-fg/90 [text-wrap:pretty]";
 
 function BookText({ text }: { text: string }) {
   const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean).map(classify);
@@ -82,8 +83,8 @@ function BookText({ text }: { text: string }) {
     out.push(
       <div key={key} className="my-3 space-y-1.5 border-l-2 border-gold/40 pl-5 sm:pl-7">
         {items.map((it, i) => (
-          <p key={i} className="font-serif text-[1.02rem] italic leading-relaxed text-fg/80">
-            <sup className="mr-px align-super text-[0.62em] font-semibold not-italic text-gold">
+          <p key={i} className="font-[family-name:var(--font-leer)] text-[length:var(--lectura)] leading-relaxed text-fg/80">
+            <sup className="mr-px align-super text-[0.62em] font-semibold text-gold">
               {it.num}
             </sup>
             {renderInline(it.text, `ex-${key}-${i}`)}
@@ -104,14 +105,14 @@ function BookText({ text }: { text: string }) {
         b.level === 1 ? (
           <h3
             key={bi}
-            className="mt-8 text-center font-display text-xl font-bold tracking-wide text-gold first:mt-0 sm:text-2xl"
+            className="titulo-seccion mt-8 text-center text-xl first:mt-0 sm:text-2xl"
           >
             {b.text}
           </h3>
         ) : (
           <p
             key={bi}
-            className="-mt-1 mb-1 text-center font-display text-base font-semibold text-fg/75"
+            className="-mt-1 mb-1 text-center text-base font-medium text-fg/75"
           >
             {b.text}
           </p>
@@ -120,7 +121,7 @@ function BookText({ text }: { text: string }) {
     } else if (b.kind === "para") {
       out.push(
         <p key={bi} className={PARA_CLASS}>
-          <span className="mr-1 font-display font-bold text-gold">{b.num}.</span>
+          <span className="numero-luz mr-2 text-[1.3em]">{b.num}.</span>
           {renderInline(b.text, `p${bi}`)}
         </p>,
       );
@@ -141,27 +142,22 @@ export function OriginalText({ lesson }: { lesson: Lesson }) {
   const hasText = lesson.originalTextLoaded && lesson.originalText.trim().length > 0;
 
   return (
-    <section className="card overflow-hidden">
-      <div className="h-1 w-full bg-gradient-to-r from-gold via-gold-soft to-aqua" />
-      <header className="flex items-center justify-between gap-3 border-b border-border bg-surface-2/60 px-5 py-3 sm:px-7">
-        <div className="flex items-center gap-2">
-          <span aria-hidden>📖</span>
-          <h2 className="font-display text-base font-semibold">Texto original de la lección</h2>
-        </div>
-        <span className="badge bg-aqua/15 text-aqua">Sin modificaciones</span>
+    <section>
+      <header className="mb-1 flex items-center gap-2.5">
+        <svg viewBox="0 0 24 24" className="h-5 w-5 flex-none fill-none stroke-gold" strokeWidth={1.35} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M12 7.2C10 5.7 7 5.3 3.4 5.7v12c3.6-.4 6.6.1 8.6 1.5 2-1.4 5-1.9 8.6-1.5v-12C17 5.3 14 5.7 12 7.2ZM12 7.2v12" />
+        </svg>
+        <h2 className="titulo-seccion text-[1.1rem] md:text-[1.35rem]">Texto original de la lección</h2>
       </header>
-
-      <div className="px-5 py-6 sm:px-8 sm:py-8">
+      <p className="mb-4 pl-[1.9rem] text-xs text-muted">Sin modificaciones</p>
+      <div>
         {hasText ? (
-          <article className="mx-auto max-w-[62ch]">
+          <article className="max-w-[62ch]">
             <BookText text={lesson.originalText} />
           </article>
         ) : (
           <div className="mx-auto max-w-prose rounded-xl border border-dashed border-border bg-surface-2/40 p-6 text-center">
-            <p className="text-2xl" aria-hidden>
-              🕯️
-            </p>
-            <p className="mt-2 font-semibold">El texto original se cargará pronto</p>
+            <p className="font-medium">El texto original se cargará pronto</p>
             <p className="mt-1 text-sm text-muted">
               Esta lección todavía no tiene su texto original importado.
             </p>

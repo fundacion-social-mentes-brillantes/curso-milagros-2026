@@ -1,5 +1,6 @@
 "use client";
 
+import { avanceDemo, esDemo } from "@/lib/demo";
 import { llamar, llamarSeguro, cargarUnaVez } from "@/lib/api";
 import { lessonDocId } from "@/config/lessons.links";
 import type { Progress } from "@/types";
@@ -36,11 +37,13 @@ export async function getLessonProgress(
   uid: string,
   n: number,
 ): Promise<Progress | null> {
+  if (process.env.NODE_ENV === "development" && esDemo()) return avanceDemo().find((p) => p.lessonNumber === n) ?? null;
   const a = await llamarSeguro<AvanceApi | null>(`/avance/${n}`, null);
   return a ? aProgress(uid, a) : null;
 }
 
 export async function getUserProgress(uid: string): Promise<Progress[]> {
+  if (process.env.NODE_ENV === "development" && esDemo()) return avanceDemo();
   const r = await llamarSeguro<{ avance: AvanceApi[] }>("/avance", { avance: [] });
   return r.avance.map((a) => aProgress(uid, a));
 }
@@ -65,6 +68,10 @@ export async function setLessonDone(
   n: number,
   completed: boolean,
 ): Promise<{ position: number | null; hechasHoy: number }> {
+  if (process.env.NODE_ENV === "development" && esDemo()) {
+    await new Promise((r) => setTimeout(r, 450));
+    return { position: completed ? 3 : null, hechasHoy: completed ? 1 : 0 };
+  }
   /*
    * OJO: esto NO lleva try/catch, y es a propósito.
    *

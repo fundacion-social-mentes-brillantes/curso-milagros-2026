@@ -212,7 +212,7 @@ export function SenseiChat() {
         <button
           onClick={() => setOpen(true)}
           aria-label={`Hablar con ${SENSEI_NAME}, tu guía del Curso`}
-          className="group fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-br from-primary to-gold p-px shadow-glow transition active:scale-95 sm:bottom-6 sm:right-6"
+          className="group fixed bottom-[6.4rem] right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-br from-primary to-gold p-px shadow-glow transition active:scale-95 md:bottom-6 md:right-6"
         >
           <span className="flex items-center gap-2 rounded-full bg-surface/95 px-3 py-2 backdrop-blur">
             <span className="grid h-9 w-9 animate-breathe place-items-center rounded-full bg-gradient-to-br from-primary to-gold text-lg shadow-glow">

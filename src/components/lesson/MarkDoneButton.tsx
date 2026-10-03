@@ -41,6 +41,10 @@ export function MarkDoneButton({
   const [position, setPosition] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hoy, setHoy] = useState(hechasHoy);
+  // La animación dorada: arranca al tocar (sin esperar al servidor) y se queda si
+  // se guardó; si falla, el botón vuelve a ser de vidrio.
+  const [animando, setAnimando] = useState(false);
+  const [recienMarcada, setRecienMarcada] = useState(false);
 
   /*
    * Ponerse al día con lo que llega del servidor.
@@ -73,9 +77,10 @@ export function MarkDoneButton({
     }
   }, [completed, uid, lessonNumber]);
 
-  async function toggle(next: boolean) {
+  async function toggle(next: boolean): Promise<boolean> {
     setBusy(true);
     setError(null);
+    if (!next) setRecienMarcada(false);
     try {
       const res = await setLessonDone(uid, lessonNumber, next);
       setDone(next);
@@ -95,6 +100,7 @@ export function MarkDoneButton({
        * diario.
        */
       await refrescarPerfil();
+      return true;
     } catch (err) {
       // El tope del día no es "algo salió mal": es una respuesta esperada y
       // merece decirse con sus palabras, no con un error genérico de conexión.
@@ -104,26 +110,31 @@ export function MarkDoneButton({
           ? `Hoy ya hiciste ${MAX_LECCIONES_DIA} lecciones. Mañana sigues con esta.`
           : "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.",
       );
+      return false;
     } finally {
       setBusy(false);
     }
+  }
+
+  async function marcar() {
+    setAnimando(true);
+    const ok = await toggle(true);
+    if (ok) setRecienMarcada(true);
+    setAnimando(false);
   }
 
   // Mejora 3: no se puede marcar una lección MÁS ADELANTE de donde va la persona.
   const ahead = !done && lessonNumber > currentLesson;
   if (ahead) {
     return (
-      <div className="card flex flex-col items-center gap-3 p-6 text-center">
-        <span className="text-3xl" aria-hidden>
-          🌱
-        </span>
-        <p className="font-display text-lg font-semibold">Aún no es tu lección de hoy</p>
+      <div className="vidrio flex flex-col items-center gap-3 rounded-[1.6rem] p-6 text-center">
+        <p className="text-xl text-fg">Aún no es tu lección de hoy</p>
         <p className="max-w-sm text-sm text-muted">
-          Vas en la <strong className="text-fg">lección {currentLesson}</strong>. El proceso se
-          hace <strong>una lección a la vez, en orden</strong>. Cuando termines las anteriores
+          Vas en la <strong className="font-medium text-fg">lección {currentLesson}</strong>. El proceso se
+          hace <strong className="font-medium text-fg">una lección a la vez, en orden</strong>. Cuando termines las anteriores
           podrás marcar esta.
         </p>
-        <Link href={`/lecciones/${currentLesson}`} className="btn-primary mt-1">
+        <Link href={`/lecciones/${currentLesson}`} className="boton-cristal mt-1">
           Ir a mi lección {currentLesson}
         </Link>
       </div>
@@ -134,13 +145,10 @@ export function MarkDoneButton({
   // pulse para luego negárselo es hacerle perder el gesto.
   if (!done && hoy >= MAX_LECCIONES_DIA) {
     return (
-      <div className="card flex flex-col items-center gap-3 p-6 text-center">
-        <span className="text-3xl" aria-hidden>
-          🌙
-        </span>
-        <p className="font-display text-lg font-semibold">Por hoy ya está</p>
+      <div className="vidrio flex flex-col items-center gap-3 rounded-[1.6rem] p-6 text-center">
+        <p className="text-xl text-fg">Por hoy ya está</p>
         <p className="max-w-sm text-sm text-muted">
-          Hiciste tus <strong className="text-fg">{MAX_LECCIONES_DIA} lecciones</strong> de hoy.
+          Hiciste tus <strong className="font-medium text-fg">{MAX_LECCIONES_DIA} lecciones</strong> de hoy.
           El Curso pide dejar que cada idea repose y te acompañe el resto del día. Mañana sigues
           con esta.
         </p>
@@ -148,65 +156,55 @@ export function MarkDoneButton({
     );
   }
 
+  /*
+   * El botón de vidrio se vuelve de oro al marcar (≈ 800 ms): un punto de luz,
+   * la luz recorre el borde, se llena de dorado, aparece el ✓, un resplandor y
+   * se calma. Si la lección ya estaba hecha al abrirla, se ve dorado sin más.
+   */
+  const claseBoton = done ? (recienMarcada || animando ? "leida hecha" : "leida dorada") : animando ? "leida hecha" : "leida";
+
   return (
-    <div className="card flex flex-col items-center gap-3 p-6 text-center">
-      {done ? (
+    <div className="flex flex-col items-center gap-3 text-center">
+      {!done && (
+        <p className="text-sm text-muted">
+          Cuando termines tu práctica de hoy, márcala para guardar tu avance.
+          {hoy > 0 && ` Hoy llevas ${hoy} de ${MAX_LECCIONES_DIA}.`}
+        </p>
+      )}
+      <button
+        onClick={() => {
+          if (!done && !busy) void marcar();
+        }}
+        disabled={busy}
+        aria-live="polite"
+        className={claseBoton}
+      >
+        <span className="llena" />
+        <span className="resplandor" />
+        <span className="recorre" />
+        <span className="punto" />
+        <svg className="check" viewBox="0 0 24 24" aria-hidden>
+          <path d="m5 12.5 4.5 4.5L19 7.5" />
+        </svg>
+        <span className="textos">
+          <span className="texto-pendiente">Marcar como lección leída</span>
+          <span className="texto-hecho">Lección completada</span>
+        </span>
+      </button>
+
+      {done && (
         <>
-          <span className="text-3xl" aria-hidden>
-            🌟
-          </span>
-          <p className="font-display text-lg font-semibold text-success">
-            ¡Lección realizada!
-          </p>
           {mostrarPuesto && position && (
-            <p className="font-display text-base font-bold text-gold">
-              🌅 ¡Fuiste el #{position} en hacer la lección {lessonNumber}!
+            <p className="text-base font-medium text-gold">
+              ¡Fuiste el #{position} en hacer la lección {lessonNumber}!
             </p>
           )}
           {at && <p className="text-xs text-muted">Marcada el {formatDateTime(at)}</p>}
           {/* Compartir con el grupo: solo tiene sentido una vez hecha. */}
           <CompartirWhatsApp lessonNumber={lessonNumber} title={lessonTitle} />
-
-          <button
-            onClick={() => void toggle(false)}
-            disabled={busy}
-            className="btn-ghost mt-1"
-          >
+          <button onClick={() => void toggle(false)} disabled={busy} className="text-xs font-medium text-muted underline-offset-4 hover:underline">
             {busy ? <Spinner /> : "Desmarcar"}
           </button>
-        </>
-      ) : (
-        <>
-          <p className="text-sm text-muted">
-            Cuando termines tu práctica de hoy, márcala para guardar tu avance.
-          </p>
-          {hoy > 0 && (
-            <p className="text-xs text-muted">
-              Hoy llevas {hoy} de {MAX_LECCIONES_DIA}.
-            </p>
-          )}
-          <div className="relative w-full max-w-sm">
-            <span
-              aria-hidden
-              className="absolute -inset-1.5 animate-breathe rounded-full bg-gradient-to-r from-gold via-aqua to-gold opacity-60 blur-lg"
-            />
-            <button
-              onClick={() => void toggle(true)}
-              disabled={busy}
-              className="relative inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-gold via-gold-soft to-gold px-6 py-4 text-base font-extrabold text-[rgb(12_64_58)] shadow-glow ring-1 ring-gold/60 transition hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 sm:text-lg"
-            >
-              {busy ? (
-                <Spinner />
-              ) : (
-                <>
-                  <span aria-hidden className="text-xl">
-                    ✓
-                  </span>
-                  Marcar lección como hecha
-                </>
-              )}
-            </button>
-          </div>
         </>
       )}
       {error && <p className="text-sm text-warning">{error}</p>}
