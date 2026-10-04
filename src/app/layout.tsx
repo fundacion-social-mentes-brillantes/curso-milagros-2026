@@ -70,7 +70,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Curso Milagros",
+    title: SITE.name,
     statusBarStyle: "black-translucent",
   },
   openGraph: {
