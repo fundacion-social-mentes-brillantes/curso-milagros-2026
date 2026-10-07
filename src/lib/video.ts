@@ -29,6 +29,6 @@ export function resolveVideo(video: LessonVideo): ResolvedVideo {
   }
   const id = youtubeId(video.url);
   return id
-    ? { kind: "iframe", src: `https://www.youtube.com/embed/${id}?rel=0` }
+    ? { kind: "iframe", src: `https://www.youtube.com/embed/${id}?rel=0&playsinline=1&modestbranding=1` }
     : { kind: "none", src: "" };
 }

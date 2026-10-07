@@ -188,9 +188,8 @@ function LessonInner({ n }: { n: number }) {
           {(esPro || appUser?.voiceReader) && (
             <section id="escucha" className="scroll-mt-6">
               <TituloSeccion icono={ICONO_ESCUCHA} primera="Escucha" acento="la lección" />
-              <div className="flota">
-                <LessonReader lesson={lesson} />
-              </div>
+              {/* Sin animación de flotar: el reproductor se usa con el dedo y no debe moverse. */}
+              <LessonReader lesson={lesson} />
             </section>
           )}
 
@@ -199,13 +198,13 @@ function LessonInner({ n }: { n: number }) {
             <OriginalText lesson={lesson} />
           </div>
 
-          {/* 04 · Video, embebido: solo hay que tocar Play. */}
+          {/* 04 · Video, embebido: solo hay que tocar Play. Sin animación de flotar:
+              mientras se veía, el recuadro parecía temblar (lo notó la hermana de
+              Sebastián en su iPhone). */}
           <section id="video" className="scroll-mt-6">
             <TituloSeccion icono={ICONO_VIDEO} primera="Video" acento="de la lección" />
             {esPro ? (
-              <div className="flota lenta">
-                <VideoPlayer video={lesson.video} title={lesson.title} numero={lesson.number} />
-              </div>
+              <VideoPlayer video={lesson.video} title={lesson.title} numero={lesson.number} />
             ) : (
               <SoloPro
                 icono="🎬"
