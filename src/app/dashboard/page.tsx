@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { subscribeUserProgress } from "@/lib/progress";
+import { leccionDelDia, subscribeUserProgress } from "@/lib/progress";
 import { getLessonRank } from "@/lib/ranking";
 import { Constelacion } from "@/components/dashboard/Constelacion";
 import { MiLibro } from "@/components/dashboard/MiLibro";
@@ -12,7 +12,7 @@ import { MisCompaneros } from "@/components/dashboard/MisCompaneros";
 import { Histogram, bucketLessons } from "@/components/ui/Charts";
 import { PageLoader } from "@/components/ui/Spinner";
 import { pct, formatDate } from "@/lib/utils";
-import { SITE } from "@/config/site";
+import { MAX_LECCIONES_DIA, SITE } from "@/config/site";
 import type { Progress } from "@/types";
 
 function DashboardInner() {
@@ -46,6 +46,9 @@ function DashboardInner() {
   const completed = (progress ?? []).filter((p) => p.completed);
   const completedCount = appUser.completedLessonsCount || completed.length;
   const current = appUser.currentLesson || 1;
+  // La lección del día: si hoy ya marcó la suya, sigue siendo esa hasta medianoche.
+  const dia = leccionDelDia(current, progress ?? []);
+  const puedeSeguir = dia.hechaHoy && current !== dia.numero && (appUser.hechasHoy ?? 0) < MAX_LECCIONES_DIA;
   const percent = pct(completedCount, SITE.totalLessons);
   const firstName = appUser.displayName.split(" ")[0] ?? "Caminante";
   // El ranking de compañeros es de quien sostiene el proceso.
@@ -82,32 +85,44 @@ function DashboardInner() {
 
           <div className="lg:hidden">
             <div className="mx-auto mt-4 aspect-[1/0.9] w-full max-w-[26rem]">
-              <Constelacion hechas={hechas} hoy={current} />
+              <Constelacion hechas={hechas} hoy={dia.numero} />
             </div>
             <Cifras hechas={completedCount} percent={percent} />
           </div>
 
           <div className="banner aparece mx-auto mt-8 max-w-[28rem] p-6 text-left [animation-delay:.4s] lg:mx-0">
-            <p className="text-[0.82rem] font-medium text-white/70">Tu próxima práctica</p>
+            <p className="text-[0.82rem] font-medium text-white/70">
+              {dia.hechaHoy ? "Tu práctica de hoy" : "Tu próxima práctica"}
+            </p>
             <h2 className="mt-2 flex items-baseline gap-3">
               <span className="titular oro-brillo text-[2.3rem]">Lección</span>
-              <span className="letra-display oro-brillo text-[3.4rem]">{current}</span>
+              <span className="letra-display oro-brillo text-[3.4rem]">{dia.numero}</span>
             </h2>
-            <p className="mt-1 text-sm text-white/75">Continúa tu proceso justo donde lo dejaste.</p>
+            <p className="mt-1 text-sm text-white/75">
+              {dia.hechaHoy
+                ? "Ya la hiciste hoy. Repite su idea durante el día."
+                : "Continúa tu proceso justo donde lo dejaste."}
+            </p>
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <Link href={`/lecciones/${current}`} className="boton-blanco flex-1">
-                Ir a la lección {current}
+              <Link href={`/lecciones/${dia.numero}`} className="boton-blanco flex-1">
+                {dia.hechaHoy ? `Volver a la ${dia.numero}` : `Ir a la lección ${dia.numero}`}
               </Link>
-              <Link href="/lecciones" className="boton-oscuro">
-                Ver todas
-              </Link>
+              {puedeSeguir ? (
+                <Link href={`/lecciones/${current}`} className="boton-oscuro">
+                  Seguir con la {current}
+                </Link>
+              ) : (
+                <Link href="/lecciones" className="boton-oscuro">
+                  Ver todas
+                </Link>
+              )}
             </div>
           </div>
         </div>
 
         <div className="hidden lg:block">
           <div className="mx-auto aspect-[1/0.9] w-full max-w-[40rem]">
-            <Constelacion hechas={hechas} hoy={current} />
+            <Constelacion hechas={hechas} hoy={dia.numero} />
           </div>
           <Cifras hechas={completedCount} percent={percent} />
         </div>

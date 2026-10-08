@@ -17,7 +17,7 @@ import { getClientAuth, firebaseConfigured, getGoogleProvider } from "@/lib/fire
 import { ensureUserProfile, getAppUser, subscribeAppUser } from "@/lib/users";
 import { ADMIN_EMAILS_PUBLIC } from "@/config/firebase-public";
 import type { AppUser } from "@/types";
-import { esDemo, USUARIO_DEMO } from "@/lib/demo";
+import { esDemo, usuarioDemo } from "@/lib/demo";
 
 interface AuthState {
   firebaseUser: User | null;
@@ -59,8 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Solo en `npm run dev`: «?demo» entra con una persona de prueba (ver lib/demo.ts).
     if (process.env.NODE_ENV === "development" && esDemo()) {
-      setFirebaseUser({ uid: "demo", email: USUARIO_DEMO.email, displayName: USUARIO_DEMO.displayName, photoURL: null } as unknown as User);
-      setAppUser(USUARIO_DEMO);
+      setFirebaseUser({ uid: "demo", email: usuarioDemo().email, displayName: usuarioDemo().displayName, photoURL: null } as unknown as User);
+      setAppUser(usuarioDemo());
       setLoading(false);
       return;
     }

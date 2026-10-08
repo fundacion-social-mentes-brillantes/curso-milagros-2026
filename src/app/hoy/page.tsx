@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { getLessonByNumber } from "@/lib/lessons";
-import { getLessonProgress } from "@/lib/progress";
+import { getLessonProgress, getUserProgress, leccionDelDia, marcoAlgoHoy } from "@/lib/progress";
 import { ideaDeLeccion } from "@/lib/idea-leccion";
 import { PrimerParrafo } from "@/components/lesson/OriginalText";
 import { Revela } from "@/components/marca/Revela";
 import { ICONO_COMPARTE, ICONO_ESCUCHA, ICONO_LEE, ICONO_VIDEO } from "@/components/lesson/TituloSeccion";
 import { PageLoader } from "@/components/ui/Spinner";
-import { SITE } from "@/config/site";
+import { MAX_LECCIONES_DIA, SITE } from "@/config/site";
 import type { Lesson } from "@/types";
 
 /** «Hoy · viernes 2 de octubre», con la fecha de Colombia. */
@@ -39,22 +39,39 @@ const RITMOS = ["flota", "flota lenta", "flota calma", "flota lenta"];
  */
 function HoyInner() {
   const { appUser } = useAuth();
-  const n = Math.min(Math.max(appUser?.currentLesson || 1, 1), SITE.totalLessons);
+  const actual = Math.min(Math.max(appUser?.currentLesson || 1, 1), SITE.totalLessons);
+  // La del día: la que marcó hoy, o la que le toca (ver leccionDelDia).
+  const [n, setN] = useState(actual);
+  const [hechaHoy, setHechaHoy] = useState(false);
   const [leccion, setLeccion] = useState<Lesson | null | undefined>(undefined);
   const [hecha, setHecha] = useState(false);
 
   useEffect(() => {
+    if (!appUser) return;
     let vivo = true;
-    getLessonByNumber(n)
-      .then((l) => vivo && setLeccion(l))
-      .catch(() => vivo && setLeccion(null));
-    if (appUser) getLessonProgress(appUser.uid, n).then((p) => vivo && setHecha(Boolean(p?.completed)));
+    void (async () => {
+      // El avance entero solo se pide si hoy marcó algo; si no, la del día es la actual.
+      const dia = marcoAlgoHoy(appUser.lastCompletedAt)
+        ? leccionDelDia(actual, await getUserProgress(appUser.uid))
+        : { numero: actual, hechaHoy: false };
+      const [l, p] = await Promise.all([
+        getLessonByNumber(dia.numero).catch(() => null),
+        dia.hechaHoy ? null : getLessonProgress(appUser.uid, dia.numero).catch(() => null),
+      ]);
+      if (!vivo) return;
+      setN(dia.numero);
+      setHechaHoy(dia.hechaHoy);
+      setHecha(dia.hechaHoy || Boolean(p?.completed));
+      setLeccion(l);
+    })();
     return () => {
       vivo = false;
     };
-  }, [n, appUser?.uid]);
+  }, [actual, appUser?.uid, appUser?.lastCompletedAt]);
 
   if (!appUser || leccion === undefined) return <PageLoader label="Preparando tu lección de hoy…" />;
+  // Ya hizo la de hoy: puede adelantar la siguiente si el tope del día lo permite.
+  const puedeSeguir = hechaHoy && actual !== n && (appUser.hechasHoy ?? 0) < MAX_LECCIONES_DIA;
   const titulo = leccion?.title ?? "";
   const { idea } = ideaDeLeccion(titulo, n);
   const conAudio = appUser.plan !== "ordinario" || appUser.role === "admin" || Boolean(appUser.voiceReader);
@@ -116,6 +133,19 @@ function HoyInner() {
               </span>
             )}
           </div>
+          {hechaHoy && actual !== n && (
+            <p className="aparece mt-5 max-w-[34rem] text-[0.95rem] leading-relaxed text-muted [animation-delay:.42s]">
+              Ya la hiciste hoy. Repite su idea durante el día; mañana sigues con la {actual}.
+              {puedeSeguir && (
+                <>
+                  {" "}
+                  <Link href={`/lecciones/${actual}`} className="font-medium text-fg underline decoration-fg/30 underline-offset-4 hover:decoration-fg">
+                    Seguir ya con la {actual}
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
         </section>
 
         {/* Las cuatro partes del día */}

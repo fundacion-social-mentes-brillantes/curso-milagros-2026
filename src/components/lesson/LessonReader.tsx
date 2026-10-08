@@ -250,8 +250,11 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
 
 function speechText(lesson: Lesson): string {
   let t = lesson.originalText || "";
+  t = t.replace(/^[ \t]*[¹²³⁴][ \t]*N\.[ \t]?T\..*$/gm, ""); // la nota del traductor no se lee
+  t = t.replace(/[¹²³⁴]/g, "");
   t = t.replace(/^\s*\d+\.\s*/gm, "");
   t = t.replace(/([\s"“(¿¡])\d{1,2}\s+(?=[A-ZÁÉÍÓÚÜÑ¿¡"“])/g, "$1");
+  t = t.replace(/[ᵃᵇ]\s*/g, ""); // marcas de media frase: no se leen
   t = t.replace(/\s+/g, " ").trim();
   return `Lección ${lesson.number}. ${lesson.title} ${t}`;
 }

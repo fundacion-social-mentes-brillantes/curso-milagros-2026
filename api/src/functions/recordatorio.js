@@ -19,7 +19,7 @@
  */
 
 const { app } = require("@azure/functions");
-const { P, leerUno, leerTodo, guardar } = require("../shared/tablas");
+const { P, leerUno, leerTodo, leerParticion, guardar } = require("../shared/tablas");
 const { cicloActivo } = require("../shared/ciclo");
 
 const ONESIGNAL_APP_ID = "7959aae1-aace-4889-b89f-d307ad2ad95c";
@@ -109,6 +109,46 @@ function fechaBogota(ms) {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(ms));
+}
+
+/**
+ * LA LECCIÓN DEL DÍA de una persona: la que va a practicar hoy.
+ *
+ * Casi siempre es `currentLesson`. La excepción es quien practica de
+ * madrugada: Valeria marcó la 132, la 133 y la 134 entre las 12:57 y la 1:17
+ * del 7-oct-2026, y a las 3 a. m. `currentLesson` ya decía 135, así que todo el
+ * día le llegaron avisos de la 135 cuando ella estaba practicando la 134.
+ *
+ * Regla, la misma que `leccionDelDia` en src/lib/progress.ts (si se cambia
+ * una, cambiar la otra): si hoy (Colombia, desde la medianoche) marcó la
+ * lección que va justo antes de la que le toca, la del día es esa. Volver a
+ * marcar una lección vieja no cuenta.
+ *
+ * `filas` es su avance del ciclo; esta parte no lee nada, para poder probarla sola.
+ */
+function leccionPracticada(actual, filas, hoy) {
+  let mayor = 0;
+  for (const f of filas) {
+    if (f.completed === true && f.completedAt && fechaBogota(Number(f.completedAt)) === hoy) {
+      mayor = Math.max(mayor, Number(f.lessonNumber ?? f._fila ?? 0) || 0);
+    }
+  }
+  // Al marcar, la lección actual pasa a la siguiente; con la 365 se queda en 365.
+  const recienHecha = mayor > 0 && (mayor === actual - 1 || (mayor === 365 && actual === 365));
+  return recienHecha ? mayor : actual;
+}
+
+async function leccionDelDia(usuario, ciclo, hoy) {
+  const actual = Math.min(Math.max(Number(usuario.currentLesson ?? 1), 1), 365);
+  // Solo se lee el avance de quien marcó algo hoy: a esta hora son poquísimos.
+  const ultima = Number(usuario.lastCompletedAt ?? 0);
+  if (!ultima || fechaBogota(ultima) !== hoy) return actual;
+  try {
+    const filas = await leerParticion("progress", P.progress(ciclo, usuario._fila));
+    return leccionPracticada(actual, filas, hoy);
+  } catch {
+    return actual; // si no se puede leer su avance, como siempre
+  }
 }
 
 function instanteBogota(fecha, minutoDelDia) {
@@ -240,12 +280,13 @@ app.http("recordatorioDiario", {
       const ciclo = await cicloActivo();
       const mapa = await cargarIdeas();
 
-      const personas = (await leerTodo("users"))
-        .filter((u) => u.enrolled !== false)
-        .map((u) => ({
+      const inscritos = (await leerTodo("users")).filter((u) => u.enrolled !== false);
+      const personas = await Promise.all(
+        inscritos.map(async (u) => ({
           uid: u._fila,
-          leccion: Math.min(Math.max(Number(u.currentLesson ?? 1), 1), 365),
-        }));
+          leccion: await leccionDelDia(u, ciclo, hoy),
+        })),
+      );
 
       if (personas.length === 0) {
         return { jsonBody: { ok: true, personas: 0, envios: 0, fecha: hoy } };

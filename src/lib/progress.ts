@@ -3,6 +3,7 @@
 import { avanceDemo, esDemo } from "@/lib/demo";
 import { llamar, llamarSeguro, cargarUnaVez } from "@/lib/api";
 import { lessonDocId } from "@/config/lessons.links";
+import { bogotaDateStr } from "@/lib/utils";
 import type { Progress } from "@/types";
 
 /**
@@ -46,6 +47,45 @@ export async function getUserProgress(uid: string): Promise<Progress[]> {
   if (process.env.NODE_ENV === "development" && esDemo()) return avanceDemo();
   const r = await llamarSeguro<{ avance: AvanceApi[] }>("/avance", { avance: [] });
   return r.avance.map((a) => aProgress(uid, a));
+}
+
+/**
+ * LA LECCIÓN DEL DÍA: la que se practica hoy, que no siempre es `currentLesson`.
+ *
+ * Al marcar una lección, el servidor sube `currentLesson` a la siguiente en el
+ * acto. Si «Hoy» mostrara siempre ese número, la persona marca la 134 por la
+ * mañana y la pantalla salta a la 135 cuando el Curso le pide seguir repitiendo
+ * la idea de la 134 todo el día. Valeria lo reportó así el 8-oct-2026.
+ *
+ * Regla: si hoy (hora de Colombia, desde la medianoche) marcó la lección que va
+ * justo antes de la que le toca, esa es la del día; si no, la que le toca. Si
+ * hoy marcó varias para ponerse al día (132, 133 y 134), la del día es la 134.
+ * Volver a marcar hoy una lección vieja no cuenta: no es la que está practicando.
+ *
+ * Es la misma regla que usa el recordatorio de las 3 a. m.
+ * (api/src/functions/recordatorio.js): quien practica de madrugada recibe los
+ * avisos de la lección que acaba de hacer. Si se cambia una, cambiar la otra.
+ */
+export function leccionDelDia(
+  currentLesson: number,
+  avance: Progress[],
+  ahora: number = Date.now(),
+): { numero: number; hechaHoy: boolean } {
+  const hoy = bogotaDateStr(ahora);
+  let mayor = 0;
+  for (const p of avance) {
+    if (p.completed && p.completedAt && bogotaDateStr(p.completedAt) === hoy) {
+      mayor = Math.max(mayor, p.lessonNumber);
+    }
+  }
+  // Al marcar, la lección actual pasa a la siguiente; con la 365 se queda en 365.
+  const recienHecha = mayor > 0 && (mayor === currentLesson - 1 || (mayor === 365 && currentLesson === 365));
+  return recienHecha ? { numero: mayor, hechaHoy: true } : { numero: currentLesson, hechaHoy: false };
+}
+
+/** ¿Marcó alguna lección hoy? Sirve para no pedir el avance entero sin necesidad. */
+export function marcoAlgoHoy(lastCompletedAt: number | null | undefined, ahora: number = Date.now()): boolean {
+  return Boolean(lastCompletedAt) && bogotaDateStr(Number(lastCompletedAt)) === bogotaDateStr(ahora);
 }
 
 /** Todo mi avance. Ya no es en vivo; se pide una vez al abrir la pantalla. */

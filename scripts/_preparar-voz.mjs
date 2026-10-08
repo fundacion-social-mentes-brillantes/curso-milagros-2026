@@ -15,6 +15,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 function paraVoz(l) {
   let t = String(l.originalText || "");
   t = t.replace(/^[ 	]*##[ 	]*/gm, "");     // encabezados de sección
+  // La nota del traductor (lección 83) y su llamada ¹ no se narran.
+  t = t.replace(/^[ 	]*[¹²³⁴][ 	]*N\.[ 	]?T\..*$/gm, "").replace(/[¹²³⁴]/g, "");
   /*
    * OJO con el espacio al principio: tiene que ser [ 	], NO \s.
    * `\s` incluye el salto de línea, así que `^\s*\d+\.` se comía también la
@@ -39,6 +41,7 @@ function paraVoz(l) {
    */
   t = t.replace(/_{2,}/g, '<break time="0.7s" />');
   t = t.replace(/([\s"“(¿¡])\d{1,2}\s+(?=[A-ZÁÉÍÓÚÜÑ¿¡"“])/g, "$1"); // "2 Esa mesa"
+  t = t.replace(/[ᵃᵇ]\s*/g, ""); // marcas de media frase del libro: no se leen
   t = t.replace(/[ \t]+/g, " ");
   t = t.replace(/\n{3,}/g, "\n\n").trim();
   // El título pasa por lo mismo: también trae corchetes del libro, y se añadía

@@ -14,7 +14,9 @@ import type { Lesson } from "@/types";
 function renderInline(text: string, keyBase: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   // (NNN) = referencia a lección (enlace)  |  número de oración (superíndice)
-  const re = /\((\d{1,3})\)|(?<=^|[\s.;:,—(«"¿])(\d{1,2})(?=\s?[A-ZÁÉÍÓÚÑ¡¿«"])/g;
+  // | ᵃ ᵇ = media frase: el libro parte algunas oraciones con una letra
+  // diminuta en alto. Escrita como "a" normal parecía una palabra de más.
+  const re = /\((\d{1,3})\)|(?<=^|[\s.;:,—(«"¿])(\d{1,2})(?=\s?[A-ZÁÉÍÓÚÑ¡¿«"])|([ᵃᵇ])/g;
   let last = 0;
   let i = 0;
   let m: RegExpExecArray | null;
@@ -39,7 +41,7 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
     } else {
       nodes.push(
         <sup key={`${keyBase}-s${i++}`} className="mr-px align-super text-[0.62em] font-semibold text-gold">
-          {m[2] ?? ""}
+          {m[3] ? (m[3] === "ᵃ" ? "a" : "b") : (m[2] ?? "")}
         </sup>,
       );
     }
@@ -53,10 +55,13 @@ type Block =
   | { kind: "heading"; level: 1 | 2; text: string }
   | { kind: "para"; num: string; text: string }
   | { kind: "example"; num: string; text: string }
-  | { kind: "plain"; text: string };
+  | { kind: "plain"; text: string }
+  | { kind: "nota"; text: string };
 
 function classify(raw: string): Block {
   const flat = raw.replace(/\s*\n\s*/g, " ").trim(); // une cortes a media frase
+  // Nota del traductor al pie ("¹ N.T. …", lección 83): va aparte y en pequeño.
+  if (/^[¹²³⁴]\s?N\.\s?T\./.test(flat)) return { kind: "nota", text: flat };
   // Encabezados: "# Título" (grande) o "## Subtítulo" (mediano).
   const head = flat.match(/^(#{1,2})\s+(.+)$/);
   if (head) return { kind: "heading", level: head[1]?.length === 1 ? 1 : 2, text: head[2] ?? "" };
@@ -124,6 +129,12 @@ function BookText({ text }: { text: string }) {
         <p key={bi} className={`${PARA_CLASS} enciende`}>
           <span className="num-parrafo mr-2">{b.num}.</span>
           {renderInline(b.text, `p${bi}`)}
+        </p>,
+      );
+    } else if (b.kind === "nota") {
+      out.push(
+        <p key={bi} className="!mt-8 border-t border-fg/10 pt-4 text-sm leading-relaxed text-muted">
+          {b.text}
         </p>,
       );
     } else {
