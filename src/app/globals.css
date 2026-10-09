@@ -756,3 +756,23 @@ html:not(.ver-arranque) .arranque { display: none; }
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 .video-cine .cerrar-cine svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+/*
+ * EN EL CELULAR, LOS CAMPOS DE TEXTO VAN A 16 PX COMO MÍNIMO.
+ * El iPhone agranda la página entera cuando alguien toca un campo con letra más
+ * pequeña (los nuestros eran de 14 px) y después no la devuelve a su tamaño: la
+ * pantalla queda «descuadrada», cortada por la derecha. Valeria lo vio el
+ * 9-oct-2026 al escribir el mensaje de WhatsApp y al abrir a Lumi, que pone el
+ * cursor en su caja nada más abrirse.
+ * Va con !important porque las clases de tamaño (`text-sm`) ganan a un selector
+ * de etiqueta. Se mira el tipo de puntero y no la marca del teléfono, así se
+ * puede probar con el modo celular del navegador; en Android no estorba.
+ * No usar `maximum-scale=1` en el viewport para esto: quita el zoom con los dedos.
+ */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: max(16px, 1em) !important;
+  }
+}
