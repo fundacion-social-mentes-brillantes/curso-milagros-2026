@@ -11,11 +11,22 @@
  * probar el cambio sin migrar nada.
  */
 
+import { LECCIONES_VOZ_ALEXANDRA } from "./narracion-alexandra";
+
 const BASE = (process.env.NEXT_PUBLIC_ASSETS_URL ?? "").replace(/\/+$/, "");
+
+/**
+ * ¿La lección ya tiene la narración nueva de Alexandra? Esa trae la música de
+ * fondo mezclada dentro del MP3 (ver narracion-alexandra.ts). `n` con ceros.
+ */
+export function tieneVozAlexandra(n: string): boolean {
+  return BASE.length > 0 && LECCIONES_VOZ_ALEXANDRA.has(Number(n));
+}
 
 /** Audio narrado de una lección. `n` con ceros: "001". */
 export function audioLeccion(n: string): string {
-  return BASE ? `${BASE}/audio/${n}.mp3` : `/audio/lecciones/${n}.mp3`;
+  if (!BASE) return `/audio/lecciones/${n}.mp3`;
+  return tieneVozAlexandra(n) ? `${BASE}/audio/v2/${n}.mp3` : `${BASE}/audio/${n}.mp3`;
 }
 
 /** Imagen de una lección. `n` con ceros: "001". */
@@ -36,6 +47,10 @@ export const ASSETS_FUERA = BASE.length > 0;
  * decide si la quiere; a mucha gente le estorba.
  *
  * Vacío = no hay música todavía y el control ni aparece.
+ *
+ * Las lecciones con la voz de Alexandra NO usan esta pista: ahí la música va
+ * mezclada en el MP3 al nivel que escogió Valeria («Solitary Majesty», oct-2026),
+ * y el control se esconde para que no suenen dos músicas a la vez.
  */
 export function musicaDeFondo(): string {
   return BASE ? `${BASE}/audio/fondo.mp3` : "";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { audioLeccion, musicaDeFondo } from "@/config/assets";
+import { audioLeccion, musicaDeFondo, tieneVozAlexandra } from "@/config/assets";
 import type { Lesson } from "@/types";
 
 const RATES = [
@@ -41,7 +41,9 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
   }, [audioUrl]);
 
   if (falloElAudio) return <SpeechPlayer lesson={lesson} />;
-  return <FilePlayer url={audioUrl} onFallo={() => setFalloElAudio(true)} />;
+  return (
+    <FilePlayer url={audioUrl} musicaIncluida={tieneVozAlexandra(num)} onFallo={() => setFalloElAudio(true)} />
+  );
 }
 
 /** «1:23» a partir de segundos. */
@@ -58,7 +60,16 @@ function mmss(seg: number): string {
  * La etiqueta <audio> sigue siendo la que suena (sin CORS), solo que sin sus
  * controles de fábrica.
  */
-function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
+function FilePlayer({
+  url,
+  musicaIncluida,
+  onFallo,
+}: {
+  url: string;
+  /** La narración ya trae su música mezclada: no se ofrece la pista aparte. */
+  musicaIncluida: boolean;
+  onFallo: () => void;
+}) {
   const ref = useRef<HTMLAudioElement>(null);
   const fondo = useRef<HTMLAudioElement>(null);
   const [rate, setRate] = useState(1);
@@ -66,7 +77,7 @@ function FilePlayer({ url, onFallo }: { url: string; onFallo: () => void }) {
   const [sonando, setSonando] = useState(false);
   const [actual, setActual] = useState(0);
   const [duracion, setDuracion] = useState(0);
-  const urlMusica = musicaDeFondo();
+  const urlMusica = musicaIncluida ? "" : musicaDeFondo();
 
   function setSpeed(v: number) {
     setRate(v);
