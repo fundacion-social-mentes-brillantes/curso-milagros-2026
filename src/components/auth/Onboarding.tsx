@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { ASK_STARTING_LESSON, PAISES, SITE } from "@/config/site";
 
 export function Onboarding() {
-  const { firebaseUser, appUser } = useAuth();
+  const { firebaseUser, appUser, refrescarPerfil } = useAuth();
   const [fullName, setFullName] = useState(appUser?.fullName || appUser?.displayName || "");
   const [country, setCountry] = useState(appUser?.country || "");
   const [phone, setPhone] = useState(appUser?.phone || "");
@@ -33,7 +33,11 @@ export function Onboarding() {
         phone,
         startLesson: parsedStart >= 1 ? parsedStart : 1,
       });
-      // El cambio se refleja solo: el perfil pasa a "completo" y se abre la app.
+      // Con Firestore el perfil se actualizaba solo; desde la mudanza a Azure se
+      // carga una vez, así que hay que volver a pedirlo. Sin esto la rueda se
+      // quedaba girando para siempre (lo vio la prueba de la app de Android,
+      // 16-oct-2026): el perfil ya estaba guardado pero la app no se abría.
+      await refrescarPerfil();
     } catch {
       setError("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.");
       setBusy(false);
