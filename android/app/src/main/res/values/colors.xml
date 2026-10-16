@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- El verde casi negro del curso (theme_color del manifiesto de la web). -->
+    <color name="fondo">#01110E</color>
+</resources>

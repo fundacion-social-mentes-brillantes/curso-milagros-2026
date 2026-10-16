@@ -63,3 +63,10 @@ audio-viejo-blog/
 # nunca debe subirse. Hoy la app usa Noto Serif Display (libre). Si se compra la
 # licencia web, se pone el archivo comprado con otro nombre.
 public/fuentes/le-jour-serif.otf
+
+# Android (la llave de firma vive fuera del repo, en C:/Android/firma)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.kotlin/

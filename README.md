@@ -72,6 +72,17 @@ npm run videos:apply   # aplicar los videos de src/config/videos.config.ts
 npm run set:admin      # (opcional) forzar admin desde la terminal
 ```
 
+## App de Android (APK, fuera de Google Play)
+
+`android/` es una Trusted Web Activity (la misma receta de KITS): abre esta web a pantalla completa en
+Chrome, así que **cada cambio de la web llega solo a la app**. Solo hay que repartir un APK nuevo si cambia
+algo de `android/` (ícono, nombre, colores): subir `versionCode` en `android/app/build.gradle.kts` y
+compilar con `android/compilar.sh assembleRelease` (APK) o `bundleRelease` (AAB, el que pide Play). Se
+firma con la llave de subida de `C:\Android\firma` (la misma de Budget y KITS), que nunca entra al
+repositorio. `public/.well-known/assetlinks.json` demuestra que la app y la web son de la fundación; sin
+él, la app muestra la barra con la dirección. Si algún día va a Google Play, hay que agregar ahí también
+la huella de «Play App Signing».
+
 ## Modelo de datos (Firestore)
 
 - `users/{uid}` — perfil, rol, lección actual, completadas, actividad.

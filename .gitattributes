@@ -1,0 +1,6 @@
+# Los scripts de Android se ejecutan con bash: deben quedar con saltos de linea de Unix
+# (con core.autocrlf=true, Windows los pasaria a CRLF y gradlew dejaria de arrancar).
+android/gradlew text eol=lf
+android/compilar.sh text eol=lf
+android/gradlew.bat text eol=crlf
+android/gradle/wrapper/gradle-wrapper.jar binary
