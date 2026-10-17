@@ -9,8 +9,13 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- El aviso del recordatorio (Android 13+ lo pregunta). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Que el recordatorio llegue a la hora exacta (Android 12+ lo pide aparte). -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Que el recordatorio y el cambio de medianoche lleguen a la hora EXACTA.
+         USE_EXACT_ALARM (Android 13+) lo da Android solo, sin mandar a la persona a los
+         ajustes: es el de las apps de alarmas y recordatorios. Sin el, Android 14 lo deja
+         apagado y la alarma podia llegar hasta 1 hora tarde (probado en el emulador).
+         OJO si algun dia va a Google Play: hay que justificarlo en la ficha. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <!-- Volver a poner las alarmas despues de reiniciar el celular. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 

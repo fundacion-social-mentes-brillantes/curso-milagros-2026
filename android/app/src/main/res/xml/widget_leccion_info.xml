@@ -8,7 +8,7 @@
     android:minHeight="110dp"
     android:minResizeWidth="140dp"
     android:minResizeHeight="100dp"
-    android:previewLayout="@layout/widget_leccion"
+    android:previewLayout="@layout/widget_leccion_vista"
     android:previewImage="@drawable/inicio"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="3"
