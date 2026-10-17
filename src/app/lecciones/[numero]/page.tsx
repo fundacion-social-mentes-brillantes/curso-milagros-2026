@@ -26,6 +26,8 @@ export function generateStaticParams() {
   }));
 }
 
-export default function LessonPage({ params }: { params: { numero: string } }) {
-  return <LeccionCliente numero={params.numero} />;
+// Desde Next 15 `params` llega como promesa (también al compilar las páginas fijas).
+export default async function LessonPage({ params }: { params: Promise<{ numero: string }> }) {
+  const { numero } = await params;
+  return <LeccionCliente numero={numero} />;
 }
