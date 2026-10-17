@@ -11,6 +11,7 @@ import { SenseiChat } from "@/components/sensei/SenseiChat";
 import { OneSignalInit } from "@/components/notifications/OneSignalInit";
 import { SITE } from "@/config/site";
 import { GUION_ANTI_PARPADEO } from "@/lib/ajustes";
+import { GUION_APP_ANDROID } from "@/lib/app-android";
 
 /*
  * LAS LETRAS (Sebastián, 2 oct 2026, sobre el estilo del video «superconscious»).
@@ -116,6 +117,8 @@ export default function RootLayout({
         */}
         <script dangerouslySetInnerHTML={{ __html: GUION_ANTI_PARPADEO }} />
         <script dangerouslySetInnerHTML={{ __html: GUION_ARRANQUE }} />
+        {/* ¿Se abrió desde la app de Android? (ver src/lib/app-android.ts) */}
+        <script dangerouslySetInnerHTML={{ __html: GUION_APP_ANDROID }} />
       </head>
       <body className="font-sans antialiased scrollbar-soft">
         {/* Las luces que se pasean por los bordes, como en el video (globals.css). */}

@@ -19,8 +19,8 @@ android {
         minSdk = 24
         targetSdk = 36
         // Subir versionCode en cada version nueva que se reparta (Android no instala una igual o mas vieja encima).
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     compileOptions {
@@ -53,4 +53,6 @@ android {
 dependencies {
     // Abre la web del curso a pantalla completa en Chrome (Trusted Web Activity).
     implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.7.4")
+    // Avisos (NotificationCompat) del recordatorio y del widget.
+    implementation("androidx.core:core:1.16.0")
 }

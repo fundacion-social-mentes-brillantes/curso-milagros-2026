@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Botón principal: el crema de los botones de la web, con efecto al tocar. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="#33102A24">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="999dp" />
+            <solid android:color="#F3EEE2" />
+        </shape>
+    </item>
+</ripple>

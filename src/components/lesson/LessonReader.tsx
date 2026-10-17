@@ -42,7 +42,13 @@ export function LessonReader({ lesson }: { lesson: Lesson }) {
 
   if (falloElAudio) return <SpeechPlayer lesson={lesson} />;
   return (
-    <FilePlayer url={audioUrl} musicaIncluida={tieneVozAlexandra(num)} onFallo={() => setFalloElAudio(true)} />
+    <FilePlayer
+      url={audioUrl}
+      musicaIncluida={tieneVozAlexandra(num)}
+      numero={lesson.number}
+      idea={lesson.title}
+      onFallo={() => setFalloElAudio(true)}
+    />
   );
 }
 
@@ -63,11 +69,15 @@ function mmss(seg: number): string {
 function FilePlayer({
   url,
   musicaIncluida,
+  numero,
+  idea,
   onFallo,
 }: {
   url: string;
   /** La narración ya trae su música mezclada: no se ofrece la pista aparte. */
   musicaIncluida: boolean;
+  numero: number;
+  idea: string;
   onFallo: () => void;
 }) {
   const ref = useRef<HTMLAudioElement>(null);
@@ -109,6 +119,40 @@ function FilePlayer({
     if (accion === "volver") {
       m.pause();
       m.currentTime = 0;
+    }
+  }
+
+  /*
+   * LOS CONTROLES DE LA PANTALLA DE BLOQUEO. Con la pantalla apagada el audio
+   * sigue sonando (también en la app de Android) y el celular muestra sus
+   * controles en la cortina y en la pantalla de bloqueo. Sin esto decían
+   * «Un Curso de Milagros · Gimnasio Emo…» y la dirección de la página; así
+   * dicen qué lección es, con el ícono del curso.
+   */
+  function anunciarLeccion() {
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: `Lección ${numero}`,
+        artist: idea,
+        album: "Un Curso de Milagros",
+        artwork: [
+          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+        ],
+      });
+      const a = ref.current;
+      if (!a) return;
+      navigator.mediaSession.setActionHandler("play", () => void a.play().catch(() => {}));
+      navigator.mediaSession.setActionHandler("pause", () => a.pause());
+      navigator.mediaSession.setActionHandler("seekbackward", () => {
+        a.currentTime = Math.max(0, a.currentTime - 10);
+      });
+      navigator.mediaSession.setActionHandler("seekforward", () => {
+        a.currentTime = Math.min(a.duration || a.currentTime, a.currentTime + 10);
+      });
+    } catch {
+      /* navegador sin soporte completo: quedan los controles de siempre */
     }
   }
 
@@ -156,6 +200,7 @@ function FilePlayer({
         onError={onFallo}
         onPlay={() => {
           setSonando(true);
+          anunciarLeccion();
           conLaVoz("sonar");
         }}
         onPause={() => {

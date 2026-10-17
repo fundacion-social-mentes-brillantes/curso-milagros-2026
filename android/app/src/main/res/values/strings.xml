@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Un Curso de Milagros</string>
-    <string name="url_inicio" translatable="false">https://cursodemilagros.gimnasioemocionalmb.com/</string>
+    <!-- ?origen=app-android: asi la web sabe que esta dentro de la app (src/lib/app-android.ts). -->
+    <string name="url_inicio" translatable="false">https://cursodemilagros.gimnasioemocionalmb.com/?origen=app-android</string>
     <string name="proveedor" translatable="false">org.fundacionsocialmentesbrillantes.curso.archivos</string>
     <string name="asset_statements" translatable="false">
         [{\"relation\": [\"delegate_permission/common.handle_all_urls\", \"delegate_permission/common.use_as_origin\"],
           \"target\": {\"namespace\": \"web\", \"site\": \"https://cursodemilagros.gimnasioemocionalmb.com\"}}]
     </string>
+    <string name="widget_nombre">Lección de hoy</string>
+    <string name="widget_descripcion">Tu lección del día del Curso de Milagros. Cambia sola a medianoche.</string>
+    <string name="atajo_corto">Recordatorio</string>
+    <string name="atajo_largo">Hora del recordatorio</string>
 </resources>

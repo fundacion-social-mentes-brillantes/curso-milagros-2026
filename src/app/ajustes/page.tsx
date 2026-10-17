@@ -2,6 +2,7 @@
 
 import { RouteGuard } from "@/components/common/RouteGuard";
 import { Notificaciones } from "@/components/ajustes/Notificaciones";
+import { AppAndroid } from "@/components/ajustes/AppAndroid";
 import { MiLeccion } from "@/components/ajustes/MiLeccion";
 import { MensajeDelGrupo } from "@/components/ajustes/MensajeDelGrupo";
 import { Apariencia } from "@/components/ajustes/Apariencia";
@@ -34,6 +35,7 @@ function AjustesInner() {
 
       <div className="mx-auto grid max-w-3xl gap-5">
         <Notificaciones />
+        <AppAndroid />
         <MiLeccion />
         <MensajeDelGrupo />
         <Apariencia ajustes={ajustes} cambiar={cambiar} />

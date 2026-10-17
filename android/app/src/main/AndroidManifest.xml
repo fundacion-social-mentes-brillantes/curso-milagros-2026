@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Un Curso de Milagros para Android: abre https://cursodemilagros.gimnasioemocionalmb.com a
      pantalla completa en Chrome (Trusted Web Activity). Toda la app es la web, asi que se
-     actualiza sola cuando cambia el sitio; aqui solo esta el lanzador de Google. -->
+     actualiza sola cuando cambia el sitio. Lo unico nativo (desde la version 1.1.0) es lo
+     que tiene que funcionar aunque nadie abra la app: el recordatorio diario a la hora exacta
+     y el widget «Leccion de hoy», con su pantalla de ajustes (AjustesActivity). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- El aviso del recordatorio (Android 13+ lo pregunta). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Que el recordatorio llegue a la hora exacta (Android 12+ lo pide aparte). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Volver a poner las alarmas despues de reiniciar el celular. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Para encontrar Chrome (u otro navegador compatible) y abrir la web adentro. -->
     <queries>
@@ -67,6 +75,10 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Al dejar presionado el icono: «Hora del recordatorio». -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/atajos" />
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -98,5 +110,46 @@
         <activity
             android:name="com.google.androidbrowserhelper.trusted.FocusActivity"
             android:exported="false" />
+
+        <!-- «Recordatorio y widget». La web la abre con intent://ajustes?codigo=…
+             (src/lib/app-android.ts) para vincular el celular con la cuenta. -->
+        <activity
+            android:name=".AjustesActivity"
+            android:exported="true"
+            android:label="Recordatorio y widget"
+            android:launchMode="singleTop"
+            android:theme="@style/Tema.Ajustes">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ucdmcurso" android:host="ajustes" />
+            </intent-filter>
+        </activity>
+
+        <receiver android:name=".RecordatorioReceiver" android:exported="false" />
+        <receiver android:name=".MedianocheReceiver" android:exported="false" />
+        <receiver android:name=".ArranqueReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Widget «Leccion de hoy». -->
+        <receiver
+            android:name=".LeccionWidget"
+            android:exported="false"
+            android:label="@string/widget_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_leccion_info" />
+        </receiver>
     </application>
 </manifest>

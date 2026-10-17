@@ -391,3 +391,7 @@ app.http("recordatorioDiario", {
     }
   },
 });
+
+// La app de Android (widget «Lección de hoy» y alarma diaria) usa la MISMA regla
+// y las mismas ideas que este recordatorio: así nunca se contradicen.
+module.exports = { leccionDelDia, fechaBogota, cargarIdeas, ideaDe };

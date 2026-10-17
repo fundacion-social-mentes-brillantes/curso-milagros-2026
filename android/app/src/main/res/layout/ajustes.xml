@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pantalla nativa «Recordatorio y widget» (AjustesActivity). -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="22dp"
+        android:paddingTop="28dp"
+        android:paddingEnd="22dp"
+        android:paddingBottom="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:letterSpacing="0.12"
+            android:text="UN CURSO DE MILAGROS"
+            android:textColor="#C49A52"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="serif"
+            android:text="Recordatorio y widget"
+            android:textColor="#F3EEE2"
+            android:textSize="30sp" />
+
+        <TextView
+            android:id="@+id/a_estado"
+            style="@style/Ajustes.Texto" />
+
+        <!-- La lección de hoy, tal como la verá el widget. -->
+        <LinearLayout
+            android:id="@+id/a_hoy_caja"
+            style="@style/Ajustes.Seccion">
+
+            <TextView
+                style="@style/Ajustes.Titulo"
+                android:text="LECCIÓN DE HOY" />
+
+            <TextView
+                android:id="@+id/a_hoy"
+                style="@style/Ajustes.Texto"
+                android:textColor="#F3EEE2"
+                android:textSize="17sp" />
+        </LinearLayout>
+
+        <!-- Recordatorio diario. -->
+        <LinearLayout style="@style/Ajustes.Seccion">
+
+            <TextView
+                style="@style/Ajustes.Titulo"
+                android:text="RECORDATORIO DIARIO" />
+
+            <Switch
+                android:id="@+id/a_activo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:minHeight="48dp"
+                android:text="Recordarme cada día"
+                android:textColor="#F3EEE2"
+                android:textSize="17sp"
+                android:thumbTint="#C49A52"
+                android:trackTint="#668FA59E" />
+
+            <Button
+                android:id="@+id/a_hora"
+                style="@style/Ajustes.Boton" />
+
+            <TextView
+                android:id="@+id/a_aviso_permiso"
+                style="@style/Ajustes.Texto"
+                android:textColor="#E8C98A"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/a_permiso"
+                style="@style/Ajustes.Boton"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/a_probar"
+                style="@style/Ajustes.Boton"
+                android:text="Probar el aviso ahora" />
+        </LinearLayout>
+
+        <!-- Widget. -->
+        <LinearLayout style="@style/Ajustes.Seccion">
+
+            <TextView
+                style="@style/Ajustes.Titulo"
+                android:text="WIDGET «LECCIÓN DE HOY»" />
+
+            <TextView
+                style="@style/Ajustes.Texto"
+                android:text="Tu lección del día en la pantalla de inicio. Cambia sola a medianoche (hora de Colombia) y al tocarla se abre la lección." />
+
+            <Button
+                android:id="@+id/a_widget"
+                style="@style/Ajustes.Boton"
+                android:text="Poner el widget en la pantalla de inicio" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/a_volver"
+            style="@style/Ajustes.Boton.Principal"
+            android:layout_marginTop="26dp"
+            android:text="Ir a mi lección de hoy" />
+
+        <TextView
+            android:id="@+id/a_desvincular"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="14dp"
+            android:gravity="center"
+            android:text="Desvincular este celular"
+            android:textColor="#8FA59E"
+            android:textSize="14sp" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Al dejar presionado el icono de la app: atajo a la hora del recordatorio. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutId="recordatorio"
+        android:shortcutLongLabel="@string/atajo_largo"
+        android:shortcutShortLabel="@string/atajo_corto">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="org.fundacionsocialmentesbrillantes.curso.AjustesActivity"
+            android:targetPackage="org.fundacionsocialmentesbrillantes.curso" />
+    </shortcut>
+</shortcuts>
