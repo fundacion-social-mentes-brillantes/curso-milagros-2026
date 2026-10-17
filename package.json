@@ -5,7 +5,7 @@
   "description": "Proceso diario de Un Curso de Milagros 2026 — Gimnasio Emocional Mentes Brillantes",
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack && node scripts/limpiar-out.mjs",
+    "build": "node scripts/verificar-firebase.mjs && next build --webpack && node scripts/limpiar-out.mjs",
     "start": "next start",
     "lint": "tsc --noEmit",
     "build:data": "tsx scripts/build-lessons-data.ts",
@@ -29,7 +29,6 @@
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.19",
     "dotenv": "^16.4.5",
-    "firebase-admin": "^14.5.0",
     "node-html-parser": "^6.1.13",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.6",
@@ -42,6 +41,7 @@
   "overrides": {
     "@firebase/firestore": {
       "@grpc/grpc-js": "^1.14.6"
-    }
+    },
+    "@firebase/app": "0.16.2"
   }
 }
