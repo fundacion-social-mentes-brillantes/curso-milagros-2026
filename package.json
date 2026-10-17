@@ -5,9 +5,9 @@
   "description": "Proceso diario de Un Curso de Milagros 2026 — Gimnasio Emocional Mentes Brillantes",
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/limpiar-out.mjs",
+    "build": "next build --webpack && node scripts/limpiar-out.mjs",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "tsc --noEmit",
     "build:data": "tsx scripts/build-lessons-data.ts",
     "rules:deploy": "tsx scripts/deploy-rules.ts",
     "seed": "tsx scripts/seed.ts",
@@ -15,23 +15,21 @@
     "set:admin": "tsx scripts/set-admin.ts"
   },
   "dependencies": {
-    "firebase": "^10.12.2",
-    "firebase-admin": "^12.1.1",
+    "firebase": "^13.0.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
-    "next": "^14.2.35",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@breezystack/lamejs": "^1.2.7",
     "@types/node": "^20.14.9",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.19",
     "dotenv": "^16.4.5",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.35",
+    "firebase-admin": "^14.5.0",
     "node-html-parser": "^6.1.13",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.6",
@@ -40,5 +38,10 @@
   },
   "engines": {
     "node": ">=18.18.0"
+  },
+  "overrides": {
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "^1.14.6"
+    }
   }
 }
