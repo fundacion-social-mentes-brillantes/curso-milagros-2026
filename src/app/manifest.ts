@@ -6,10 +6,6 @@ import { SITE } from "@/config/site";
  * app con ícono propio y pantalla completa. Next.js lo sirve en
  * /manifest.webmanifest y enlaza el <link rel="manifest"> automáticamente.
  */
-// El sitio se publica como archivos estáticos (output: "export"): desde Next 15
-// el manifiesto tiene que declararse fijo o la compilación se detiene.
-export const dynamic = "force-static";
-
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: SITE.name,
