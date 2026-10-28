@@ -8,6 +8,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
@@ -112,7 +114,11 @@ final class Programador {
         return NotificationManagerCompat.from(c).areNotificationsEnabled();
     }
 
-    /** Muestra el aviso con la lección del día (la última que se sepa). */
+    /**
+     * Muestra el aviso con la lección del día (la última que se sepa): el logo
+     * del curso a la derecha y, al desplegarlo, la ilustración de la lección.
+     * Se llama siempre desde un hilo aparte (baja la imagen).
+     */
     static void avisar(Context c) {
         crearCanal(c);
         if (!puedeAvisar(c)) return;
@@ -130,12 +136,21 @@ final class Programador {
             texto = l.idea.isEmpty() ? "Tómate un momento para tu práctica de hoy." : l.idea;
         }
         int numero = l == null ? 0 : l.numero;
+        Bitmap logo = BitmapFactory.decodeResource(c.getResources(), R.drawable.aviso_logo);
+        Bitmap imagen = Servidor.imagenLeccion(numero);
+        NotificationCompat.Style estilo = imagen == null
+                ? new NotificationCompat.BigTextStyle().bigText(texto)
+                : new NotificationCompat.BigPictureStyle()
+                        .bigPicture(imagen)
+                        .bigLargeIcon((Bitmap) null) // desplegado, la imagen ya lo dice todo
+                        .setSummaryText(texto);
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, CANAL)
-                .setSmallIcon(R.drawable.ic_aviso)
+                .setSmallIcon(R.drawable.ic_notificacion)
+                .setLargeIcon(logo)
                 .setColor(0xFFC49A52)
                 .setContentTitle(titulo)
                 .setContentText(texto)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(texto))
+                .setStyle(estilo)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)

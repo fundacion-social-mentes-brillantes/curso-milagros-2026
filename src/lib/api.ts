@@ -42,6 +42,13 @@ interface Opciones {
   cuerpo?: unknown;
   /** Rutas públicas (como la configuración) que no necesitan sesión. */
   publica?: boolean;
+  /**
+   * Que la petición siga aunque la persona cierre la página o se vaya a otra app
+   * (por ejemplo a WhatsApp justo después de marcar la lección).
+   */
+  keepalive?: boolean;
+  /** Milisegundos antes de darla por perdida. Sin esto, una petición colgada espera para siempre. */
+  tiempoMaximo?: number;
 }
 
 /**
@@ -49,7 +56,7 @@ interface Opciones {
  * llama decida si eso importa o no.
  */
 export async function llamar<T>(ruta: string, opciones: Opciones = {}): Promise<T> {
-  const { metodo = "GET", cuerpo, publica = false } = opciones;
+  const { metodo = "GET", cuerpo, publica = false, keepalive = false, tiempoMaximo } = opciones;
 
   const cabeceras: Record<string, string> = {};
   if (!publica) {
@@ -61,12 +68,21 @@ export async function llamar<T>(ruta: string, opciones: Opciones = {}): Promise<
   }
   if (cuerpo !== undefined) cabeceras["Content-Type"] = "application/json";
 
-  const res = await fetch(`${BASE}${ruta}`, {
-    method: metodo,
-    headers: cabeceras,
-    body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
-    cache: "no-store",
-  });
+  const corte = tiempoMaximo ? new AbortController() : null;
+  const reloj = corte ? setTimeout(() => corte.abort(), tiempoMaximo) : null;
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${ruta}`, {
+      method: metodo,
+      headers: cabeceras,
+      body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+      cache: "no-store",
+      keepalive,
+      signal: corte?.signal,
+    });
+  } finally {
+    if (reloj) clearTimeout(reloj);
+  }
 
   if (!res.ok) {
     let clave = "fallo";

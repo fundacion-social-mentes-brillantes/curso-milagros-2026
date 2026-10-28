@@ -9,6 +9,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Arranque, GUION_ARRANQUE } from "@/components/marca/Arranque";
 import { SenseiChat } from "@/components/sensei/SenseiChat";
 import { OneSignalInit } from "@/components/notifications/OneSignalInit";
+import { AvisoMarcasPendientes } from "@/components/common/AvisoMarcasPendientes";
 import { SITE } from "@/config/site";
 import { GUION_ANTI_PARPADEO } from "@/lib/ajustes";
 import { GUION_APP_ANDROID } from "@/lib/app-android";
@@ -138,6 +139,8 @@ export default function RootLayout({
           <BarraInferior />
           <SenseiChat />
           <OneSignalInit />
+          {/* Lecciones marcadas que todavía no llegan al servidor (no se pierden). */}
+          <AvisoMarcasPendientes />
         </AuthProvider>
       </body>
     </html>

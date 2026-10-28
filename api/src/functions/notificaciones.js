@@ -22,6 +22,7 @@
 const { app } = require("@azure/functions");
 const { manejar, json } = require("../shared/http");
 const { P, guardar } = require("../shared/tablas");
+const { aspectoDelAviso } = require("../shared/aviso");
 
 const ONESIGNAL_APP_ID = "7959aae1-aace-4889-b89f-d307ad2ad95c";
 const SITIO = process.env.SITIO_URL || "https://cursodemilagros.gimnasioemocionalmb.com";
@@ -60,6 +61,8 @@ app.http("probarNotificacion", {
         es: "Así se verá tu recordatorio diario. Todo funciona.",
       },
       url: `${SITIO}/ajustes`,
+      // Igual que el recordatorio de verdad: logo nuevo e insignia.
+      ...aspectoDelAviso(null),
     };
 
     let respuesta;

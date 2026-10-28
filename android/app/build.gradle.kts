@@ -19,8 +19,8 @@ android {
         minSdk = 24
         targetSdk = 36
         // Subir versionCode en cada version nueva que se reparta (Android no instala una igual o mas vieja encima).
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
     }
 
     compileOptions {

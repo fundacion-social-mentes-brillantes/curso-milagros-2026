@@ -1,6 +1,8 @@
 package org.fundacionsocialmentesbrillantes.curso;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 
 import org.json.JSONObject;
 
@@ -43,6 +45,44 @@ final class Servidor {
         if (r.estado != 200) throw new Exception("hoy: " + r.estado);
         Datos.guardarHoy(c, new JSONObject(r.texto));
     }
+
+    /**
+     * La ilustración de la lección, para el aviso. Si no hay internet o tarda,
+     * devuelve null y el aviso sale igual, sin imagen.
+     */
+    static Bitmap imagenLeccion(int numero) {
+        if (numero < 1 || numero > 365) return null;
+        HttpURLConnection con = null;
+        try {
+            con = (HttpURLConnection) new URL(String.format(java.util.Locale.ROOT,
+                    "%s/%03d.webp", IMAGENES, numero)).openConnection();
+            con.setConnectTimeout(6000);
+            con.setReadTimeout(8000);
+            if (con.getResponseCode() != 200) return null;
+            byte[] datos;
+            try (InputStream i = con.getInputStream()) {
+                ByteArrayOutputStream b = new ByteArrayOutputStream();
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = i.read(buf)) > 0) b.write(buf, 0, n);
+                datos = b.toByteArray();
+            }
+            // Un aviso no necesita más de ~1000 px de ancho: se reduce para no gastar memoria.
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(datos, 0, datos.length, o);
+            o.inSampleSize = 1;
+            while (o.outWidth / (o.inSampleSize * 2) >= 1000) o.inSampleSize *= 2;
+            o.inJustDecodeBounds = false;
+            return BitmapFactory.decodeByteArray(datos, 0, datos.length, o);
+        } catch (Exception sinImagen) {
+            return null;
+        } finally {
+            if (con != null) con.disconnect();
+        }
+    }
+
+    private static final String IMAGENES = "https://stgembcurso.blob.core.windows.net/imagenes/lecciones";
 
     static void desvincular(Context c) {
         String llave = Datos.llave(c);

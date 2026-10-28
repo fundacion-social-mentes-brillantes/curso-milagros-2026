@@ -21,6 +21,7 @@
 const { app } = require("@azure/functions");
 const { P, leerUno, leerTodo, leerParticion, guardar } = require("../shared/tablas");
 const { cicloActivo } = require("../shared/ciclo");
+const { aspectoDelAviso } = require("../shared/aviso");
 
 const ONESIGNAL_APP_ID = "7959aae1-aace-4889-b89f-d307ad2ad95c";
 const SITIO =
@@ -195,6 +196,8 @@ async function enviar(envio, apiKey) {
     headings: { en: envio.titulo, es: envio.titulo },
     contents: { en: envio.idea, es: envio.idea },
     url: `${SITIO}/lecciones/${envio.leccion}`,
+    // Logo nuevo, insignia e imagen de la lección (ver shared/aviso.js).
+    ...aspectoDelAviso(envio.leccion),
   };
   if (envio.cuando !== null) cuerpo.send_after = new Date(envio.cuando).toISOString();
 

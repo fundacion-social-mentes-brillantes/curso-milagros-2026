@@ -121,6 +121,25 @@ async function guardar(nombreTabla, particion, fila, datos) {
   return entidad;
 }
 
+/**
+ * Crea la fila SOLO si no existe. Devuelve false si ya estaba (y no la toca).
+ * Sirve cuando llegan dos peticiones iguales a la vez (un reintento que se
+ * cruza con el original): solo una de las dos gana, y la otra se entera.
+ */
+async function crear(nombreTabla, particion, fila, datos) {
+  try {
+    await tabla(nombreTabla).createEntity({
+      partitionKey: clave(particion),
+      rowKey: clave(fila),
+      ...aplanar(datos),
+    });
+    return true;
+  } catch (err) {
+    if (err && (err.statusCode === 409 || err.code === "EntityAlreadyExists")) return false;
+    throw err;
+  }
+}
+
 /** Reemplaza la fila entera. */
 async function reemplazar(nombreTabla, particion, fila, datos) {
   await tabla(nombreTabla).upsertEntity(
@@ -207,6 +226,7 @@ module.exports = {
   leerTodo,
   contarParticion,
   guardar,
+  crear,
   guardarLote,
   reemplazar,
   borrar,

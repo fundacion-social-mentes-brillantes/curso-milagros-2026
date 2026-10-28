@@ -573,6 +573,14 @@ html:not(.ver-arranque) .arranque { display: none; }
 .leida.hecha .resplandor { animation: leida-resplandor 0.5s ease-out 0.62s forwards; }
 .leida.hecha .texto-pendiente { animation: leida-sale 0.15s ease-in 0.45s forwards; }
 .leida.hecha .texto-hecho { animation: leida-entra 0.25s ease-out 0.62s forwards; }
+/* Guardando: la luz da vueltas por el borde mientras el servidor confirma. NO se pone
+   dorado ni dice «completada» hasta que la lección quedó guardada de verdad: antes el oro
+   salía al tocar, la persona se iba a WhatsApp y la marca se perdía (Sebastián, 27-oct-2026). */
+.leida .texto-guardando { opacity: 0; }
+.leida.guardando .recorre { opacity: 1; animation: leida-gira 1.1s linear infinite; }
+.leida.guardando .texto-pendiente { opacity: 0; }
+.leida.guardando .texto-guardando { opacity: 1; }
+@keyframes leida-gira { from { --giro: 0deg; } to { --giro: 360deg; } }
 /* Ya estaba hecha al abrir la lección: queda dorada, sin animación. */
 .leida.dorada { color: #2b2311; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 14px 34px -16px rgb(226 190 110 / 0.8), 0 0 30px -10px rgb(255 236 190 / 0.45); }
 .leida.dorada .llena { transform: scaleX(1); }

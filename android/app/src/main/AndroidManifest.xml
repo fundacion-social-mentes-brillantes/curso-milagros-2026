@@ -132,6 +132,27 @@
             </intent-filter>
         </activity>
 
+        <!-- Los avisos de la web (OneSignal) salen a nombre de la app y con su logo, no a
+             nombre de «Chrome» (desde la 1.2.0). Chrome se los pasa a este servicio, que los
+             muestra como propios; el permiso de avisos es el mismo de la app. -->
+        <service
+            android:name="com.google.androidbrowserhelper.trusted.DelegationService"
+            android:enabled="true"
+            android:exported="true">
+            <meta-data
+                android:name="android.support.customtabs.trusted.SMALL_ICON"
+                android:resource="@drawable/ic_notificacion" />
+            <intent-filter>
+                <action android:name="android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+        <!-- Cuando la web pide permiso de avisos, Android lo pregunta a nombre de la app. -->
+        <activity
+            android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <receiver android:name=".RecordatorioReceiver" android:exported="false" />
         <receiver android:name=".MedianocheReceiver" android:exported="false" />
         <receiver android:name=".ArranqueReceiver" android:exported="false">

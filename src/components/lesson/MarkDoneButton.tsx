@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { setLessonDone } from "@/lib/progress";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { type ErrorApi } from "@/lib/api";
@@ -10,6 +10,15 @@ import { getLessonRank } from "@/lib/ranking";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDateTime } from "@/lib/utils";
 import { CompartirWhatsApp } from "@/components/lesson/CompartirWhatsApp";
+import {
+  anotarPendiente,
+  enviarMarca,
+  esRespuestaDefinitiva,
+  marcaConfirmada,
+  pendientesDe,
+  quitarPendiente,
+  suscribirPendientes,
+} from "@/lib/marcas-pendientes";
 
 export function MarkDoneButton({
   uid,
@@ -41,10 +50,13 @@ export function MarkDoneButton({
   const [position, setPosition] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hoy, setHoy] = useState(hechasHoy);
-  // La animación dorada: arranca al tocar (sin esperar al servidor) y se queda si
-  // se guardó; si falla, el botón vuelve a ser de vidrio.
-  const [animando, setAnimando] = useState(false);
+  // Mientras el servidor confirma, la luz da vueltas («Guardando…»). El oro y el
+  // «Lección completada» salen SOLO cuando quedó guardada de verdad: antes salían
+  // al tocar y, si la persona se iba a WhatsApp, la marca se perdía sin aviso.
+  const [guardando, setGuardando] = useState(false);
   const [recienMarcada, setRecienMarcada] = useState(false);
+  // Hora en que se marcó una lección que todavía no llega al servidor (o null).
+  const [pendienteDesde, setPendienteDesde] = useState<number | null>(null);
 
   /*
    * Ponerse al día con lo que llega del servidor.
@@ -68,6 +80,28 @@ export function MarkDoneButton({
     setHoy(hechasHoy);
   }, [hechasHoy]);
 
+  // ¿Quedó esta lección pendiente de guardar (marcada sin conexión)? Se mira al
+  // abrir y cada vez que cambia la lista. Si deja de estar pendiente porque el
+  // servidor por fin la confirmó (aunque la haya mandado el aviso de arriba, por
+  // detrás), el botón se pone dorado sin tener que recargar.
+  const estabaPendiente = useRef(false);
+  useEffect(() => {
+    const mirar = () => {
+      const m = pendientesDe(uid).find((x) => x.n === lessonNumber);
+      setPendienteDesde(m ? m.marcadaEn : null);
+      if (!m && estabaPendiente.current) {
+        const confirmada = marcaConfirmada(uid, lessonNumber);
+        if (confirmada) {
+          setDone(true);
+          setAt(confirmada);
+        }
+      }
+      estabaPendiente.current = Boolean(m);
+    };
+    mirar();
+    return suscribirPendientes(mirar);
+  }, [uid, lessonNumber]);
+
   // Si ya estaba hecha, recupera su puesto EN ESTA lección.
   useEffect(() => {
     if (completed) {
@@ -77,10 +111,14 @@ export function MarkDoneButton({
     }
   }, [completed, uid, lessonNumber]);
 
+  /** Desmarcar (marcar va por `marcar`, que no deja perder la marca). */
   async function toggle(next: boolean): Promise<boolean> {
     setBusy(true);
     setError(null);
-    if (!next) setRecienMarcada(false);
+    if (!next) {
+      setRecienMarcada(false);
+      quitarPendiente(uid, lessonNumber);
+    }
     try {
       const res = await setLessonDone(uid, lessonNumber, next);
       setDone(next);
@@ -116,11 +154,36 @@ export function MarkDoneButton({
     }
   }
 
-  async function marcar() {
-    setAnimando(true);
-    const ok = await toggle(true);
-    if (ok) setRecienMarcada(true);
-    setAnimando(false);
+  /** Marca la lección. `marcadaEn`: la hora real en que se marcó (para reintentos). */
+  async function marcar(marcadaEn: number = Date.now()) {
+    // Primero se anota en el celular: pase lo que pase con la conexión, no se pierde.
+    anotarPendiente(uid, lessonNumber, marcadaEn);
+    setGuardando(true);
+    setError(null);
+    try {
+      const res = await enviarMarca(uid, lessonNumber, marcadaEn);
+      quitarPendiente(uid, lessonNumber);
+      setDone(true);
+      setAt(marcadaEn);
+      setPosition(res.position);
+      setHoy(res.hechasHoy);
+      setRecienMarcada(true);
+      await refrescarPerfil();
+    } catch (err) {
+      if (esRespuestaDefinitiva(err)) {
+        quitarPendiente(uid, lessonNumber);
+        const clave = (err as ErrorApi)?.clave;
+        setError(
+          clave === "limite-diario"
+            ? `Hoy ya hiciste ${MAX_LECCIONES_DIA} lecciones. Mañana sigues con esta.`
+            : "El curso no aceptó la marca. Recarga la página e inténtalo de nuevo.",
+        );
+      }
+      // Si fue la conexión, queda pendiente: el aviso de abajo lo dice y se
+      // reenvía sola (AvisoMarcasPendientes).
+    } finally {
+      setGuardando(false);
+    }
   }
 
   // Mejora 3: no se puede marcar una lección MÁS ADELANTE de donde va la persona.
@@ -161,7 +224,7 @@ export function MarkDoneButton({
    * la luz recorre el borde, se llena de dorado, aparece el ✓, un resplandor y
    * se calma. Si la lección ya estaba hecha al abrirla, se ve dorado sin más.
    */
-  const claseBoton = done ? (recienMarcada || animando ? "leida hecha" : "leida dorada") : animando ? "leida hecha" : "leida";
+  const claseBoton = guardando ? "leida guardando" : done ? (recienMarcada ? "leida hecha" : "leida dorada") : "leida";
 
   return (
     <div className="flex flex-col items-center gap-3 text-center">
@@ -173,9 +236,9 @@ export function MarkDoneButton({
       )}
       <button
         onClick={() => {
-          if (!done && !busy) void marcar();
+          if (!done && !busy && !guardando) void marcar(pendienteDesde ?? Date.now());
         }}
-        disabled={busy}
+        disabled={busy || guardando}
         aria-live="polite"
         className={claseBoton}
       >
@@ -186,9 +249,14 @@ export function MarkDoneButton({
         <svg className="check" viewBox="0 0 24 24" aria-hidden>
           <path d="m5 12.5 4.5 4.5L19 7.5" />
         </svg>
+        {/* Los tres textos están siempre, encimados (la animación los cruza); el
+            lector de pantalla solo lee el que se ve. */}
         <span className="textos">
-          <span className="texto-pendiente">Marcar como lección leída</span>
-          <span className="texto-hecho">Lección completada</span>
+          <span className="texto-pendiente" aria-hidden={guardando || done}>
+            {pendienteDesde && !done ? "Volver a intentar guardarla" : "Marcar como lección leída"}
+          </span>
+          <span className="texto-guardando" aria-hidden={!guardando}>Guardando tu avance…</span>
+          <span className="texto-hecho" aria-hidden={guardando || !done}>Lección completada</span>
         </span>
       </button>
 
@@ -206,6 +274,12 @@ export function MarkDoneButton({
             {busy ? <Spinner /> : "Desmarcar"}
           </button>
         </>
+      )}
+      {pendienteDesde && !done && !guardando && (
+        <p className="max-w-sm text-sm text-warning">
+          Todavía no se pudo guardar: no hubo conexión con el curso. Tu marca quedó anotada en este
+          celular con la hora en que la hiciste y se enviará sola apenas haya señal.
+        </p>
       )}
       {error && <p className="text-sm text-warning">{error}</p>}
     </div>
