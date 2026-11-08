@@ -55,6 +55,4 @@ dependencies {
     implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.7.4")
     // Avisos (NotificationCompat) del recordatorio y del widget.
     implementation("androidx.core:core:1.16.0")
-    // Preguntar la lección del día en segundo plano cada hora y al volver la señal (Refresco).
-    implementation("androidx.work:work-runtime:2.10.1")
 }

@@ -7,6 +7,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Para que Android espere a que haya internet antes de preguntar la lección (Refresco). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- El aviso del recordatorio (Android 13+ lo pregunta). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Que el recordatorio y el cambio de medianoche lleguen a la hora EXACTA.
@@ -152,6 +154,12 @@
             android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- Pregunta la lección del día cada hora y al volver la señal (desde la 1.3.0). -->
+        <service
+            android:name=".Refresco"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <receiver android:name=".RecordatorioReceiver" android:exported="false" />
         <receiver android:name=".MedianocheReceiver" android:exported="false" />
