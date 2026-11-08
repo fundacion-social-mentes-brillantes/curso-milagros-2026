@@ -19,7 +19,9 @@
  */
 
 const { app } = require("@azure/functions");
-const { json, malaPeticion, manejar, cuerpoJson } = require("../shared/http");
+const { json, malaPeticion, manejar, cuerpoJson, prohibido, esAdminPermanente } = require("../shared/http");
+const { fijarCiclo } = require("../shared/ciclo");
+const { anotar, rastroDe } = require("../shared/bitacora");
 const { P, CICLO_POR_DEFECTO, leerUno, leerParticion, guardar } = require("../shared/tablas");
 
 /**
@@ -99,19 +101,43 @@ app.http("configGuardar", {
    * anterior queda guardado como historia y todo el mundo vuelve a empezar. Por
    * eso escribir aquí es solo del admin, aunque leer sea público.
    */
-  handler: manejar("admin", async (req) => {
-    const body = await cuerpoJson(req);
+  handler: manejar("admin", async (req, _ctx, { persona }) => {
+    // Cambiar el ciclo a mano deja el avance de TODOS en otro cajón: solo la
+    // cuenta de la fundación, no cualquier admin. El año nuevo de verdad se
+    // arranca con /nuevo-anio, que además archiva y reinicia los perfiles.
+    if (!esAdminPermanente(persona.email)) return prohibido();
 
+    const body = await cuerpoJson(req);
     const pedido = String(body.ciclo ?? "").trim();
     if (!pedido) return malaPeticion("falta el ciclo");
 
-    const ciclo = limpiarCiclo(pedido);
-
-    await guardar(TABLA_CONFIG, PARTICION_CONFIG, FILA_CONFIG, {
-      ciclo,
-      cambiadoEn: Date.now(), // para saber cuándo se arrancó el año nuevo
-    });
-
+    // Por fijarCiclo (y no escribiendo la fila a mano) para que la memoria de
+    // ciclo.js se entere al instante y no siga un minuto con el año viejo.
+    const ciclo = await fijarCiclo(limpiarCiclo(pedido));
     return json({ ciclo });
+  }),
+});
+
+// --------------------------------------------------------- POST /diagnostico
+app.http("diagnostico", {
+  route: "diagnostico",
+  methods: ["POST"],
+  authLevel: "anonymous",
+  /*
+   * El celular avisa aquí cuando una marca NO se pudo guardar (el servidor la
+   * rechazó, o falló la conexión y no había copia). Va a la bitácora junto con
+   * las marcas que sí llegan: así, si alguien dice «marqué y se borró», se mira
+   * qué pasó en vez de adivinar (Sebastián, 8-nov-2026).
+   */
+  handler: manejar("sesion", async (req, _ctx, { persona }) => {
+    const body = await cuerpoJson(req);
+    const evento = String(body.evento ?? "").replace(/[^a-z-]/g, "").slice(0, 30);
+    if (!evento) return malaPeticion("falta el evento");
+    await anotar(`celular:${evento}`, rastroDe(req, {
+      uid: persona.uid,
+      n: Number(body.n) || null,
+      detalle: String(body.detalle ?? "").slice(0, 200),
+    }));
+    return json({ ok: true });
   }),
 });

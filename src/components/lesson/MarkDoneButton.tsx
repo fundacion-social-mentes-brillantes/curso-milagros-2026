@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { setLessonDone } from "@/lib/progress";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { type ErrorApi } from "@/lib/api";
+import { llamarSeguro, type ErrorApi } from "@/lib/api";
 import { MAX_LECCIONES_DIA } from "@/config/site";
 import { getLessonRank } from "@/lib/ranking";
 import { Spinner } from "@/components/ui/Spinner";
-import { formatDateTime } from "@/lib/utils";
+import { bogotaDateStr, formatDateTime } from "@/lib/utils";
 import { CompartirWhatsApp } from "@/components/lesson/CompartirWhatsApp";
 import {
   anotarPendiente,
@@ -17,8 +17,12 @@ import {
   marcaConfirmada,
   pendientesDe,
   quitarPendiente,
+  reportarProblema,
   suscribirPendientes,
 } from "@/lib/marcas-pendientes";
+
+/** Mientras la persona lee, un toque al servidor cada tanto para que no se duerma. */
+const DESPERTAR_CADA = 4 * 60 * 1000;
 
 export function MarkDoneButton({
   uid,
@@ -29,6 +33,7 @@ export function MarkDoneButton({
   currentLesson,
   mostrarPuesto = true,
   hechasHoy = 0,
+  onGuardada,
 }: {
   uid: string;
   lessonNumber: number;
@@ -42,6 +47,12 @@ export function MarkDoneButton({
   mostrarPuesto?: boolean;
   /** Cuántas lleva marcadas hoy, para avisar del tope antes de que lo toque. */
   hechasHoy?: number;
+  /**
+   * Avisa a la página cuando la lección quedó guardada (con su hora) o
+   * desmarcada (null), para que el encabezado diga lo mismo que el botón: antes
+   * arriba seguía «Pendiente · enciéndela al terminar» con el botón ya dorado.
+   */
+  onGuardada?: (cuando: number | null) => void;
 }) {
   const { refrescarPerfil } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -57,6 +68,8 @@ export function MarkDoneButton({
   const [recienMarcada, setRecienMarcada] = useState(false);
   // Hora en que se marcó una lección que todavía no llega al servidor (o null).
   const [pendienteDesde, setPendienteDesde] = useState<number | null>(null);
+  const avisarPagina = useRef(onGuardada);
+  avisarPagina.current = onGuardada;
 
   /*
    * Ponerse al día con lo que llega del servidor.
@@ -94,6 +107,7 @@ export function MarkDoneButton({
         if (confirmada) {
           setDone(true);
           setAt(confirmada);
+          avisarPagina.current?.(confirmada);
         }
       }
       estabaPendiente.current = Boolean(m);
@@ -101,6 +115,22 @@ export function MarkDoneButton({
     mirar();
     return suscribirPendientes(mirar);
   }, [uid, lessonNumber]);
+
+  /*
+   * El servidor (Azure, plan gratuito) se duerme si nadie le habla un rato, y
+   * despertarlo tarda. Quien lee la lección con calma (15 o 20 minutos) llegaba
+   * al botón con el servidor dormido: «Guardando…» se demoraba y era justo
+   * cuando la persona se iba a WhatsApp. Mientras la lección está pendiente y a
+   * la vista, se le da un toque cada 4 minutos a una ruta pública y barata.
+   */
+  useEffect(() => {
+    if (done) return;
+    const toque = () => {
+      if (document.visibilityState === "visible") void llamarSeguro("/config", null, { publica: true });
+    };
+    const cada = window.setInterval(toque, DESPERTAR_CADA);
+    return () => window.clearInterval(cada);
+  }, [done]);
 
   // Si ya estaba hecha, recupera su puesto EN ESTA lección.
   useEffect(() => {
@@ -125,6 +155,7 @@ export function MarkDoneButton({
       setAt(next ? Date.now() : null);
       setPosition(next ? res.position : null);
       setHoy(res.hechasHoy);
+      avisarPagina.current?.(next ? Date.now() : null);
 
       /*
        * Volver a leer el perfil AQUÍ no es un detalle: era la causa de que
@@ -157,17 +188,20 @@ export function MarkDoneButton({
   /** Marca la lección. `marcadaEn`: la hora real en que se marcó (para reintentos). */
   async function marcar(marcadaEn: number = Date.now()) {
     // Primero se anota en el celular: pase lo que pase con la conexión, no se pierde.
-    anotarPendiente(uid, lessonNumber, marcadaEn);
+    const anotada = anotarPendiente(uid, lessonNumber, marcadaEn);
     setGuardando(true);
     setError(null);
     try {
       const res = await enviarMarca(uid, lessonNumber, marcadaEn);
       quitarPendiente(uid, lessonNumber);
+      // La hora que quedó guardada (si ya estaba hecha, el servidor conserva la de antes).
+      const cuando = res.completedAt ?? marcadaEn;
       setDone(true);
-      setAt(marcadaEn);
+      setAt(cuando);
       setPosition(res.position);
       setHoy(res.hechasHoy);
       setRecienMarcada(true);
+      avisarPagina.current?.(cuando);
       await refrescarPerfil();
     } catch (err) {
       if (esRespuestaDefinitiva(err)) {
@@ -178,6 +212,12 @@ export function MarkDoneButton({
             ? `Hoy ya hiciste ${MAX_LECCIONES_DIA} lecciones. Mañana sigues con esta.`
             : "El curso no aceptó la marca. Recarga la página e inténtalo de nuevo.",
         );
+        reportarProblema("marca-rechazada", lessonNumber, String(clave ?? ""));
+      } else if (!anotada) {
+        // Falló la conexión y el celular no pudo guardar la copia: no hay nada
+        // que se reenvíe solo. Se dice claro, en vez de volver a «Marcar» callado.
+        setError("No se pudo guardar y este celular no deja guardar una copia. Revisa la señal y vuelve a tocar el botón.");
+        reportarProblema("marca-sin-copia", lessonNumber);
       }
       // Si fue la conexión, queda pendiente: el aviso de abajo lo dice y se
       // reenvía sola (AvisoMarcasPendientes).
@@ -225,6 +265,10 @@ export function MarkDoneButton({
    * se calma. Si la lección ya estaba hecha al abrirla, se ve dorado sin más.
    */
   const claseBoton = guardando ? "leida guardando" : done ? (recienMarcada ? "leida hecha" : "leida dorada") : "leida";
+  // ¿Se hizo HOY (hora de Colombia)? Compartir «Lección N hecha» solo tiene
+  // sentido el día en que se hizo: una lección de ayer abierta hoy (por un aviso
+  // viejo o la app que quedó abierta) no debe invitar a contarle al grupo.
+  const hechaHoy = done && (recienMarcada || (at !== null && bogotaDateStr(at) === bogotaDateStr(Date.now())));
 
   return (
     <div className="flex flex-col items-center gap-3 text-center">
@@ -259,6 +303,11 @@ export function MarkDoneButton({
           <span className="texto-hecho" aria-hidden={guardando || !done}>Lección completada</span>
         </span>
       </button>
+      {guardando && (
+        <p className="text-xs text-muted" aria-hidden>
+          Un momento: no cierres la app todavía.
+        </p>
+      )}
 
       {done && (
         <>
@@ -268,8 +317,8 @@ export function MarkDoneButton({
             </p>
           )}
           {at && <p className="text-xs text-muted">Marcada el {formatDateTime(at)}</p>}
-          {/* Compartir con el grupo: solo tiene sentido una vez hecha. */}
-          <CompartirWhatsApp lessonNumber={lessonNumber} title={lessonTitle} />
+          {/* Compartir con el grupo: solo una vez hecha, y el mismo día. */}
+          {hechaHoy && <CompartirWhatsApp lessonNumber={lessonNumber} title={lessonTitle} />}
           <button onClick={() => void toggle(false)} disabled={busy} className="text-xs font-medium text-muted underline-offset-4 hover:underline">
             {busy ? <Spinner /> : "Desmarcar"}
           </button>

@@ -79,6 +79,13 @@ function manejar(acceso, manejador) {
         ciclo: await cicloActivo(),
       });
     } catch (err) {
+      const { SinVerificar } = require("./auth");
+      if (err instanceof SinVerificar) {
+        // No se pudo comprobar el pase (Google no respondió): fallo pasajero,
+        // no «sin sesión». El celular reintenta solo.
+        context.warn("no se pudo verificar el pase:", err.message);
+        return json({ error: "sin-verificar" }, 503);
+      }
       context.error("fallo en la ruta:", err);
       return json({ error: "fallo-servidor" }, 500);
     }

@@ -36,6 +36,14 @@ export interface MarcaPendiente {
 export interface MarcaGuardada {
   position: number | null;
   hechasHoy: number;
+  /** La hora con la que quedó guardada (si ya estaba hecha, la de antes). */
+  completedAt: number | null;
+}
+
+/** Una marca que el servidor rechazó del todo, para avisarle a la persona. */
+export interface MarcaDescartada {
+  n: number;
+  motivo: string;
 }
 
 const oyentes = new Set<() => void>();
@@ -60,13 +68,16 @@ function leer(): MarcaPendiente[] {
 
 const avisar = () => oyentes.forEach((f) => f());
 
-function escribir(lista: MarcaPendiente[]): void {
+/** Guarda la lista en el celular. Devuelve false si no se pudo (almacenamiento lleno o bloqueado). */
+function escribir(lista: MarcaPendiente[]): boolean {
+  let ok = true;
   try {
     localStorage.setItem(CLAVE, JSON.stringify(lista));
   } catch {
-    /* sin almacenamiento: queda solo el intento en vivo */
+    ok = false; // sin almacenamiento: queda solo el intento en vivo
   }
   avisar();
+  return ok;
 }
 
 export function suscribirPendientes(f: () => void): () => void {
@@ -80,9 +91,14 @@ export function pendientesDe(uid: string): MarcaPendiente[] {
   return leer().filter((m) => m.uid === uid);
 }
 
-export function anotarPendiente(uid: string, n: number, marcadaEn: number): void {
+/**
+ * Anota la marca en el celular antes de enviarla. Devuelve false si el celular
+ * no la pudo guardar: entonces, si el envío falla, hay que decirlo en voz alta
+ * (no hay copia que se reenvíe sola).
+ */
+export function anotarPendiente(uid: string, n: number, marcadaEn: number): boolean {
   confirmadas.delete(llave(uid, n));
-  escribir([...leer().filter((m) => !(m.uid === uid && m.n === n)), { uid, n, marcadaEn }]);
+  return escribir([...leer().filter((m) => !(m.uid === uid && m.n === n)), { uid, n, marcadaEn }]);
 }
 
 export function quitarPendiente(uid: string, n: number): void {
@@ -99,9 +115,23 @@ export function marcaConfirmada(uid: string, n: number): number | null {
   return confirmadas.get(llave(uid, n)) ?? null;
 }
 
-/** ¿Es un «no» definitivo del servidor (no vale la pena reintentar)? */
+/**
+ * ¿Es un «no» definitivo del servidor (no vale la pena reintentar)?
+ *
+ * Solo dos: el tope de lecciones de ese día, y una petición mal formada. Todo
+ * lo demás se reintenta, incluidos 401/403/404/429 que puede dar Azure por su
+ * cuenta (sesión por renovar, una publicación en curso, demasiadas peticiones):
+ * antes cualquier 4xx borraba la marca sin avisar.
+ */
 export function esRespuestaDefinitiva(e: unknown): boolean {
-  return e instanceof ErrorApi && e.estado >= 400 && e.estado < 500 && e.estado !== 401 && e.estado !== 408;
+  return e instanceof ErrorApi && (e.clave === "limite-diario" || e.estado === 400);
+}
+
+/** Cómo decirle a la persona por qué el servidor no aceptó una marca. */
+export function motivoDeRechazo(e: unknown): string {
+  return e instanceof ErrorApi && e.clave === "limite-diario"
+    ? "ese día ya tenías 3 lecciones marcadas"
+    : "el curso no la aceptó";
 }
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -110,11 +140,16 @@ const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * Manda una marca al servidor. Reintenta dos veces más si falla la conexión o el
  * servidor (que puede tardar en despertar); un «no» definitivo sube enseguida.
  */
-export function enviarMarca(uid: string, n: number, marcadaEn: number): Promise<MarcaGuardada> {
+export function enviarMarca(
+  uid: string,
+  n: number,
+  marcadaEn: number,
+  via: "boton" | "reenvio" = "boton",
+): Promise<MarcaGuardada> {
   const k = llave(uid, n);
   const yaVa = enVuelo.get(k);
   if (yaVa) return yaVa;
-  const envio = mandar(n, marcadaEn)
+  const envio = mandar(n, marcadaEn, via)
     .then((r) => {
       confirmadas.set(k, marcadaEn);
       return r;
@@ -128,17 +163,25 @@ export function enviarMarca(uid: string, n: number, marcadaEn: number): Promise<
   return envio;
 }
 
-async function mandar(n: number, marcadaEn: number): Promise<MarcaGuardada> {
+async function mandar(n: number, marcadaEn: number, via: string): Promise<MarcaGuardada> {
   let ultimo: unknown;
   for (let intento = 0; intento < 3; intento++) {
     try {
-      const r = await llamar<{ position: number | null; hechasHoy?: number }>(`/avance/${n}`, {
-        metodo: "POST",
-        cuerpo: { completed: true, marcadaEn },
-        keepalive: true,
-        tiempoMaximo: 25000,
-      });
-      return { position: r.position ?? null, hechasHoy: Number(r.hechasHoy ?? 0) };
+      // «via» e «intento» solo van para la bitácora del servidor (para entender fallos).
+      const r = await llamar<{ position: number | null; hechasHoy?: number; completedAt?: number | null }>(
+        `/avance/${n}`,
+        {
+          metodo: "POST",
+          cuerpo: { completed: true, marcadaEn, via, intento: intento + 1 },
+          keepalive: true,
+          tiempoMaximo: 25000,
+        },
+      );
+      return {
+        position: r?.position ?? null,
+        hechasHoy: Number(r?.hechasHoy ?? 0),
+        completedAt: Number(r?.completedAt) || null,
+      };
     } catch (e) {
       ultimo = e;
       if (esRespuestaDefinitiva(e)) throw e;
@@ -148,30 +191,51 @@ async function mandar(n: number, marcadaEn: number): Promise<MarcaGuardada> {
   throw ultimo;
 }
 
+/**
+ * Le cuenta al servidor que una marca se perdió o se rechazó (para la bitácora).
+ * Si tampoco llega, no pasa nada: el aviso en pantalla ya se mostró.
+ */
+export function reportarProblema(evento: string, n: number, detalle = ""): void {
+  void llamar("/diagnostico", {
+    metodo: "POST",
+    cuerpo: { evento, n, detalle: detalle.slice(0, 200) },
+    keepalive: true,
+    tiempoMaximo: 15000,
+  }).catch(() => {});
+}
+
 let enviando = false;
 
 /**
- * Vuelve a mandar las marcas que quedaron pendientes. Devuelve las lecciones que
- * por fin quedaron guardadas (para avisar y refrescar el perfil).
+ * Vuelve a mandar las marcas que quedaron pendientes. Devuelve las que por fin
+ * quedaron guardadas (para avisar y refrescar el perfil) y las que el servidor
+ * rechazó del todo (para AVISAR: antes se borraban en silencio).
  */
-export async function reenviarPendientes(uid: string): Promise<number[]> {
-  if (enviando) return [];
-  enviando = true;
+export async function reenviarPendientes(
+  uid: string,
+): Promise<{ guardadas: number[]; descartadas: MarcaDescartada[] }> {
   const guardadas: number[] = [];
+  const descartadas: MarcaDescartada[] = [];
+  if (enviando) return { guardadas, descartadas };
+  enviando = true;
   try {
     for (const m of pendientesDe(uid).sort((a, b) => a.n - b.n)) {
       try {
-        await enviarMarca(uid, m.n, m.marcadaEn);
+        await enviarMarca(uid, m.n, m.marcadaEn, "reenvio");
         quitarPendiente(uid, m.n);
         guardadas.push(m.n);
       } catch (e) {
-        // Un «no» definitivo (tope del día, lección fuera de orden) no se va a
-        // arreglar reintentando: se deja de insistir.
-        if (esRespuestaDefinitiva(e)) quitarPendiente(uid, m.n);
+        // Un «no» definitivo (el tope de ese día) no se arregla reintentando:
+        // se deja de insistir, pero se le dice a la persona.
+        if (esRespuestaDefinitiva(e)) {
+          quitarPendiente(uid, m.n);
+          descartadas.push({ n: m.n, motivo: motivoDeRechazo(e) });
+          reportarProblema("marca-descartada", m.n, motivoDeRechazo(e));
+        }
       }
     }
   } finally {
     enviando = false;
   }
-  return guardadas;
+  return { guardadas, descartadas };
 }

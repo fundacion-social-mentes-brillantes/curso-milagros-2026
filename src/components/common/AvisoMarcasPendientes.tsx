@@ -7,6 +7,7 @@ import {
   pendientesDe,
   reenviarPendientes,
   suscribirPendientes,
+  type MarcaDescartada,
   type MarcaPendiente,
 } from "@/lib/marcas-pendientes";
 
@@ -28,6 +29,8 @@ export function AvisoMarcasPendientes() {
   const uid = firebaseUser?.uid ?? null;
   const [pendientes, setPendientes] = useState<MarcaPendiente[]>([]);
   const [guardadas, setGuardadas] = useState<number[]>([]);
+  // Las que el servidor rechazó del todo: se dicen y se quedan hasta que la persona las lea.
+  const [descartadas, setDescartadas] = useState<MarcaDescartada[]>([]);
   const [intentando, setIntentando] = useState(false);
 
   useEffect(() => {
@@ -44,12 +47,13 @@ export function AvisoMarcasPendientes() {
     if (!uid || pendientesDe(uid).length === 0) return;
     setIntentando(true);
     try {
-      const ok = await reenviarPendientes(uid);
+      const { guardadas: ok, descartadas: no } = await reenviarPendientes(uid);
+      if (no.length) setDescartadas((d) => [...d, ...no]);
       if (ok.length) {
         setGuardadas(ok);
-        await refrescarPerfil();
         setTimeout(() => setGuardadas([]), 7000);
       }
+      if (ok.length || no.length) await refrescarPerfil();
     } finally {
       setIntentando(false);
     }
@@ -76,7 +80,7 @@ export function AvisoMarcasPendientes() {
   const visibles = uid
     ? pendientes.filter((m) => !(enCamino(uid, m.n) && Date.now() - m.marcadaEn < RECIEN))
     : [];
-  if (!uid || (visibles.length === 0 && guardadas.length === 0)) return null;
+  if (!uid || (visibles.length === 0 && guardadas.length === 0 && descartadas.length === 0)) return null;
 
   const lista = (ns: number[]) =>
     ns.length === 1 ? `la lección ${ns[0]}` : `las lecciones ${ns.slice(0, -1).join(", ")} y ${ns[ns.length - 1]}`;
@@ -84,7 +88,22 @@ export function AvisoMarcasPendientes() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-3 z-[60] flex justify-center px-4" role="status" aria-live="polite">
       <div className="vidrio pointer-events-auto flex max-w-md items-center gap-3 rounded-2xl px-4 py-3 text-sm shadow-xl">
-        {visibles.length > 0 ? (
+        {descartadas.length > 0 ? (
+          <>
+            <span aria-hidden>⚠️</span>
+            <p className="flex-1 text-fg">
+              No se pudo guardar{" "}
+              {descartadas.map((d) => `la lección ${d.n} (${d.motivo})`).join(", ")}. Márcala de nuevo
+              hoy si ya la hiciste.
+            </p>
+            <button
+              onClick={() => setDescartadas([])}
+              className="flex-none rounded-full px-3 py-1.5 text-xs font-semibold text-gold shadow-[inset_0_0_0_1px_rgb(255_255_255_/_0.15)]"
+            >
+              Entendido
+            </button>
+          </>
+        ) : visibles.length > 0 ? (
           <>
             <span aria-hidden>⏳</span>
             <p className="flex-1 text-fg">

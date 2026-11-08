@@ -80,6 +80,17 @@ async function leerUno(nombreTabla, particion, fila) {
   }
 }
 
+/** Lee una fila junto con su versión (ETag), o `{ datos: null }` si no existe. */
+async function leerConVersion(nombreTabla, particion, fila) {
+  try {
+    const e = await tabla(nombreTabla).getEntity(clave(particion), clave(fila));
+    return { datos: limpiar(e), etag: e.etag };
+  } catch (err) {
+    if (err && (err.statusCode === 404 || err.code === "ResourceNotFound")) return { datos: null, etag: null };
+    throw err;
+  }
+}
+
 /** Todas las filas de una partición (consulta directa, barata). */
 async function leerParticion(nombreTabla, particion) {
   const salida = [];
@@ -119,6 +130,40 @@ async function guardar(nombreTabla, particion, fila, datos) {
   };
   await tabla(nombreTabla).upsertEntity(entidad, "Merge");
   return entidad;
+}
+
+/**
+ * Cambia una fila SIN PISAR lo que otra petición escribió entre medias.
+ *
+ * Por qué existe: el perfil (lección actual, cuántas lleva, sumas del ranking)
+ * se calculaba con lo que se leyó al EMPEZAR la petición. Si llegaban dos
+ * marcas casi a la vez (un reenvío de la 161 mientras se marcaba la 162), la
+ * segunda en terminar escribía números viejos encima de los de la primera: la
+ * lección actual podía retroceder a una ya hecha.
+ *
+ * Aquí se lee la fila con su versión, `calcular(actual)` dice qué cambiar, y
+ * se escribe SOLO si nadie la tocó desde la lectura. Si alguien la tocó, se
+ * vuelve a leer y a calcular. `calcular` puede devolver null: no hay nada que
+ * cambiar.
+ */
+async function cambiarSinPisar(nombreTabla, particion, fila, calcular, intentos = 8) {
+  for (let i = 0; i < intentos; i++) {
+    const { datos, etag } = await leerConVersion(nombreTabla, particion, fila);
+    const cambios = await calcular(datos);
+    if (!cambios) return datos;
+    const entidad = { partitionKey: clave(particion), rowKey: clave(fila), ...aplanar(cambios) };
+    try {
+      if (etag) await tabla(nombreTabla).updateEntity(entidad, "Merge", { etag });
+      else await tabla(nombreTabla).createEntity(entidad);
+      return { ...(datos || {}), ...cambios };
+    } catch (err) {
+      // 412: otra petición la cambió entre la lectura y la escritura.
+      // 409: otra petición la creó primero. En los dos casos, otra vuelta.
+      const choque = err && (err.statusCode === 412 || err.statusCode === 409);
+      if (!choque) throw err;
+    }
+  }
+  throw new Error(`demasiados choques al cambiar ${nombreTabla}`);
 }
 
 /**
@@ -222,11 +267,13 @@ module.exports = {
   nLeccion,
   clave,
   leerUno,
+  leerConVersion,
   leerParticion,
   leerTodo,
   contarParticion,
   guardar,
   crear,
+  cambiarSinPisar,
   guardarLote,
   reemplazar,
   borrar,

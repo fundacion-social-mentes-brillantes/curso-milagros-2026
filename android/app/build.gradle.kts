@@ -19,8 +19,8 @@ android {
         minSdk = 24
         targetSdk = 36
         // Subir versionCode en cada version nueva que se reparta (Android no instala una igual o mas vieja encima).
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
     }
 
     compileOptions {
@@ -55,4 +55,6 @@ dependencies {
     implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.7.4")
     // Avisos (NotificationCompat) del recordatorio y del widget.
     implementation("androidx.core:core:1.16.0")
+    // Preguntar la lección del día en segundo plano cada hora y al volver la señal (Refresco).
+    implementation("androidx.work:work-runtime:2.10.1")
 }

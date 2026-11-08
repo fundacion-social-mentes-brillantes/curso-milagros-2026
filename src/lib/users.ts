@@ -76,7 +76,29 @@ export function subscribeAppUser(
 }
 
 export async function getAppUser(_uid: string): Promise<AppUser | null> {
-  return llamarSeguro<AppUser | null>("/yo", null);
+  return llamarSeguro<AppUser | null>("/yo", null, { tiempoMaximo: 20_000 });
+}
+
+const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * El perfil al entrar, con reintentos. Si el servidor está dormido o hay mala
+ * señal, se vuelve a pedir (a los 1, 3 y 6 segundos) en vez de rendirse al
+ * primer fallo: antes, un solo fallo dejaba la app en «Preparando tu
+ * espacio…» para siempre. También crea el perfil la primera vez.
+ * Devuelve null solo si los cuatro intentos fallan.
+ */
+export async function cargarMiPerfil(): Promise<AppUser | null> {
+  for (const pausa of [1_000, 3_000, 6_000, 0]) {
+    try {
+      const p = await llamar<AppUser>("/yo", { tiempoMaximo: 20_000 });
+      if (p && typeof p === "object") return p;
+    } catch {
+      /* se reintenta */
+    }
+    if (pausa) await espera(pausa);
+  }
+  return null;
 }
 
 /** (Admin) Lista todas las personas. */

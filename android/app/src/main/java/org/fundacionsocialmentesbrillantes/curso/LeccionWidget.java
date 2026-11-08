@@ -10,7 +10,9 @@ import android.widget.RemoteViews;
 /**
  * El widget «Lección de hoy»: número e idea de la lección del día de la
  * persona. Al tocarlo se abre esa lección. Cambia solo a medianoche de Bogotá
- * (MedianocheReceiver) y cada vez que suena el recordatorio.
+ * (MedianocheReceiver), cuando suena el recordatorio y cada hora con internet
+ * (Refresco). Si no está seguro de cuál es la de hoy, no muestra número y
+ * abre «Hoy» (ver Datos.leccionAhora).
  */
 public class LeccionWidget extends AppWidgetProvider {
 
@@ -36,6 +38,7 @@ public class LeccionWidget extends AppWidgetProvider {
     @Override
     public void onEnabled(Context context) {
         Programador.programarMedianoche(context.getApplicationContext());
+        Refresco.programar(context.getApplicationContext());
     }
 
     static void pintarTodos(Context c) {
@@ -49,6 +52,7 @@ public class LeccionWidget extends AppWidgetProvider {
     private static RemoteViews vista(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_leccion);
         Datos.Leccion l = Datos.vinculada(c) ? Datos.leccionAhora(c) : null;
+        if (l != null && !l.segura) l = null; // mejor «toca para verla» que un número viejo
         if (l == null) {
             v.setTextViewText(R.id.w_numero, "");
             v.setViewVisibility(R.id.w_numero, View.GONE);

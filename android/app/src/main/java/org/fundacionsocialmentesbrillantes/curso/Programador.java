@@ -39,6 +39,7 @@ final class Programador {
     static void reprogramarTodo(Context c) {
         programarRecordatorio(c);
         programarMedianoche(c);
+        Refresco.programar(c);
     }
 
     static boolean puedeExacta(Context c) {
@@ -123,6 +124,9 @@ final class Programador {
         crearCanal(c);
         if (!puedeAvisar(c)) return;
         Datos.Leccion l = Datos.leccionAhora(c);
+        // Sin saber con certeza cuál es la de hoy, un aviso general que abre «Hoy»:
+        // anunciar una lección vieja haría creer que la de hoy ya está hecha.
+        if (l != null && !l.segura) l = null;
         String titulo;
         String texto;
         if (l == null) {

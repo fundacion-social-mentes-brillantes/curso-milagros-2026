@@ -56,7 +56,11 @@ interface Opciones {
  * llama decida si eso importa o no.
  */
 export async function llamar<T>(ruta: string, opciones: Opciones = {}): Promise<T> {
-  const { metodo = "GET", cuerpo, publica = false, keepalive = false, tiempoMaximo } = opciones;
+  const { metodo = "GET", cuerpo, publica = false, keepalive = false } = opciones;
+  // Las lecturas nunca esperan para siempre: una colgada dejaba pantallas a
+  // medias (por ejemplo, «Marcar» en una lección ya hecha). Las escrituras
+  // largas (el cambio de año) solo tienen límite si quien llama lo pide.
+  const tiempoMaximo = opciones.tiempoMaximo ?? (metodo === "GET" ? 30_000 : undefined);
 
   const cabeceras: Record<string, string> = {};
   if (!publica) {
@@ -68,11 +72,12 @@ export async function llamar<T>(ruta: string, opciones: Opciones = {}): Promise<
   }
   if (cuerpo !== undefined) cabeceras["Content-Type"] = "application/json";
 
+  // El límite cubre TODO: la espera de la respuesta y también la lectura de su
+  // contenido (antes se apagaba al llegar la cabecera y el cuerpo podía colgarse).
   const corte = tiempoMaximo ? new AbortController() : null;
   const reloj = corte ? setTimeout(() => corte.abort(), tiempoMaximo) : null;
-  let res: Response;
   try {
-    res = await fetch(`${BASE}${ruta}`, {
+    const res = await fetch(`${BASE}${ruta}`, {
       method: metodo,
       headers: cabeceras,
       body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
@@ -80,23 +85,23 @@ export async function llamar<T>(ruta: string, opciones: Opciones = {}): Promise<
       keepalive,
       signal: corte?.signal,
     });
+
+    if (!res.ok) {
+      let clave = "fallo";
+      try {
+        const d = (await res.json()) as { error?: string };
+        clave = d.error ?? clave;
+      } catch {
+        /* respuesta sin cuerpo */
+      }
+      throw new ErrorApi(res.status, clave);
+    }
+
+    if (res.status === 204) return undefined as T;
+    return (await res.json()) as T;
   } finally {
     if (reloj) clearTimeout(reloj);
   }
-
-  if (!res.ok) {
-    let clave = "fallo";
-    try {
-      const d = (await res.json()) as { error?: string };
-      clave = d.error ?? clave;
-    } catch {
-      /* respuesta sin cuerpo */
-    }
-    throw new ErrorApi(res.status, clave);
-  }
-
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
 }
 
 /** Igual que `llamar`, pero devuelve un valor de respaldo si algo falla. */

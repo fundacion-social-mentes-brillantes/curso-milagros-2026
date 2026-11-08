@@ -198,6 +198,11 @@ async function enviar(envio, apiKey) {
     url: `${SITIO}/lecciones/${envio.leccion}`,
     // Logo nuevo, insignia e imagen de la lección (ver shared/aviso.js).
     ...aspectoDelAviso(envio.leccion),
+    // Cada recordatorio REEMPLAZA al anterior en el celular, en vez de
+    // amontonarse. Antes quedaban los de ayer en la cortina; tocar uno por la
+    // mañana abría la lección de ayer (ya dorada) y parecía que la de hoy
+    // estaba hecha (Sebastián, 8-nov-2026).
+    web_push_topic: "ucdm-leccion-del-dia",
   };
   if (envio.cuando !== null) cuerpo.send_after = new Date(envio.cuando).toISOString();
 

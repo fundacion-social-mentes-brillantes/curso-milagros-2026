@@ -38,7 +38,15 @@ function limpiarCiclo(texto) {
   return limpio || String(new Date().getFullYear());
 }
 
-/** El ciclo que se está corriendo. Si el almacén falla, el de siempre. */
+/**
+ * El ciclo que se está corriendo.
+ *
+ * Si el almacén falla al leerlo, se sigue con el ÚLTIMO QUE SE LEYÓ BIEN; y si
+ * no hay ninguno, la petición falla (500) y el celular reintenta. Antes se
+ * caía al ciclo por defecto ("2026"): el día que el ciclo sea "2027", un
+ * tropiezo pasajero habría guardado marcas en el cajón del año anterior, con
+ * respuesta de «todo bien», y la persona las vería desaparecer.
+ */
 async function cicloActivo() {
   const ahora = Date.now();
   if (recordado && ahora < recordadoHasta) return recordado;
@@ -47,12 +55,12 @@ async function cicloActivo() {
     const fila = await leerUno(TABLA, P.config(), FILA);
     const valor = String(fila?.ciclo ?? "").trim();
     recordado = valor || CICLO_POR_DEFECTO;
-  } catch {
-    // Sin conexión con la tabla seguimos sirviendo el ciclo de siempre: es
-    // preferible eso a dejar a todo el mundo sin poder marcar su lección.
-    recordado = CICLO_POR_DEFECTO;
+    recordadoHasta = ahora + DURACION_MEMORIA;
+  } catch (err) {
+    if (!recordado) throw err;
+    // El último bueno, por poco tiempo: en cuanto la tabla responda, se relee.
+    recordadoHasta = ahora + 5_000;
   }
-  recordadoHasta = ahora + DURACION_MEMORIA;
   return recordado;
 }
 

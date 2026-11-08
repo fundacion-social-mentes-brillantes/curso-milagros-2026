@@ -41,8 +41,10 @@ const {
   contarParticion,
   guardar,
   crear,
+  cambiarSinPisar,
   odata,
 } = require("../shared/tablas");
+const { anotar, rastroDe } = require("../shared/bitacora");
 
 const TOTAL_LECCIONES = 365;
 
@@ -96,17 +98,18 @@ function relojBogota(ms) {
  * hora es la que cuenta: quien hizo la lección el martes a las 8 a. m. y no
  * tenía conexión, la hizo el martes, aunque llegue el miércoles.
  *
- * Solo se acepta una hora razonable: hasta 3 días atrás (lo que puede durar un
- * celular sin señal) y nunca en el futuro (5 minutos de gracia por relojes
- * desajustados, y aun así se toma la de ahora). Cualquier otra cosa, o si no
- * llega, vale la hora del servidor, como siempre.
+ * Solo se acepta una hora razonable: nunca en el futuro (5 minutos de gracia
+ * por relojes desajustados, y aun así se toma la de ahora) y hasta 3 días
+ * atrás. Una más vieja que eso se fecha en el límite de los 3 días, NO hoy:
+ * antes se le ponía la hora de hoy, y si hoy ya llevaba 3, el servidor la
+ * rechazaba por el tope del día y se perdía. Si no llega, vale la de ahora.
  */
 const MARCA_MAS_VIEJA = 3 * 24 * 60 * 60 * 1000;
 function momentoDeLaMarca(valor, ahora) {
   const v = Number(valor);
-  if (!Number.isFinite(v)) return ahora;
-  if (v < ahora - MARCA_MAS_VIEJA || v > ahora + 5 * 60 * 1000) return ahora;
-  return Math.min(Math.trunc(v), ahora);
+  if (!Number.isFinite(v) || v <= 0) return ahora;
+  if (v > ahora + 5 * 60 * 1000) return ahora;
+  return Math.min(Math.max(Math.trunc(v), ahora - MARCA_MAS_VIEJA), ahora);
 }
 
 /** Da forma a una fila de avance: los campos que falten toman su valor de siempre. */
@@ -188,6 +191,16 @@ app.http("avanceMarcar", {
       filas.filter(
         (f) => f.completed === true && f.completedAt && relojBogota(Number(f.completedAt)).fecha === dia,
       ).length;
+    // Para la bitácora: cómo llegó esta marca (botón o reenvío, qué intento).
+    const rastro = rastroDe(req, {
+      uid: persona.uid,
+      n,
+      completed,
+      pedidaEn: Number(body.marcadaEn) || null,
+      via: String(body.via ?? "").slice(0, 20),
+      intento: Number(body.intento) || null,
+      ciclo,
+    });
 
     // 1. Se lee el avance ANTES de tocar nada: hace falta para saber cuántas
     //    lleva ese día, y hay que saberlo antes de escribir o el tope llegaría tarde.
@@ -200,8 +213,9 @@ app.http("avanceMarcar", {
     //    hecha: volver a marcar la misma no gasta un cupo, y desmarcar lo
     //    devuelve (la cuenta sale de las fechas, así que se corrige sola).
     if (completed && !yaEstabaHecha && hechasEseDia >= MAXIMO_POR_DIA) {
+      await anotar("marca-rechazada", { ...rastro, motivo: "limite-diario", dia: diaDeLaMarca });
       return json(
-        { error: "limite-diario", hechasHoy: hechasEseDia, maximo: MAXIMO_POR_DIA },
+        { error: "limite-diario", hechasHoy: hechasEseDia, maximo: MAXIMO_POR_DIA, dia: diaDeLaMarca },
         429,
       );
     }
@@ -222,47 +236,17 @@ app.http("avanceMarcar", {
       completedAt,
     });
 
-    // 4. El contador de hechas se recuenta, no se suma uno: si alguien marca dos
-    //    veces la misma lección, el número sigue siendo el verdadero.
-    const filas = await leerParticion("progress", particion);
-    const completadas = filas.filter((f) => f.completed === true).length;
-    const hechasHoy = hechasEl(filas, hoy);
-
-    // 5. La lección actual SOLO sube (ver regla 2 de arriba).
-    const actual = acotarLeccion(perfil?.currentLesson ?? 1);
-    const cambios = {
-      completedLessonsCount: completadas,
-      currentLesson: completed ? Math.max(actual, acotarLeccion(n + 1)) : actual,
-      lastActivityAt: ahora,
-      // Copia de la cuenta del día en el perfil. El tope de arriba NO depende de
-      // esto —se calcula de las fechas reales, que nunca mienten—; esto existe
-      // solo para que la pantalla pueda avisar "te queda 1 hoy" sin tener que
-      // leer el avance entero cada vez que se abre una lección.
-      hechasHoy,
-      hechasHoyFecha: hoy,
-    };
-    // 6. La fecha de "última lección hecha" solo se toca al completar; al
-    //    desmarcar no se borra, porque sirve para saber quién sigue caminando.
-    //    Una marca que llega tarde no la hace retroceder.
-    if (completed) {
-      cambios.lastCompletedAt = Math.max(Number(perfil?.lastCompletedAt ?? 0) || 0, completedAt);
-    }
-    await guardar("users", P.users(), persona.uid, cambios);
-
-    // 7. El puesto en esta lección. Todo lo que sigue es un extra: si falla, la
-    //    lección ya quedó marcada arriba y la persona no pierde nada.
+    // 4. El puesto en esta lección. Es un extra: si falla, la lección ya quedó
+    //    marcada arriba y la persona no pierde nada. La cuenta de gestión de la
+    //    fundación no compite (se mira el correo del token y el del perfil).
     let position = null;
-
-    // 8. La cuenta de gestión de la fundación no compite: no es participante.
-    //    Se mira tanto el correo del token como el del perfil guardado.
+    let sumarAlRanking = null;
     const esLaFundacion =
       esAdminPermanente(persona.email) || esAdminPermanente(perfil?.email);
-
     if (completed && !esLaFundacion) {
       try {
         const particionDia = P.dailyDone(ciclo, n);
         const yaTenia = await leerUno("dailyDone", particionDia, persona.uid);
-
         if (yaTenia) {
           // Ya había hecho esta lección antes: conserva su puesto y no vuelve a
           // sumar al acumulado, o repetir el clic le subiría el promedio solo.
@@ -270,15 +254,11 @@ app.http("avanceMarcar", {
         } else {
           // Fecha y minuto de cuando se HIZO, no de cuando llegó al servidor.
           const { fecha, minuto } = relojBogota(completedAt);
-          // El puesto es "cuántos llegaron antes, más uno". Contar la partición
-          // es una consulta directa: son solo las filas de ESTA lección.
+          // El puesto es "cuántos llegaron antes, más uno".
           position = (await contarParticion("dailyDone", particionDia)) + 1;
-
-          // Sin el nombre a propósito: era un dato personal que cualquiera con
-          // sesión podía leer. El nombre visible vive en el directorio.
+          // Sin el nombre a propósito: el nombre visible vive en el directorio.
           // Se CREA (no se sobrescribe): si un reintento se cruzó con el envío
-          // original y este ya la escribió, gana el primero y no se suma dos
-          // veces al acumulado de abajo.
+          // original y este ya la escribió, gana el primero y no se suma dos veces.
           const nuevo = await crear("dailyDone", particionDia, persona.uid, {
             uid: persona.uid,
             ciclo,
@@ -287,29 +267,65 @@ app.http("avanceMarcar", {
             position,
             lessonNumber: n,
           });
-          if (!nuevo) {
+          if (nuevo) {
+            sumarAlRanking = { puesto: position, minuto };
+          } else {
             const ya = await leerUno("dailyDone", particionDia, persona.uid);
-            return json({ position: Number(ya?.position ?? 0) || null, hechasHoy, maximo: MAXIMO_POR_DIA });
+            position = Number(ya?.position ?? 0) || null;
           }
-
-          // El acumulado del ranking se guarda en el propio perfil para que el
-          // panel de admin no tenga que leer la tabla entera cada vez que se abre.
-          // Aquí no hay "sumar uno" automático como en Firestore, así que se
-          // suma sobre lo que ya traía el perfil leído al empezar la petición:
-          // es la misma persona marcando su propia lección, de una en una.
-          await guardar("users", P.users(), persona.uid, {
-            rankDias: (Number(perfil?.rankDias ?? 0) || 0) + 1,
-            rankSumaPuesto: (Number(perfil?.rankSumaPuesto ?? 0) || 0) + position,
-            rankSumaMinuto: (Number(perfil?.rankSumaMinuto ?? 0) || 0) + minuto,
-          });
         }
       } catch {
-        // Sin puesto esta vez; la lección quedó hecha, que es lo que importa.
         position = null;
       }
     }
 
-    return json({ position, hechasHoy, maximo: MAXIMO_POR_DIA });
+    // 5. El perfil, SIN PISAR lo que otra marca simultánea haya escrito (ver
+    //    cambiarSinPisar): todo se calcula sobre lo que hay guardado en este
+    //    instante, no sobre lo que se leyó al empezar la petición.
+    //    - El contador de hechas se recuenta, no se suma uno.
+    //    - La lección actual SOLO sube (ver regla 2 de arriba).
+    //    - La «última lección hecha» solo avanza; al desmarcar no se borra,
+    //      porque sirve para saber quién sigue caminando.
+    //    - `hechasHoy` es una copia de la cuenta del día para que la pantalla
+    //      avise «te queda 1 hoy»; el tope de arriba no depende de ella.
+    const final = await cambiarSinPisar("users", P.users(), persona.uid, async (actual) => {
+      const filas = await leerParticion("progress", particion);
+      const cur = acotarLeccion(actual?.currentLesson ?? 1);
+      const cambios = {
+        completedLessonsCount: filas.filter((f) => f.completed === true).length,
+        currentLesson: completed ? Math.max(cur, acotarLeccion(n + 1)) : cur,
+        lastActivityAt: ahora,
+        hechasHoy: hechasEl(filas, hoy),
+        hechasHoyFecha: hoy,
+      };
+      if (completed) {
+        cambios.lastCompletedAt = Math.max(Number(actual?.lastCompletedAt ?? 0) || 0, completedAt);
+      }
+      if (sumarAlRanking) {
+        cambios.rankDias = (Number(actual?.rankDias ?? 0) || 0) + 1;
+        cambios.rankSumaPuesto = (Number(actual?.rankSumaPuesto ?? 0) || 0) + sumarAlRanking.puesto;
+        cambios.rankSumaMinuto = (Number(actual?.rankSumaMinuto ?? 0) || 0) + sumarAlRanking.minuto;
+      }
+      return cambios;
+    });
+
+    await anotar(completed ? "marca" : "desmarca", {
+      ...rastro,
+      guardadaEn: completedAt,
+      dia: completed ? relojBogota(completedAt).fecha : null,
+      yaEstaba: yaEstabaHecha,
+      position,
+    });
+
+    return json({
+      position,
+      hechasHoy: Number(final?.hechasHoy ?? 0),
+      maximo: MAXIMO_POR_DIA,
+      // Para que la pantalla quede al día sin tener que volver a preguntar.
+      completed,
+      completedAt,
+      currentLesson: Number(final?.currentLesson ?? 0) || null,
+    });
   }),
 });
 

@@ -18,7 +18,10 @@ public class MedianocheReceiver extends BroadcastReceiver {
                 try {
                     Servidor.refrescar(c);
                 } catch (Exception sinInternet) {
-                    // Datos.leccionAhora ya cambia sola a la lección de «mañana».
+                    // Sin respuesta a medianoche (sin señal, o el servidor dormido):
+                    // se vuelve a preguntar apenas se pueda. Mientras tanto el
+                    // widget no muestra un número del que no esté seguro.
+                    Refresco.pronto(c);
                 }
                 LeccionWidget.pintarTodos(c);
             } finally {

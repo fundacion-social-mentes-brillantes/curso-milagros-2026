@@ -18,7 +18,10 @@ public class RecordatorioReceiver extends BroadcastReceiver {
                 try {
                     Servidor.refrescar(c);
                 } catch (Exception sinInternet) {
-                    // Se avisa con lo último que se sabía: el aviso nunca se pierde.
+                    // Se avisa con lo último que se sabía (sin número si no es
+                    // seguro): el aviso nunca se pierde. Y se pregunta otra vez
+                    // apenas haya internet, para el widget.
+                    Refresco.pronto(c);
                 }
                 Programador.avisar(c);
                 LeccionWidget.pintarTodos(c);

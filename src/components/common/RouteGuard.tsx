@@ -23,6 +23,23 @@ function ConfigNotice() {
   );
 }
 
+/** No se pudo traer el perfil ni reintentando: se dice, y se deja reintentar. */
+function SinConexion({ onReintentar }: { onReintentar: () => void }) {
+  return (
+    <div className="container-page py-20">
+      <div className="vidrio mx-auto max-w-md rounded-[1.6rem] p-8 text-center">
+        <p className="text-xl text-fg">No pudimos conectar con el curso</p>
+        <p className="mt-2 text-sm text-muted">
+          Puede ser la señal o que el servidor está despertando. Tu avance está a salvo.
+        </p>
+        <button onClick={onReintentar} className="boton-cristal mt-6">
+          Reintentar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function NotAuthorized() {
   return (
     <div className="container-page py-20">
@@ -47,7 +64,7 @@ export function RouteGuard({
   children: React.ReactNode;
   requireAdmin?: boolean;
 }) {
-  const { loading, configured, firebaseUser, appUser, isAdmin } = useAuth();
+  const { loading, configured, firebaseUser, appUser, isAdmin, perfilFallo, reintentarPerfil } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -59,6 +76,7 @@ export function RouteGuard({
   if (!configured) return <ConfigNotice />;
   if (loading) return <PageLoader />;
   if (!firebaseUser) return <PageLoader label="Redirigiendo al inicio de sesión..." />;
+  if (!appUser && perfilFallo) return <SinConexion onReintentar={reintentarPerfil} />;
   if (!appUser) return <PageLoader label="Preparando tu espacio..." />;
   // Primer ingreso: pedir datos de registro antes de entrar.
   if (!appUser.profileComplete) return <Onboarding />;

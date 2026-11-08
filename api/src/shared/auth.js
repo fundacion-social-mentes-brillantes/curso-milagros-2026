@@ -23,12 +23,27 @@ const URL_LLAVES =
 let llaves = null;
 let llavesHasta = 0;
 
+/**
+ * No poder leer las llaves NO es lo mismo que un pase falso. Antes los dos
+ * terminaban en «sin sesión» (401): un tropiezo de red con Google se veía como
+ * si la persona no hubiera entrado. Ahora, si hay llaves de antes se siguen
+ * usando un rato, y si no hay ninguna se responde «no pude verificar» (503),
+ * que el celular trata como un fallo pasajero y reintenta.
+ */
+class SinVerificar extends Error {}
+
 async function obtenerLlaves() {
   const ahora = Date.now();
   if (llaves && ahora < llavesHasta) return llaves;
 
-  const res = await fetch(URL_LLAVES);
-  if (!res.ok) throw new Error("no se pudieron leer las llaves de Google");
+  let res;
+  try {
+    res = await fetch(URL_LLAVES, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`llaves de Google: ${res.status}`);
+  } catch (err) {
+    if (llaves) return llaves; // las de antes valen mientras Google responde
+    throw new SinVerificar(String(err && err.message ? err.message : err));
+  }
   const datos = await res.json();
 
   // Google dice en la cabecera cuánto duran; si no, una hora.
@@ -83,7 +98,8 @@ async function verificarToken(token) {
       nombre: String(cuerpo.name || ""),
       foto: String(cuerpo.picture || ""),
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof SinVerificar) throw err;
     return null;
   }
 }
@@ -112,4 +128,4 @@ async function quienLlama(request) {
   return verificarToken(cabecera.slice(7).trim());
 }
 
-module.exports = { verificarToken, quienLlama, PROYECTO };
+module.exports = { verificarToken, quienLlama, PROYECTO, SinVerificar };

@@ -78,7 +78,14 @@ final class Datos {
      * La lección que toca mostrar AHORA: la de hoy si la respuesta es de hoy;
      * si es de un día anterior (pasó la medianoche sin internet), la que el
      * servidor dejó lista para después de la medianoche.
-     * Devuelve {numero, idea, hecha} o null si nunca se ha sabido nada.
+     * Devuelve {numero, idea, hecha, segura} o null si nunca se ha sabido nada.
+     *
+     * `segura` dice si de verdad se sabe que ESA es la lección de hoy. La de
+     * «mañana» solo es segura si, cuando se preguntó, la de ese día ya estaba
+     * hecha; si no, depende de si la persona la marcó después (y la app no se
+     * entera de eso hasta volver a preguntar). Con una lección no segura, el
+     * widget y el aviso no muestran número y abren «Hoy», que decide la web
+     * con datos frescos. Antes mostraban la vieja y engañaban.
      */
     static Leccion leccionAhora(Context c) {
         JSONObject r = hoyGuardado(c);
@@ -86,7 +93,8 @@ final class Datos {
         try {
             boolean deHoy = fechaBogota().equals(r.optString("fecha"));
             JSONObject l = deHoy ? r.getJSONObject("hoy") : r.getJSONObject("manana");
-            return new Leccion(l.getInt("numero"), l.optString("idea", ""), deHoy && l.optBoolean("hecha"));
+            boolean segura = deHoy || r.getJSONObject("hoy").optBoolean("hecha");
+            return new Leccion(l.getInt("numero"), l.optString("idea", ""), deHoy && l.optBoolean("hecha"), segura);
         } catch (Exception e) {
             return null;
         }
@@ -96,11 +104,13 @@ final class Datos {
         final int numero;
         final String idea;
         final boolean hecha;
+        final boolean segura;
 
-        Leccion(int numero, String idea, boolean hecha) {
+        Leccion(int numero, String idea, boolean hecha, boolean segura) {
             this.numero = numero;
             this.idea = idea;
             this.hecha = hecha;
+            this.segura = segura;
         }
     }
 }

@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import {
@@ -14,7 +15,7 @@ import {
   type User,
 } from "firebase/auth";
 import { getClientAuth, firebaseConfigured, getGoogleProvider } from "@/lib/firebase";
-import { ensureUserProfile, getAppUser, subscribeAppUser } from "@/lib/users";
+import { cargarMiPerfil, getAppUser } from "@/lib/users";
 import { ADMIN_EMAILS_PUBLIC } from "@/config/firebase-public";
 import type { AppUser } from "@/types";
 import { esDemo, usuarioDemo } from "@/lib/demo";
@@ -33,6 +34,10 @@ interface AuthState {
    * pantalla seguiría mostrando el viejo hasta recargar.
    */
   refrescarPerfil: () => Promise<void>;
+  /** No se pudo traer el perfil al entrar, ni reintentando (sin señal o servidor caído). */
+  perfilFallo: boolean;
+  /** Vuelve a intentar traer el perfil (el botón «Reintentar»). */
+  reintentarPerfil: () => void;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -55,6 +60,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [perfilFallo, setPerfilFallo] = useState(false);
+  // Cada lectura del perfil lleva un número de turno y solo vale la más
+  // reciente: si dos lecturas se cruzan, la vieja no pisa a la nueva (antes la
+  // lección actual podía quedar atrasada si la respuesta lenta llegaba última).
+  const turnoPerfil = useRef(0);
+  const turnoRefresco = useRef(0);
+
+  const traerPerfil = useCallback(async () => {
+    const turno = ++turnoPerfil.current;
+    turnoRefresco.current++; // un refresco que venía en camino ya no vale
+    setPerfilFallo(false);
+    const perfil = await cargarMiPerfil();
+    if (turno === turnoPerfil.current) {
+      if (perfil) setAppUser(perfil);
+      else setPerfilFallo(true);
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     // Solo en `npm run dev`: «?demo» entra con una persona de prueba (ver lib/demo.ts).
@@ -69,40 +92,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    let unsubUser: (() => void) | undefined;
     const auth = getClientAuth();
 
     const unsub = onAuthStateChanged(auth, async (user) => {
-      if (unsubUser) {
-        unsubUser();
-        unsubUser = undefined;
-      }
-
       if (!user) {
+        turnoPerfil.current++; // cualquier lectura en camino ya no vale
         setFirebaseUser(null);
         setAppUser(null);
+        setPerfilFallo(false);
         setLoading(false);
         return;
       }
-
       setFirebaseUser(user);
-      try {
-        await ensureUserProfile(user);
-      } catch {
-        /* no romper el login si falla la creación del perfil */
-      }
-
-      unsubUser = subscribeAppUser(user.uid, (au) => {
-        setAppUser(au);
-        setLoading(false);
-      });
+      // Una sola lectura (crea el perfil si es la primera vez), con reintentos.
+      await traerPerfil();
     });
 
     return () => {
+      turnoPerfil.current++;
       unsub();
-      if (unsubUser) unsubUser();
     };
-  }, []);
+  }, [traerPerfil]);
 
   const signIn = useCallback(async () => {
     await signInWithPopup(getClientAuth(), getGoogleProvider());
@@ -121,9 +131,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refrescarPerfil = useCallback(async () => {
     const uid = firebaseUser?.uid;
     if (!uid) return;
+    const base = turnoPerfil.current;
+    const mio = ++turnoRefresco.current;
     const actualizado = await getAppUser(uid);
-    if (actualizado) setAppUser(actualizado);
+    if (actualizado && base === turnoPerfil.current && mio === turnoRefresco.current) {
+      setAppUser(actualizado);
+      setPerfilFallo(false);
+    }
   }, [firebaseUser?.uid]);
+
+  const reintentarPerfil = useCallback(() => {
+    if (firebaseUser) void traerPerfil();
+  }, [firebaseUser, traerPerfil]);
 
   const value: AuthState = {
     firebaseUser,
@@ -134,6 +153,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signOutUser,
     refrescarPerfil,
+    perfilFallo,
+    reintentarPerfil,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

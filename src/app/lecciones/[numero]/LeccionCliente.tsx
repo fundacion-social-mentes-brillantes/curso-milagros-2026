@@ -22,7 +22,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { getLessonByNumber } from "@/lib/lessons";
 import { getLessonProgress } from "@/lib/progress";
 import { touchActivity } from "@/lib/users";
-import { formatDate } from "@/lib/utils";
+import { bogotaDateStr, formatDate } from "@/lib/utils";
 import { VideoPlayer } from "@/components/lesson/VideoPlayer";
 import { PracticeToggle } from "@/components/lesson/PracticeToggle";
 import { OriginalText } from "@/components/lesson/OriginalText";
@@ -136,6 +136,14 @@ function LessonInner({ n }: { n: number }) {
     lesson.commentaryReady && Boolean(lesson.commentary.teachingExplanation);
 
   const completada = Boolean(progress?.completed);
+  // ¿Esta lección se hizo OTRO día y ya va más adelante? Pasa al abrir un aviso
+  // viejo, un enlace de WhatsApp o una pantalla que quedó abierta desde ayer: se
+  // ve dorada y parece que la de hoy ya está. Se dice claro cuál toca hoy.
+  const hechaOtroDia =
+    completada &&
+    Boolean(progress?.completedAt) &&
+    bogotaDateStr(Number(progress?.completedAt)) !== bogotaDateStr(Date.now()) &&
+    (appUser?.currentLesson ?? 0) > n;
 
   return (
     <div className="container-page pb-10 pt-1 sm:pt-3">
@@ -175,6 +183,17 @@ function LessonInner({ n }: { n: number }) {
               </span>
             )}
           </p>
+          {hechaOtroDia && (
+            <div className="vidrio aparece mx-auto mt-6 max-w-[30rem] rounded-2xl px-5 py-4 text-[0.95rem] leading-relaxed [animation-delay:.26s]">
+              <p className="text-fg">
+                Esta lección ya la hiciste el {formatDate(Number(progress?.completedAt))}. Vas en la{" "}
+                <strong className="font-semibold">lección {appUser?.currentLesson}</strong>.
+              </p>
+              <Link href="/hoy" className="mt-2 inline-block font-semibold text-gold underline-offset-4 hover:underline">
+                Ir a mi lección de hoy →
+              </Link>
+            </div>
+          )}
         </header>
 
         <div className="mt-20 space-y-24">
@@ -233,6 +252,14 @@ function LessonInner({ n }: { n: number }) {
               currentLesson={appUser.currentLesson || 1}
               hechasHoy={appUser.hechasHoy ?? 0}
               mostrarPuesto={esPro}
+              onGuardada={(cuando) =>
+                setProgress((p) => ({
+                  ...(p ?? { lessonNumber: n }),
+                  lessonNumber: n,
+                  completed: cuando !== null,
+                  completedAt: cuando,
+                }) as Progress)
+              }
             />
           )}
 

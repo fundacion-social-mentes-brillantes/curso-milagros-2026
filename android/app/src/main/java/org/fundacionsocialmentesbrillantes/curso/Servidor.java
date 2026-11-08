@@ -29,7 +29,7 @@ final class Servidor {
     /** Cambia el código de un solo uso por la llave de este celular. */
     static void canjear(Context c, String codigo, String celular) throws Exception {
         JSONObject cuerpo = new JSONObject().put("codigo", codigo).put("celular", celular);
-        Respuesta r = pedir("POST", "/api/app/canjear", null, cuerpo.toString());
+        Respuesta r = pedir("POST", "/api/app/canjear", null, cuerpo.toString(), true);
         if (r.estado == 410 || r.estado == 400) throw new CodigoVencido();
         if (r.estado != 200) throw new Exception("canjear: " + r.estado);
         JSONObject d = new JSONObject(r.texto);
@@ -38,9 +38,19 @@ final class Servidor {
 
     /** Pregunta la lección del día y la deja guardada. */
     static void refrescar(Context c) throws Exception {
+        refrescar(c, false);
+    }
+
+    /**
+     * `paciente`: esperar hasta ~45 s, lo que tarda en despertar el servidor
+     * (plan gratuito de Azure). Solo desde el trabajo en segundo plano
+     * (Refresco): un aviso o la medianoche no pueden esperar tanto, Android los
+     * corta; esos preguntan rápido y, si no alcanzan, piden un Refresco.
+     */
+    static void refrescar(Context c, boolean paciente) throws Exception {
         String llave = Datos.llave(c);
         if (llave == null) throw new SinVincular();
-        Respuesta r = pedir("GET", "/api/app/hoy", llave, null);
+        Respuesta r = pedir("GET", "/api/app/hoy", llave, null, paciente);
         if (r.estado == 401) throw new SinVincular();
         if (r.estado != 200) throw new Exception("hoy: " + r.estado);
         Datos.guardarHoy(c, new JSONObject(r.texto));
@@ -88,7 +98,7 @@ final class Servidor {
         String llave = Datos.llave(c);
         if (llave == null) return;
         try {
-            pedir("DELETE", "/api/app/dispositivo", llave, null);
+            pedir("DELETE", "/api/app/dispositivo", llave, null, false);
         } catch (Exception ignorado) {
             // Si no hay internet, igual se olvida en el celular.
         }
@@ -105,12 +115,13 @@ final class Servidor {
         }
     }
 
-    private static Respuesta pedir(String metodo, String ruta, String llave, String cuerpo) throws Exception {
+    private static Respuesta pedir(String metodo, String ruta, String llave, String cuerpo, boolean paciente)
+            throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(Datos.SITIO + ruta).openConnection();
         try {
             con.setRequestMethod(metodo);
-            con.setConnectTimeout(8000);
-            con.setReadTimeout(10000);
+            con.setConnectTimeout(paciente ? 15000 : 8000);
+            con.setReadTimeout(paciente ? 30000 : 10000);
             con.setUseCaches(false);
             // Cabecera propia: Azure Static Web Apps pisa la de Authorization.
             if (llave != null) con.setRequestProperty("x-app-llave", llave);
