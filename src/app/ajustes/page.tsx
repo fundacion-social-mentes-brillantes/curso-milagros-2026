@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { RouteGuard } from "@/components/common/RouteGuard";
 import { Notificaciones } from "@/components/ajustes/Notificaciones";
 import { AppAndroid } from "@/components/ajustes/AppAndroid";
@@ -20,6 +21,28 @@ import { useAjustes } from "@/lib/ajustes";
  */
 function AjustesInner() {
   const { ajustes, cambiar } = useAjustes();
+
+  /*
+   * Llegar directo a un bloque: «Personaliza tu mensaje de siempre», al marcar
+   * una lección, trae aquí con #mensaje-para-el-grupo. El navegador no baja solo
+   * porque esta pantalla se dibuja después de entrar la sesión, y los bloques de
+   * arriba (notificaciones) crecen al cargar; por eso se baja aquí, dos veces, y
+   * se ilumina el bloque un momento para que se vea dónde está.
+   */
+  useEffect(() => {
+    const id = decodeURIComponent(location.hash.replace(/^#/, ""));
+    if (!id) return;
+    const ir = () => {
+      const el = document.getElementById(id);
+      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 16, behavior: "smooth" });
+    };
+    const a = window.setTimeout(ir, 50);
+    const b = window.setTimeout(ir, 700);
+    const destino = document.getElementById(id);
+    destino?.classList.add("resaltada");
+    const c = window.setTimeout(() => destino?.classList.remove("resaltada"), 3200);
+    return () => [a, b, c].forEach((t) => window.clearTimeout(t));
+  }, []);
 
   return (
     <div className="container-page py-8 sm:py-10">

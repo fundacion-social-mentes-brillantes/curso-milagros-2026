@@ -2,18 +2,21 @@
 
 /** Caja con título para cada bloque de ajustes. Solo para no repetir marcado. */
 export function Seccion({
+  id,
   icono,
   titulo,
   descripcion,
   children,
 }: {
+  /** Para llegar directo desde un enlace (/ajustes#id). */
+  id?: string;
   icono: string;
   titulo: string;
   descripcion?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="card overflow-hidden">
+    <section id={id} className="card scroll-mt-6 overflow-hidden">
       <div className="border-b border-border p-4 sm:p-5">
         <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
           <span aria-hidden>{icono}</span>

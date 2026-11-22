@@ -105,11 +105,18 @@ export function CompartirWhatsApp({
           </div>
 
           <p className="mt-2 text-center text-xs text-muted">
-            Se abre WhatsApp con el mensaje listo y ahí eliges tu grupo.{" "}
-            <Link href="/ajustes" className="text-aqua underline-offset-2 hover:underline">
-              Cambiar el mensaje de siempre
-            </Link>
+            Se abre WhatsApp con el mensaje listo y ahí eliges tu grupo.
           </p>
+          {/* Antes era un enlacito que casi nadie veía (Valeria, 22-nov-2026). Ahora
+              es una barra con luz que lleva DIRECTO al bloque de Ajustes donde se
+              cambia el mensaje de todos los días, sin tener que bajar a buscarlo. */}
+          <Link
+            href="/ajustes#mensaje-para-el-grupo"
+            className="barra-luz mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold"
+          >
+            <span aria-hidden>✏️</span>
+            Personaliza tu mensaje de siempre
+          </Link>
         </div>
       )}
     </div>

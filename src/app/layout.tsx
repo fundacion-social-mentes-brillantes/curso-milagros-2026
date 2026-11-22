@@ -11,6 +11,7 @@ import { SenseiChat } from "@/components/sensei/SenseiChat";
 import { OneSignalInit } from "@/components/notifications/OneSignalInit";
 import { AvisoMarcasPendientes } from "@/components/common/AvisoMarcasPendientes";
 import { AlDiaConElReloj } from "@/components/common/AlDiaConElReloj";
+import { AbrirSinSenal } from "@/components/common/AbrirSinSenal";
 import { SITE } from "@/config/site";
 import { GUION_ANTI_PARPADEO } from "@/lib/ajustes";
 import { GUION_APP_ANDROID } from "@/lib/app-android";
@@ -144,6 +145,8 @@ export default function RootLayout({
           <AvisoMarcasPendientes />
           {/* Si la app quedó abierta de un día para otro, se pone al día sola. */}
           <AlDiaConElReloj />
+          {/* Que la app abra aunque la señal falle justo al abrirla. */}
+          <AbrirSinSenal />
         </AuthProvider>
       </body>
     </html>

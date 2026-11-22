@@ -581,6 +581,22 @@ html:not(.ver-arranque) .arranque { display: none; }
 .leida.guardando .texto-pendiente { opacity: 0; }
 .leida.guardando .texto-guardando { opacity: 1; }
 @keyframes leida-gira { from { --giro: 0deg; } to { --giro: 360deg; } }
+/* «Personaliza tu mensaje de siempre»: una barra con luz aqua que se nota (antes
+   era un enlacito que nadie veía; Valeria, 22-nov-2026). */
+.barra-luz {
+  color: rgb(var(--aqua-soft));
+  background: linear-gradient(100deg, rgb(var(--aqua) / 0.16), rgb(var(--aqua) / 0.34) 50%, rgb(var(--aqua) / 0.16));
+  background-size: 200% 100%;
+  box-shadow: inset 0 0 0 1px rgb(var(--aqua) / 0.7), 0 0 30px -6px rgb(var(--aqua) / 0.85);
+  animation: barra-luz-brillo 3.5s ease-in-out infinite;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.barra-luz:hover { filter: brightness(1.15); }
+.barra-luz:active { transform: scale(0.98); }
+@keyframes barra-luz-brillo { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+/* El bloque de Ajustes al que se llega con un enlace: se ilumina un momento. */
+.resaltada, [data-tema] .card.resaltada { box-shadow: 0 0 0 2px rgb(var(--aqua) / 0.75), 0 0 34px -6px rgb(var(--aqua) / 0.85); transition: box-shadow 0.6s ease; }
+@media (prefers-reduced-motion: reduce) { .barra-luz { animation: none; } }
 /* Ya estaba hecha al abrir la lección: queda dorada, sin animación. */
 .leida.dorada { color: #2b2311; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 14px 34px -16px rgb(226 190 110 / 0.8), 0 0 30px -10px rgb(255 236 190 / 0.45); }
 .leida.dorada .llena { transform: scaleX(1); }

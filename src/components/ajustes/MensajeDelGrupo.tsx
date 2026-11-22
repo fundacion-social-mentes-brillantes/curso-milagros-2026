@@ -133,6 +133,7 @@ export function MensajeDelGrupo() {
 
   return (
     <Seccion
+      id="mensaje-para-el-grupo"
       icono="💬"
       titulo="Mensaje para el grupo"
       descripcion="Lo que se propone al marcar una lección como hecha. Se guarda en este aparato."
