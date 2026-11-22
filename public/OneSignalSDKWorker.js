@@ -24,9 +24,11 @@
  */
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const PAGINAS = "ucdm-paginas-v1";
-const PIEZAS = "ucdm-piezas-v1";
-const SIN_CONEXION = "/sin-conexion.html";
+const PAGINAS = "ucdm-paginas-v2";
+const PIEZAS = "ucdm-piezas-v2";
+// Sin «.html»: Azure redirige /sin-conexion.html a /sin-conexion, y una página
+// que llegó redirigida no se puede mostrar desde aquí (sale error).
+const SIN_CONEXION = "/sin-conexion";
 const ESPERA_RED = 6000; // pasado esto, la copia guardada
 const ESPERA_SIN_COPIA = 20000; // sin copia guardada, se espera un poco más a la red
 const MAXIMO_PIEZAS = 400; // que lo guardado no crezca sin fin con cada versión
@@ -79,6 +81,16 @@ function llaveDePagina(pedido) {
 }
 
 const esperar = (ms) => new Promise((listo) => setTimeout(listo, ms));
+
+/**
+ * Una respuesta guardada que en su momento llegó tras una redirección no se
+ * puede entregar a una página que se está abriendo: el navegador la rechaza.
+ * Se rearma limpia, con el mismo contenido.
+ */
+async function limpia(respuesta) {
+  if (!respuesta || !respuesta.redirected) return respuesta;
+  return new Response(await respuesta.blob(), { status: respuesta.status, statusText: respuesta.statusText, headers: respuesta.headers });
+}
 const plazo = (promesa, ms) =>
   Promise.race([promesa, esperar(ms).then(() => Promise.reject(new Error("sin respuesta a tiempo")))]);
 
@@ -101,11 +113,11 @@ async function abrirPagina(evento) {
     return await plazo(red, ESPERA_RED);
   } catch {
     const guardada = await caches.match(llave, { cacheName: PAGINAS });
-    if (guardada) return guardada;
+    if (guardada) return limpia(guardada);
     try {
       return await plazo(red, ESPERA_SIN_COPIA - ESPERA_RED);
     } catch {
-      return (await caches.match(SIN_CONEXION, { cacheName: PAGINAS })) || Response.error();
+      return (await limpia(await caches.match(SIN_CONEXION, { cacheName: PAGINAS }))) || Response.error();
     }
   }
 }
